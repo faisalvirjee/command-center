@@ -1,0 +1,2238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blades of Chaos — Comic Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --ink: #0f0f0f;
+  --paper: #f5f0e8;
+  --aged: #e8e0cc;
+  --cream: #faf7f2;
+  --accent: #c0392b;
+  --accent2: #e67e22;
+  --green: #27ae60;
+  --blue: #2980b9;
+  --muted: #888;
+  --border: #ccc5b0;
+  --card: #fff;
+  --shadow: rgba(0,0,0,0.12);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* HEADER */
+header {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  border-bottom: 3px solid var(--accent);
+}
+header h1 {
+  font-family: 'Cinzel', serif;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+header h1 .h-icon  { color: #e84118; font-size: 20px; }
+header h1 .h-boc   { color: #e84118; letter-spacing: 3px; }
+header h1 .h-dash  { color: #6b3a1f; font-weight: 400; }
+header h1 .h-ct    { color: #c8b89a; font-size: 16px; letter-spacing: 3px; }
+.header-year {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: var(--muted);
+  background: #1a1a1a;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+/* TABS */
+.tabs {
+  display: flex;
+  background: var(--ink);
+  padding: 0 24px;
+  gap: 2px;
+}
+.tab {
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  border-bottom: 3px solid transparent;
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.tab:hover { color: var(--paper); }
+.tab.active { color: var(--paper); border-bottom-color: var(--accent); }
+
+/* MAIN LAYOUT */
+.container { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+/* STATS ROW */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent);
+}
+.stat-card.green::before { background: var(--green); }
+.stat-card.blue::before { background: var(--blue); }
+.stat-card.orange::before { background: var(--accent2); }
+.stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.stat-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.stat-value.profit { color: var(--green); }
+.stat-value.loss { color: var(--accent); }
+
+/* CONTROLS */
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.search-box {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+}
+.search-box:focus { outline: none; border-color: var(--ink); }
+select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  cursor: pointer;
+}
+select:focus { outline: none; }
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: var(--ink); color: var(--paper); }
+.btn-accent { background: var(--accent); color: white; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* TABLE */
+.table-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.inv-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead { background: var(--ink); color: var(--paper); }
+th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+th:hover { background: #222; }
+th.sort-asc::after { content: ' ↑'; }
+th.sort-desc::after { content: ' ↓'; }
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--aged);
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafaf7; }
+.item-name {
+  font-weight: 500;
+  max-width: 280px;
+  line-height: 1.3;
+}
+.mono { font-family: 'DM Mono', monospace; }
+.profit-cell { color: var(--green); font-weight: 600; }
+.loss-cell { color: var(--accent); font-weight: 600; }
+.neutral-cell { color: var(--muted); }
+
+/* STATUS BADGES */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.badge-sold { background: #d4edda; color: #155724; }
+.badge-listed { background: #cce5ff; color: #004085; }
+.badge-removed { background: #f8d7da; color: #721c24; }
+.badge-not-created { background: #e2e3e5; color: #383d41; }
+.badge-unknown { background: var(--aged); color: var(--muted); }
+
+/* PROFIT PREDICTOR PANEL */
+.predictor {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.predictor h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.predictor h2::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 22px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+.predictor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.field-group { display: flex; flex-direction: column; gap: 4px; }
+.field-group label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+.field-group input, .field-group select {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'DM Mono', monospace;
+  background: var(--cream);
+  color: var(--ink);
+  width: 100%;
+}
+.field-group input:focus { outline: none; border-color: var(--ink); }
+.results-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  background: var(--ink);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+.result-item { text-align: center; }
+.result-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 4px; }
+.result-value { font-family: 'DM Mono', monospace; font-size: 18px; color: var(--paper); font-weight: 500; }
+.result-value.good { color: #5dbb80; }
+.result-value.bad { color: #e07070; }
+.result-value.warn { color: #f0b55a; }
+
+/* ADD ITEM MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 24px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 1px;
+  margin-bottom: 18px;
+}
+.modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.modal-grid .full { grid-column: 1 / -1; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--border); }
+
+/* PLATFORM COMPARE */
+.platform-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.platform-card {
+  border-radius: 8px;
+  padding: 16px;
+  border: 2px solid transparent;
+}
+.platform-card.ebay { background: #fff3e0; border-color: #ffb300; }
+.platform-card.fb { background: #e3f2fd; border-color: #2196f3; }
+.platform-card h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.platform-card h3.ebay-title { color: #e65100; }
+.platform-card h3.fb-title { color: #1565c0; }
+.platform-stat { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+.platform-stat span:last-child { font-family: 'DM Mono', monospace; font-weight: 600; }
+
+/* PAGINATION */
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--aged); font-size: 13px; color: var(--muted); background: var(--cream); }
+.pagination-btns { display: flex; gap: 6px; }
+.page-btn { padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: white; cursor: pointer; font-size: 12px; }
+.page-btn.active { background: var(--ink); color: white; border-color: var(--ink); }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* HIDDEN */
+.hidden { display: none !important; }
+
+/* NOTES TOOLTIP */
+.note-icon { cursor: help; color: var(--muted); font-size: 13px; }
+
+.fee-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+.section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--aged);
+}
+
+.tag { font-size: 10px; background: var(--aged); padding: 1px 6px; border-radius: 3px; color: var(--muted); }
+
+.btn-edit {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: white;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+.btn-edit:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn-delete {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  background: #fff5f5;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: background 0.12s;
+  white-space: nowrap;
+  margin-left: 4px;
+}
+.btn-delete:hover { background: var(--accent); color: white; border-color: var(--accent); }
+.action-cell { display: flex; gap: 4px; align-items: center; }
+
+/* ── COLUMN TOGGLE ── */
+.col-toggle-wrap { position: relative; display: inline-block; }
+.col-toggle-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.col-toggle-btn:hover { background: var(--aged); }
+.col-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  z-index: 50;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  min-width: 200px;
+}
+.col-panel.open { display: block; }
+.col-panel-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.col-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--aged);
+}
+.col-check:last-child { border-bottom: none; }
+.col-check input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--ink); }
+/* Hide columns via class */
+.hide-col-status th:nth-child(2),  .hide-col-status td:nth-child(2)  { display: none; }
+.hide-col-ebay   th:nth-child(3),  .hide-col-ebay   td:nth-child(3)  { display: none; }
+.hide-col-fb     th:nth-child(4),  .hide-col-fb     td:nth-child(4)  { display: none; }
+.hide-col-cost   th:nth-child(5),  .hide-col-cost   td:nth-child(5)  { display: none; }
+.hide-col-price  th:nth-child(6),  .hide-col-price  td:nth-child(6)  { display: none; }
+.hide-col-enet   th:nth-child(7),  .hide-col-enet   td:nth-child(7)  { display: none; }
+.hide-col-eprofit th:nth-child(8), .hide-col-eprofit td:nth-child(8) { display: none; }
+.hide-col-margin th:nth-child(9),  .hide-col-margin  td:nth-child(9) { display: none; }
+.hide-col-breakeven th:nth-child(10), .hide-col-breakeven td:nth-child(10) { display: none; }
+.hide-col-fbnet  th:nth-child(11), .hide-col-fbnet  td:nth-child(11) { display: none; }
+.hide-col-promo  th:nth-child(12), .hide-col-promo  td:nth-child(12) { display: none; }
+.hide-col-purchaser th:nth-child(13), .hide-col-purchaser td:nth-child(13) { display: none; }
+.hide-col-notes  th:nth-child(14), .hide-col-notes  td:nth-child(14) { display: none; }
+
+/* Low profit warning row */
+tr.low-profit td { background: #fff8f0; }
+tr.low-profit td:first-child { border-left: 3px solid var(--accent2); }
+
+@media (max-width: 768px) {
+  .modal-grid { grid-template-columns: 1fr; }
+  .platform-bar { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  header h1 { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+
+
+<!-- PASSWORD SCREEN -->
+<div id="password-screen" style="position:fixed;inset:0;background:#0f0f0f;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:16px">
+  <div style="font-family:'Cinzel',serif;font-size:32px;letter-spacing:2px;color:#f5f0e8;display:flex;align-items:center;gap:12px">
+    <span style="color:#e84118">⚔</span>
+    <span style="color:#e84118;letter-spacing:3px">BLADES OF CHAOS</span>
+    <span style="color:#6b3a1f;font-weight:400">—</span>
+    <span style="color:#c8b89a;font-size:24px;letter-spacing:3px">Comic Tracker</span>
+  </div>
+  <div style="font-size:13px;color:#888;font-family:'DM Sans',sans-serif;margin-bottom:4px">Enter your password to continue</div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <div style="position:relative">
+      <input id="pw-input" type="password" placeholder="Password" autofocus
+        style="padding:10px 40px 10px 16px;border:1px solid #333;border-radius:6px;background:#1a1a1a;color:#f5f0e8;font-size:14px;font-family:'DM Mono',monospace;width:220px;outline:none"
+        onkeydown="if(event.key==='Enter') checkPassword()">
+      <button onclick="togglePwVisibility()" id="pw-eye"
+        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#888;padding:0;line-height:1"
+        title="Show/hide password">👁</button>
+    </div>
+    <button onclick="checkPassword()"
+      style="padding:10px 20px;background:#c0392b;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
+      Enter
+    </button>
+  </div>
+  <div id="pw-error" style="color:#e07070;font-size:12px;font-family:'DM Sans',sans-serif;opacity:0;transition:opacity 0.2s">Incorrect password — try again</div>
+</div>
+
+<!-- DRIVE CONNECT BANNER — shown until Drive is connected -->
+<div id="drive-banner" style="display:none;background:#1a1a1a;border-bottom:2px solid var(--accent2);padding:12px 24px;text-align:center">
+  <span style="font-size:13px;color:#f5f0e8;font-family:'DM Sans',sans-serif;margin-right:12px">
+    ☁️ Your data lives in Google Drive. Connect to load your comics.
+  </span>
+  <button onclick="driveSignIn()" style="padding:7px 18px;background:var(--accent2);color:white;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">
+    Connect to Drive
+  </button>
+</div>
+
+<header>
+  <h1>
+    <span class="h-icon">⚔</span>
+    <span class="h-boc">BLADES OF CHAOS</span>
+    <span class="h-dash">—</span>
+    <span class="h-ct">Comic Tracker</span>
+  </h1>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span id="save-indicator" style="font-size:11px;color:#5dbb80;font-family:'DM Mono',monospace;opacity:0;transition:opacity 0.5s">✓ Saved</span>
+    <span id="drive-status" style="font-size:11px;font-family:'DM Mono',monospace;color:#888;padding:3px 8px;background:#1a1a1a;border-radius:4px;cursor:pointer" onclick="handleDriveStatusClick()" title="Click to sign in / sync">⬤ Not connected</span>
+    <button onclick="exportData()" style="font-size:11px;padding:4px 10px;background:transparent;border:1px solid #444;border-radius:4px;color:#5dbb80;cursor:pointer;font-family:'DM Sans',sans-serif" title="Download a backup">⬇ Export</button>
+    <label style="font-size:11px;padding:4px 10px;background:transparent;border:1px solid #444;border-radius:4px;color:#f0b55a;cursor:pointer;font-family:'DM Sans',sans-serif" title="Restore from backup">⬆ Import<input type="file" id="import-input" accept=".json" onchange="importData(event)" style="display:none"></label>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('dashboard')">Dashboard</div>
+  <div class="tab" onclick="showTab('inventory')">Inventory</div>
+  <div class="tab" onclick="showTab('predictor')">eBay Predictor</div>
+  <div class="tab" onclick="showTab('sold')">Sold</div>
+  <div class="tab" onclick="showTab('debt')" style="color:#e67e22">💰 Recouping Spend</div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="tab-dashboard" class="container">
+  <div class="stats-grid" id="stats-grid"></div>
+
+  <div class="platform-bar">
+    <div class="platform-card ebay">
+      <h3 class="ebay-title">⚡ eBay Potential (Unsold)</h3>
+      <div class="platform-stat"><span>Projected Revenue</span><span id="ebay-rev">—</span></div>
+      <div class="platform-stat"><span>eBay Fees (~13.25%)</span><span id="ebay-fees">—</span></div>
+      <div class="platform-stat"><span>Promotion Drag (avg)</span><span id="ebay-promo">—</span></div>
+      <div class="platform-stat"><span>Est. Net Profit</span><span id="ebay-profit" style="color:#e65100;font-size:16px">—</span></div>
+    </div>
+    <div class="platform-card fb">
+      <h3 class="fb-title">👥 Facebook MP Potential (Unsold)</h3>
+      <div class="platform-stat"><span>Projected Revenue</span><span id="fb-rev">—</span></div>
+      <div class="platform-stat"><span>Fees</span><span>$0.00</span></div>
+      <div class="platform-stat"><span>Shipping (self-handled)</span><span>Varies</span></div>
+      <div class="platform-stat"><span>Est. Net Profit</span><span id="fb-profit" style="color:#1565c0;font-size:16px">—</span></div>
+    </div>
+  </div>
+
+  <div class="section-title">Top Opportunities (Highest eBay Profit Potential)</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>My Cost</th>
+          <th>Sale Price</th>
+          <th>eBay Net</th>
+          <th>FB Net</th>
+          <th>eBay Profit</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="top-items-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- INVENTORY TAB -->
+<div id="tab-inventory" class="container hidden">
+  <div class="controls">
+    <input class="search-box" type="text" id="inv-search" placeholder="Search item name…" oninput="renderInventory()">
+    <select id="inv-status" onchange="renderInventory()">
+      <option value="">All Statuses</option>
+      <option value="Listed">Listed</option>
+      <option value="Sold">Sold</option>
+      <option value="Not Created">Not Created</option>
+      <option value="REMOVED">Removed</option>
+    </select>
+    <select id="inv-purchaser" onchange="renderInventory()">
+      <option value="">All Purchasers</option>
+    </select>
+    <select id="inv-sort" onchange="renderInventory()">
+      <option value="ebay-desc">eBay Profit ↓</option>
+      <option value="ebay-asc">eBay Profit ↑</option>
+      <option value="cost-desc">Cost ↓</option>
+      <option value="cost-asc">Cost ↑</option>
+      <option value="price-desc">Sale Price ↓</option>
+      <option value="name-asc">Name A-Z</option>
+    </select>
+    <div class="col-toggle-wrap">
+      <button class="col-toggle-btn" onclick="toggleColPanel(event)">⚙ Columns</button>
+      <div class="col-panel" id="col-panel">
+        <div class="col-panel-title">Show / Hide Columns</div>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('status',this)">Current Status</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('ebay',this)">eBay Listing</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('fb',this)">Facebook Listing</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('cost',this)">My Cost</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('price',this)">Sale Price</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('enet',this)">eBay Net</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('eprofit',this)">eBay Profit $</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('margin',this)">eBay Margin</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('breakeven',this)">Break-Even</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('fbnet',this)">FB Net</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('promo',this)">Promo %</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('purchaser',this)">Purchaser</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('notes',this)">Notes</label>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Item</button>
+    <button class="btn btn-sm" style="background:transparent;border:1px solid var(--border);color:var(--muted)" onclick="clearInvFilters()">✕ Clear Filters</button>
+    <label class="btn" style="background:#2980b9;color:white;cursor:pointer;border:none" title="Import inventory from a CSV file exported from Google Sheets">📥 Bulk Import<input type="file" id="csv-import-input" accept=".csv" onchange="bulkImportCSV(event)" style="display:none"></label>
+  </div>
+  <div class="table-wrap inv-table-wrap" id="inv-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Current Status</th>
+          <th>eBay</th>
+          <th>Facebook</th>
+          <th>My Cost</th>
+          <th>Sale Price</th>
+          <th>eBay Net</th>
+          <th>eBay Profit $</th>
+          <th>eBay Margin</th>
+          <th>Break-Even</th>
+          <th>FB Net</th>
+          <th>Promo %</th>
+          <th>Purchaser</th>
+          <th>Notes</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="inv-body"></tbody>
+    </table>
+    <div class="pagination">
+      <span id="inv-count">Showing 0 items</span>
+      <div class="pagination-btns" id="inv-pages"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PREDICTOR TAB -->
+<div id="tab-predictor" class="container hidden">
+  <div class="predictor">
+    <h2>eBay Profit Calculator</h2>
+    <div class="predictor-grid">
+      <div class="field-group">
+        <label>My Cost ($)</label>
+        <input type="number" id="p-cost" value="30" step="0.01" oninput="calcPredictor()">
+      </div>
+      <div class="field-group">
+        <label>Asking / Sale Price ($)</label>
+        <input type="number" id="p-price" value="75" step="0.01" oninput="calcPredictor()">
+      </div>
+      <div class="field-group">
+        <label>Shipping Charged to Buyer ($)</label>
+        <input type="number" id="p-ship-charge" value="0" step="0.01" oninput="calcPredictor()">
+      </div>
+      <div class="field-group">
+        <label>Actual Shipping Cost ($)</label>
+        <input type="number" id="p-ship-cost" value="5" step="0.01" oninput="calcPredictor()">
+      </div>
+      <div class="field-group">
+        <label>eBay Final Value Fee (%)</label>
+        <input type="number" id="p-fvf" value="13.25" step="0.01" oninput="calcPredictor()">
+        <span class="fee-note">Typically 13.25% for collectibles</span>
+      </div>
+      <div class="field-group">
+        <label>Promotion Rate (%)</label>
+        <input type="number" id="p-promo" value="5" step="0.5" oninput="calcPredictor()">
+        <span class="fee-note">Promoted Listings fee if you promote</span>
+      </div>
+      <div class="field-group">
+        <label>eBay Transaction Fee ($)</label>
+        <input type="number" id="p-txn" value="0.30" step="0.01" oninput="calcPredictor()">
+        <span class="fee-note">$0.30 fixed per transaction</span>
+      </div>
+      <div class="field-group">
+        <label>Tax Collected by eBay ($)</label>
+        <input type="number" id="p-tax" value="0" step="0.01" oninput="calcPredictor()">
+        <span class="fee-note">eBay collects & remits — not your income</span>
+      </div>
+    </div>
+
+    <div class="results-strip">
+      <div class="result-item">
+        <div class="result-label">Sale Price</div>
+        <div class="result-value" id="r-price">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">eBay Fees</div>
+        <div class="result-value bad" id="r-fvf">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">Promo Fee</div>
+        <div class="result-value warn" id="r-promo">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">Ship Delta</div>
+        <div class="result-value" id="r-ship">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">Net After Fees</div>
+        <div class="result-value" id="r-net">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">Your Profit</div>
+        <div class="result-value good" id="r-profit">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">Margin</div>
+        <div class="result-value" id="r-margin">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">Break-Even Price</div>
+        <div class="result-value warn" id="r-breakeven">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="predictor" style="margin-top:16px">
+    <h2>Promotion Impact Analysis</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px">See how different promotion rates affect your profit at the price above.</p>
+    <table style="width:100%;font-size:13px;border-collapse:collapse">
+      <thead style="background:var(--aged)">
+        <tr>
+          <th style="padding:8px 12px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase">Promo Rate</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;letter-spacing:1px;text-transform:uppercase">Promo Fee</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;letter-spacing:1px;text-transform:uppercase">Net Profit</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;letter-spacing:1px;text-transform:uppercase">Margin</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;letter-spacing:1px;text-transform:uppercase">vs No Promo</th>
+        </tr>
+      </thead>
+      <tbody id="promo-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- SOLD TAB -->
+<div id="tab-sold" class="container hidden">
+  <div class="stats-grid" id="sold-stats"></div>
+  <div class="controls" style="margin-top:14px">
+    <input class="search-box" type="text" id="sold-search" placeholder="Search sold items…" oninput="renderSold()">
+    <select id="sold-purchaser" onchange="renderSold()">
+      <option value="">All Purchasers</option>
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="clearSoldFilters()">✕ Clear Filters</button>
+  </div>
+  <div class="table-wrap sold-table-wrap" style="margin-top:10px">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Cost</th>
+          <th>Sold For</th>
+          <th>Actual Profit</th>
+          <th>Profit %</th>
+          <th>Purchaser</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="sold-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- RECOUPING SPEND TAB -->
+<div id="tab-debt" class="container hidden">
+
+  <!-- SCOREBOARD -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px" id="debt-scoreboard"></div>
+
+  <!-- GAP PROGRESS BAR -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px 20px;margin-bottom:20px" id="debt-progress-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px">Gap Paydown Progress</span>
+      <span id="debt-gap-pct" style="font-family:'DM Mono',monospace;font-size:20px;font-weight:600;color:var(--accent2)">0%</span>
+    </div>
+    <div style="background:var(--aged);border-radius:20px;height:18px;overflow:hidden">
+      <div id="debt-progress-bar" style="height:100%;background:linear-gradient(90deg,var(--accent2),var(--green));border-radius:20px;transition:width 0.4s;width:0%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">
+      <span>$0</span>
+      <span id="debt-gap-label">Gap: —</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
+    <!-- RETURNS TABLE -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px">Returns (All Sales)</div>
+        <button class="btn btn-primary btn-sm" onclick="addReturnRow()">+ Add Return</button>
+      </div>
+      <div class="table-wrap">
+        <table style="font-size:13px">
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Description</th>
+              <th style="text-align:right">Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="returns-body"></tbody>
+          <tfoot>
+            <tr style="background:var(--ink);color:var(--paper)">
+              <td colspan="2" style="padding:9px 12px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px">Total Returns</td>
+              <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:15px" id="returns-total">—</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- POTENTIALS TABLE -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px">Potentials (Other Assets)</div>
+        <button class="btn btn-primary btn-sm" onclick="addPotentialRow()">+ Add Potential</button>
+      </div>
+      <div class="table-wrap">
+        <table style="font-size:13px">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th style="text-align:right">Est. Value</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="potentials-body"></tbody>
+          <tfoot>
+            <tr style="background:var(--ink);color:var(--paper)">
+              <td style="padding:9px 12px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px">Total Potentials</td>
+              <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:15px" id="potentials-total">—</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SPEND BREAKDOWN -->
+  <div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px">Spend Breakdown</div>
+      <button class="btn btn-primary btn-sm" onclick="addSpendRow()">+ Add Spend</button>
+    </div>
+    <div class="table-wrap">
+      <table style="font-size:13px">
+        <thead>
+          <tr>
+            <th>Category / Description</th>
+            <th style="text-align:right">Amount Spent</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="spend-body"></tbody>
+        <tfoot>
+          <tr style="background:var(--ink);color:var(--paper)">
+            <td style="padding:9px 12px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px">Total Spend</td>
+            <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:15px" id="spend-total">—</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ADD ITEM MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <h2>Add New Item</h2>
+    <div class="modal-grid">
+      <div class="field-group full">
+        <label>Item Name / Description</label>
+        <input type="text" id="m-name" placeholder="e.g. CGC 9.8 - Amazing Spider-Man # 300">
+      </div>
+      <div class="field-group">
+        <label>My Cost ($)</label>
+        <input type="number" id="m-cost" value="0" step="0.01">
+      </div>
+      <div class="field-group">
+        <label>Sale Price ($)</label>
+        <input type="number" id="m-price" value="0" step="0.01">
+      </div>
+      <div class="field-group">
+        <label>Shipping Charged ($)</label>
+        <input type="number" id="m-ship-c" value="0" step="0.01">
+      </div>
+      <div class="field-group">
+        <label>Actual Shipping ($)</label>
+        <input type="number" id="m-ship-a" value="0" step="0.01">
+      </div>
+      <div class="field-group">
+        <label>Promotion Rate (%)</label>
+        <input type="number" id="m-promo" value="0" step="0.1">
+      </div>
+      <div class="field-group">
+        <label>Status</label>
+        <select id="m-status">
+          <option>Not Created</option>
+          <option>Listed</option>
+          <option>Sold</option>
+          <option>REMOVED</option>
+        </select>
+      </div>
+      <div class="field-group full">
+        <label>Notes</label>
+        <input type="text" id="m-notes" placeholder="Optional notes">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addItem()">Add Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT ITEM MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h2>✏️ Edit Item</h2>
+    <div class="modal-grid">
+      <div class="field-group full">
+        <label>Item Name / Description</label>
+        <input type="text" id="e-name" placeholder="Item name">
+      </div>
+      <div class="field-group">
+        <label>My Cost ($)</label>
+        <input type="number" id="e-cost" step="0.01" oninput="updateEditPreview()">
+      </div>
+      <div class="field-group">
+        <label>Sale Price ($)</label>
+        <input type="number" id="e-price" step="0.01" oninput="updateEditPreview()">
+      </div>
+      <div class="field-group">
+        <label>Shipping Charged to Buyer ($)</label>
+        <input type="number" id="e-ship-c" step="0.01" oninput="updateEditPreview()">
+      </div>
+      <div class="field-group">
+        <label>Actual Shipping Cost ($)</label>
+        <input type="number" id="e-ship-a" step="0.01" oninput="updateEditPreview()">
+      </div>
+      <div class="field-group">
+        <label>Tax Collected by eBay ($)</label>
+        <input type="number" id="e-tax" step="0.01" oninput="updateEditPreview()">
+      </div>
+      <div class="field-group">
+        <label>Promotion Rate (%)</label>
+        <input type="number" id="e-promo" step="0.1" oninput="updateEditPreview()">
+      </div>
+      <div class="field-group">
+        <label>Current Status</label>
+        <select id="e-status" onchange="onEditStatusChange()">
+          <option>Not Created</option>
+          <option>Listed</option>
+          <option>Sold</option>
+          <option>REMOVED</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>eBay Listing Status</label>
+        <select id="e-ebay-status" onchange="onEditStatusChange()">
+          <option value="">—</option>
+          <option>Listed</option>
+          <option>Not Created</option>
+          <option>REMOVED</option>
+          <option>Sold</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Facebook Listing Status</label>
+        <select id="e-fb-status" onchange="onEditStatusChange()">
+          <option value="">—</option>
+          <option>Listed</option>
+          <option>Not Created</option>
+          <option>REMOVED</option>
+          <option>Sold</option>
+        </select>
+      </div>
+
+      <!-- Platform sale warning banner — hidden by default -->
+      <div id="e-platform-warning" style="display:none;padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:4px;font-family:'DM Sans',sans-serif"></div>
+
+      <div class="field-group">
+        <label>Actual Profit if Sold ($)</label>
+        <input type="number" id="e-actual-profit" step="0.01" placeholder="Leave blank if unsold">
+      </div>
+      <div class="field-group">
+        <label>Purchaser</label>
+        <input type="text" id="e-purchaser" placeholder="e.g. Rabbit # 1">
+      </div>
+      <div class="field-group full">
+        <label>Notes</label>
+        <input type="text" id="e-notes" placeholder="Optional notes">
+      </div>
+    </div>
+
+    <!-- Live profit preview -->
+    <div style="background:var(--ink);border-radius:6px;padding:12px 16px;margin-bottom:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      <div style="text-align:center">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:3px">eBay Net</div>
+        <div id="ep-net" style="font-family:'DM Mono',monospace;font-size:16px;color:#f5f0e8">—</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:3px">eBay Profit</div>
+        <div id="ep-profit" style="font-family:'DM Mono',monospace;font-size:16px;color:#5dbb80">—</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:3px">FB Net</div>
+        <div id="ep-fb" style="font-family:'DM Mono',monospace;font-size:16px;color:#f5f0e8">—</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:3px">Break-Even</div>
+        <div id="ep-be" style="font-family:'DM Mono',monospace;font-size:16px;color:#f0b55a">—</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK IMPORT RESULT MODAL -->
+<div class="modal-overlay" id="bulk-result-modal">
+  <div class="modal" style="max-width:460px">
+    <h2>📥 Bulk Import Complete</h2>
+    <div id="bulk-result-body" style="margin-bottom:20px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="document.getElementById('bulk-result-modal').classList.remove('open')">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ─── PASSWORD ────────────────────────────────────────────────────────────────
+const APP_PASSWORD_HASH = '289df3aa2f37148ee5b3c849ab32d1a53a76b77c367dfebe9de7818e1f494fb7';
+
+function togglePwVisibility() {
+  const input = document.getElementById('pw-input');
+  const eye   = document.getElementById('pw-eye');
+  if (input.type === 'password') { input.type = 'text';     eye.style.color = '#e84118'; }
+  else                           { input.type = 'password'; eye.style.color = '#888'; }
+}
+
+async function checkPassword() {
+  const val = document.getElementById('pw-input').value;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(val));
+  const hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  if (hash === APP_PASSWORD_HASH) {
+    document.getElementById('password-screen').style.display = 'none';
+    document.getElementById('drive-banner').style.display = 'block';
+    sessionStorage.setItem('cst_auth', '1');
+  } else {
+    const err = document.getElementById('pw-error');
+    err.style.opacity = '1';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+    setTimeout(() => err.style.opacity = '0', 2500);
+  }
+}
+
+// Check if already authed this session
+if (sessionStorage.getItem('cst_auth') === '1') {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('password-screen').style.display = 'none';
+    document.getElementById('drive-banner').style.display = 'block';
+  });
+}
+
+// ─── APP ───────────────────────────────────────────────────────────────────
+// RAW_DATA removed — data lives in Google Drive only
+let items    = [];
+let debtData = { returns: [], potentials: [], spendRows: [] };
+// ─── GOOGLE DRIVE CONFIG — PASTE YOUR VALUES HERE ────────────────────────────
+const GOOGLE_CLIENT_ID = '45138401653-hppc4ebjoqm43hr3g1q26b7g2kb2bil8.apps.googleusercontent.com';   // e.g. 123456789-abc.apps.googleusercontent.com
+const DRIVE_FILE_NAME  = 'comic_tracker_data.json';     // filename stored in your Drive
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+let driveAccessToken = null;
+let driveFileId      = null;
+let driveSaveTimer   = null;
+let driveReady       = false;
+
+// ── Status pill ──────────────────────────────────────────────────────────────
+function setDriveStatus(text, color) {
+  const el = document.getElementById('drive-status');
+  if (!el) return;
+  el.textContent = '⬤ ' + text;
+  el.style.color = color || '#888';
+}
+
+function handleDriveStatusClick() {
+  if (!driveAccessToken) driveSignIn();
+  else driveSync(); // manual force-sync if already connected
+}
+
+// ── Sign-in via Google Identity Services (token flow) ───────────────────────
+function driveSignIn() {
+  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('PASTE_YOUR')) {
+    alert('⚠️ Google Drive not configured yet.\n\nOpen the HTML file in a text editor and paste your Google Client ID where it says PASTE_YOUR_CLIENT_ID_HERE.\n\nSee the setup instructions for details.');
+    return;
+  }
+  if (!window.google?.accounts?.oauth2) {
+    alert('Google API script not loaded. Make sure you are online.');
+    return;
+  }
+  setDriveStatus('Signing in…', '#f0b55a');
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: async (resp) => {
+      if (resp.error) { setDriveStatus('Sign-in failed', '#e07070'); return; }
+      driveAccessToken = resp.access_token;
+      driveReady = true;
+      setDriveStatus('Connected — loading…', '#5dbb80');
+      await driveLoad(); // try to load existing file first
+    }
+  });
+  client.requestAccessToken();
+}
+
+// ── Find or create the data file in Drive appdata folder ─────────────────────
+async function driveFindFile() {
+  const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name)`,
+    { headers: { Authorization: `Bearer ${driveAccessToken}` } }
+  );
+  const data = await res.json();
+  if (data.files && data.files.length > 0) return data.files[0].id;
+  return null;
+}
+
+// ── Load data from Drive ──────────────────────────────────────────────────────
+async function driveLoad() {
+  try {
+    setDriveStatus('Loading from Drive…', '#f0b55a');
+    const fid = await driveFindFile();
+    if (!fid) {
+      // No file yet — first time. Save current state up.
+      setDriveStatus('No cloud file yet — saving…', '#f0b55a');
+      await driveSaveNow();
+      return;
+    }
+    driveFileId = fid;
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fid}?alt=media`,
+      { headers: { Authorization: `Bearer ${driveAccessToken}` } }
+    );
+    const payload = await res.json();
+    if (payload.items)    { items    = payload.items;    }
+    if (payload.debtData) { debtData = payload.debtData; }
+    setDriveStatus('Synced ✓', '#5dbb80');
+    const banner = document.getElementById('drive-banner');
+    if (banner) banner.style.display = 'none';
+    // Re-render whichever tab is active
+    renderDashboard();
+    if (currentTab !== 'dashboard') {
+      if (currentTab === 'inventory') renderInventory();
+      if (currentTab === 'sold')      renderSold();
+      if (currentTab === 'debt')      renderDebt();
+    }
+  } catch(e) {
+    console.error('Drive load error', e);
+    setDriveStatus('Load failed', '#e07070');
+  }
+}
+
+// ── Save data to Drive (debounced — waits 1.5s after last change) ─────────────
+function driveSaveDebounced() {
+  if (!driveReady) return;
+  clearTimeout(driveSaveTimer);
+  driveSaveTimer = setTimeout(driveSaveNow, 1500);
+}
+
+async function driveSaveNow() {
+  if (!driveAccessToken) return;
+  try {
+    setDriveStatus('Saving…', '#f0b55a');
+    const payload = JSON.stringify({ items, debtData, savedAt: new Date().toISOString() });
+    const blob = new Blob([payload], { type: 'application/json' });
+
+    if (!driveFileId) {
+      // Create new file in appdata folder
+      const meta = JSON.stringify({ name: DRIVE_FILE_NAME, parents: ['appDataFolder'] });
+      const form = new FormData();
+      form.append('metadata', new Blob([meta], { type: 'application/json' }));
+      form.append('file', blob);
+      const res = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+        { method: 'POST', headers: { Authorization: `Bearer ${driveAccessToken}` }, body: form }
+      );
+      const data = await res.json();
+      driveFileId = data.id;
+    } else {
+      // Update existing file
+      await fetch(
+        `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,
+        { method: 'PATCH', headers: { Authorization: `Bearer ${driveAccessToken}`, 'Content-Type': 'application/json' }, body: payload }
+      );
+    }
+    setDriveStatus('Synced ✓ ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), '#5dbb80');
+    const banner = document.getElementById('drive-banner');
+    if (banner) banner.style.display = 'none';
+  } catch(e) {
+    console.error('Drive save error', e);
+    setDriveStatus('Save failed — check connection', '#e07070');
+  }
+}
+
+// Manual sync trigger
+async function driveSync() {
+  if (!driveAccessToken) { driveSignIn(); return; }
+  await driveSaveNow();
+}
+
+// ─── PERSISTENCE (Drive only) ─────────────────────────────────────────────────
+function saveAll() {
+  try {
+    const el = document.getElementById('save-indicator');
+    if (el) { el.style.opacity = '1'; setTimeout(() => el.style.opacity = '0', 1800); }
+    driveSaveDebounced();
+  } catch(e) { console.warn('save failed', e); }
+}
+
+// ─── EXPORT / IMPORT ──────────────────────────────────────────────────────────
+function exportData() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    appVersion: '2026',
+    items,
+    debtData
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  a.href     = url;
+  a.download = `comic_tracker_backup_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!confirm(`Import data from "${file.name}"?\n\nThis will REPLACE all current data. Make sure you have a backup first.`)) {
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const payload = JSON.parse(e.target.result);
+      if (!payload.items || !payload.debtData) {
+        alert('Invalid backup file — missing items or debtData. Make sure you are importing a file exported from this app.');
+        return;
+      }
+      items    = payload.items;
+      debtData = payload.debtData;
+      saveAll(); // push to Drive
+      renderDashboard();
+      if (currentTab === 'inventory') renderInventory();
+      if (currentTab === 'sold')      renderSold();
+      if (currentTab === 'debt')      renderDebt();
+      alert(`✓ Import successful!\n${items.length} items loaded from backup dated ${payload.exportedAt ? payload.exportedAt.slice(0,10) : 'unknown'}.`);
+    } catch(err) {
+      alert('Failed to read the file — make sure it is a valid JSON backup from this app.');
+      console.error(err);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt = n => n == null ? '—' : '$' + n.toFixed(2);
+const pct = (a, b) => b > 0 ? ((a / b) * 100).toFixed(1) + '%' : '—';
+
+function statusBadge(s) {
+  if (!s) return '<span class="badge badge-unknown">—</span>';
+  const sl = s.toLowerCase();
+  if (sl === 'sold') return `<span class="badge badge-sold">${s}</span>`;
+  if (sl === 'listed') return `<span class="badge badge-listed">${s}</span>`;
+  if (sl === 'removed') return `<span class="badge badge-removed">${s}</span>`;
+  if (sl === 'not created') return `<span class="badge badge-not-created">Not Created</span>`;
+  return `<span class="badge badge-unknown">${s}</span>`;
+}
+
+function platformBadge(s) {
+  if (!s || s === '' || s === 'nan') return '<span class="badge badge-unknown">—</span>';
+  const sl = s.toLowerCase();
+  if (sl === 'listed')      return `<span class="badge badge-listed">Listed</span>`;
+  if (sl === 'sold')        return `<span class="badge badge-sold">Sold</span>`;
+  if (sl === 'removed')     return `<span class="badge badge-removed">Removed</span>`;
+  if (sl === 'not created') return `<span class="badge badge-not-created">Not Created</span>`;
+  return `<span class="badge badge-unknown">${s}</span>`;
+}
+
+// ─── eBay NET CALC ────────────────────────────────────────────────────────────
+// eBay formula: totalCollected - (totalCollected * FVF%) - $0.30 - promoFees - actualShipping - myCost
+function calcEbayProfit(it, fvf=0.1325) {
+  const total = it.totalCollected > 0 ? it.totalCollected : it.salePrice;
+  const fees = total * fvf + 0.30;
+  const promo = it.promoFees || 0;
+  const net = total - fees - promo - it.actualShipping;
+  return net - it.myCost;
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+let currentTab = 'dashboard';
+function showTab(name) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  $('tab-' + name).classList.remove('hidden');
+  event.target.classList.add('active');
+  currentTab = name;
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'inventory') renderInventory();
+  if (name === 'predictor') calcPredictor();
+  if (name === 'sold') renderSold();
+  if (name === 'debt') renderDebt();
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const sold   = items.filter(i => i.currentStatus.toLowerCase() === 'sold');
+  const unsold = items.filter(i => i.currentStatus.toLowerCase() !== 'sold');
+  const listed = items.filter(i => i.currentStatus.toLowerCase() === 'listed');
+
+  const totalSoldProfit = sold.reduce((s, i)   => s + (i.actualProfit || 0), 0);
+  const totalCost       = unsold.reduce((s, i) => s + (i.myCost || 0), 0);
+  const ebayPotential   = unsold.reduce((s, i) => s + i.ebayNet, 0);
+  const fbPotential     = unsold.reduce((s, i) => s + i.fbNet, 0);
+  const ebayProfit      = unsold.reduce((s, i) => s + calcEbayProfit(i), 0);
+  const fbProfit        = unsold.reduce((s, i) => s + (i.fbNet - i.myCost), 0);
+  const lowProfit       = unsold.filter(i => calcEbayProfit(i) < 5 && i.myCost > 0).length;
+
+  $('stats-grid').innerHTML = `
+    <div class="stat-card green">
+      <div class="stat-label">Actual Profit (Sold)</div>
+      <div class="stat-value profit">${fmt(totalSoldProfit)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Items in Inventory</div>
+      <div class="stat-value">${unsold.length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Items Listed</div>
+      <div class="stat-value">${listed.length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Items Sold</div>
+      <div class="stat-value">${sold.length}</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Cost in Inventory</div>
+      <div class="stat-value">${fmt(totalCost)}</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">eBay Est. Profit (All)</div>
+      <div class="stat-value ${ebayProfit >= 0 ? 'profit' : 'loss'}">${fmt(ebayProfit)}</div>
+    </div>
+    ${lowProfit > 0 ? `
+    <div class="stat-card" style="border-top-color:var(--accent2);cursor:pointer" onclick="filterLowProfit()" title="Click to view low profit items in inventory">
+      <div class="stat-label" style="color:var(--accent2)">⚠ Low Profit Items</div>
+      <div class="stat-value" style="color:var(--accent2)">${lowProfit}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px">eBay profit under $5 · click to view</div>
+    </div>` : ''}
+  `;
+
+  $('ebay-rev').textContent = fmt(ebayPotential);
+  $('ebay-fees').textContent = fmt(ebayPotential * 0.1325);
+  $('ebay-promo').textContent = fmt(unsold.reduce((s, i) => s + (i.promoFees || 0), 0));
+  $('ebay-profit').textContent = fmt(ebayProfit);
+
+  $('fb-rev').textContent = fmt(fbPotential);
+  $('fb-profit').textContent = fmt(fbProfit);
+
+  // Top opportunities
+  const top = [...unsold]
+    .filter(i => i.myCost > 0)
+    .map(i => ({...i, _profit: calcEbayProfit(i)}))
+    .sort((a, b) => b._profit - a._profit)
+    .slice(0, 12);
+
+  $('top-items-body').innerHTML = top.map(i => {
+    const p = i._profit;
+    return `<tr>
+      <td><div class="item-name">${i.item.trim()}</div></td>
+      <td class="mono">${fmt(i.myCost)}</td>
+      <td class="mono">${fmt(i.salePrice)}</td>
+      <td class="mono">${fmt(i.ebayNet)}</td>
+      <td class="mono">${fmt(i.fbNet)}</td>
+      <td class="mono ${p >= 0 ? 'profit-cell' : 'loss-cell'}">${fmt(p)}</td>
+      <td>${statusBadge(i.currentStatus)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── INVENTORY ────────────────────────────────────────────────────────────────
+let invPage = 0;
+const PAGE_SIZE = 25;
+
+function renderInventory() {
+  invPage = 0;
+  // Populate purchaser dropdown dynamically from data
+  const purchasers = [...new Set(items.map(i => i.purchaser).filter(p => p && p.trim()))].sort();
+  const sel = $('inv-purchaser');
+  if (sel) {
+    const current = sel.value;
+    sel.innerHTML = '<option value="">All Purchasers</option>' +
+      purchasers.map(p => `<option value="${p}" ${p === current ? 'selected' : ''}>${p}</option>`).join('');
+  }
+  renderInvTable();
+}
+
+function renderInvTable() {
+  const q         = $('inv-search').value.toLowerCase();
+  const status    = $('inv-status').value;
+  const purchaser = $('inv-purchaser').value;
+  const sort      = $('inv-sort').value;
+
+  let filtered = items.filter(i => {
+    if (q && !i.item.toLowerCase().includes(q)) return false;
+    if (status && i.currentStatus.toLowerCase() !== status.toLowerCase()) return false;
+    if (purchaser && (i.purchaser || '').toLowerCase() !== purchaser.toLowerCase()) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    if (sort === 'ebay-desc') return calcEbayProfit(b) - calcEbayProfit(a);
+    if (sort === 'ebay-asc') return calcEbayProfit(a) - calcEbayProfit(b);
+    if (sort === 'cost-desc') return b.myCost - a.myCost;
+    if (sort === 'cost-asc') return a.myCost - b.myCost;
+    if (sort === 'price-desc') return b.salePrice - a.salePrice;
+    if (sort === 'name-asc') return a.item.localeCompare(b.item);
+    return 0;
+  });
+
+  const total = filtered.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  const slice = filtered.slice(invPage * PAGE_SIZE, (invPage + 1) * PAGE_SIZE);
+
+  $('inv-count').textContent = `Showing ${slice.length} of ${total} items`;
+
+  $('inv-body').innerHTML = slice.map(i => {
+    const p = calcEbayProfit(i);
+    const margin = i.salePrice > 0 ? ((p / i.salePrice) * 100).toFixed(1) + '%' : '—';
+    const promo  = i.promoPct || 0;
+    const breakEven = i.myCost > 0
+      ? ((i.myCost + 0.30 + (i.actualShipping||0) - (i.shippingCharged||0)) / (1 - 0.1325 - promo)).toFixed(2)
+      : '—';
+    const isLowProfit = i.currentStatus.toLowerCase() !== 'sold' && p < 5 && i.myCost > 0;
+    return `<tr class="${isLowProfit ? 'low-profit' : ''}">
+      <td class="no-label">
+        <div class="item-name">${i.item.trim()}</div>
+        ${isLowProfit ? '<span style="font-size:10px;color:var(--accent2);font-weight:700">⚠ Low profit</span>' : ''}
+      </td>
+      <td data-label="Status">${statusBadge(i.currentStatus)}</td>
+      <td data-label="eBay">${platformBadge(i.ebayStatus)}</td>
+      <td data-label="Facebook">${platformBadge(i.fbStatus)}</td>
+      <td data-label="My Cost" class="mono">${fmt(i.myCost)}</td>
+      <td data-label="Sale Price" class="mono">${fmt(i.salePrice)}</td>
+      <td data-label="eBay Net" class="mono">${fmt(i.ebayNet)}</td>
+      <td data-label="eBay Profit" class="mono ${p >= 0 ? 'profit-cell' : 'loss-cell'}">${fmt(p)}</td>
+      <td data-label="Margin" class="mono ${p >= 0 ? 'profit-cell' : 'loss-cell'}">${margin}</td>
+      <td data-label="Break-Even" class="mono" style="color:var(--accent2)">${breakEven !== '—' ? '$'+breakEven : '—'}</td>
+      <td data-label="FB Net" class="mono">${fmt(i.fbNet)}</td>
+      <td data-label="Promo %" class="mono ${i.promoPct > 0 ? 'loss-cell' : 'neutral-cell'}">${i.promoPct > 0 ? (i.promoPct * 100).toFixed(0) + '%' : '—'}</td>
+      <td data-label="Purchaser" style="font-size:12px;color:var(--muted)">${i.purchaser || '—'}</td>
+      <td data-label="Notes" style="color:var(--muted);font-size:12px">${i.notes || ''}</td>
+      <td class="no-label"><div class="action-cell">
+        <button class="btn-edit" onclick="openEditModal(${i.id})">✏️ Edit</button>
+        <button class="btn-edit" onclick="copyToPredictor(${i.id})" title="Load into eBay Predictor" style="background:#e8f4fd;border-color:#2980b9;color:#2980b9">📊</button>
+        <button class="btn-delete" onclick="deleteItem(${i.id})">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  const btns = [];
+  for (let p = 0; p < pages; p++) {
+    btns.push(`<button class="page-btn ${p === invPage ? 'active' : ''}" onclick="goPage(${p})">${p + 1}</button>`);
+  }
+  $('inv-pages').innerHTML = btns.join('');
+  applyColVisibility();
+}
+
+function goPage(p) {
+  invPage = p;
+  renderInvTable();
+}
+
+// ─── PREDICTOR ────────────────────────────────────────────────────────────────
+function calcPredictor() {
+  const cost = parseFloat($('p-cost').value) || 0;
+  const price = parseFloat($('p-price').value) || 0;
+  const shipCharge = parseFloat($('p-ship-charge').value) || 0;
+  const shipCost = parseFloat($('p-ship-cost').value) || 0;
+  const fvf = (parseFloat($('p-fvf').value) || 13.25) / 100;
+  const promoRate = (parseFloat($('p-promo').value) || 0) / 100;
+  const txn = parseFloat($('p-txn').value) || 0.30;
+  const tax = parseFloat($('p-tax').value) || 0;
+
+  const total = price + shipCharge; // total collected (excl tax)
+  const fvfFee = total * fvf + txn;
+  const promoFee = price * promoRate;
+  const shipDelta = shipCharge - shipCost;
+  const net = total - fvfFee - promoFee;
+  const profit = net - cost;
+  const margin = price > 0 ? (profit / price) * 100 : 0;
+  // Break-even: price such that price*(1-fvf-promo) - txn - shipCost + shipCharge = cost
+  // Simplified: (cost + txn + shipCost - shipCharge) / (1 - fvf - promoRate)
+  const breakEven = (cost + txn + shipCost - shipCharge) / (1 - fvf - promoRate);
+
+  $('r-price').textContent = fmt(price);
+  $('r-fvf').textContent = fmt(fvfFee);
+  $('r-promo').textContent = fmt(promoFee);
+  $('r-ship').textContent = (shipDelta >= 0 ? '+' : '') + fmt(shipDelta).replace('$', '') ;
+  $('r-net').textContent = fmt(net);
+  $('r-profit').textContent = fmt(profit);
+  $('r-profit').className = 'result-value ' + (profit >= 0 ? 'good' : 'bad');
+  $('r-margin').textContent = margin.toFixed(1) + '%';
+  $('r-margin').className = 'result-value ' + (margin >= 20 ? 'good' : margin >= 0 ? 'warn' : 'bad');
+  $('r-breakeven').textContent = fmt(breakEven);
+
+  // Promo table
+  const promoRates = [0, 2, 5, 8, 10, 12, 15];
+  const baseProfit = (price + shipCharge) * (1 - fvf) - txn - shipCost - cost;
+  $('promo-table').innerHTML = promoRates.map(r => {
+    const pf = price * (r / 100);
+    const np = (price + shipCharge) * (1 - fvf) - txn - pf - shipCost - cost;
+    const m = price > 0 ? (np / price) * 100 : 0;
+    const diff = np - baseProfit;
+    const rowClass = r === Math.round(promoRate * 100) ? 'background:#fff8e1' : '';
+    return `<tr style="${rowClass}">
+      <td style="padding:8px 12px">${r === 0 ? 'No Promo' : r + '%'}</td>
+      <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;color:var(--accent)">${fmt(pf)}</td>
+      <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;color:${np >= 0 ? 'var(--green)' : 'var(--accent)'}"><strong>${fmt(np)}</strong></td>
+      <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace">${m.toFixed(1)}%</td>
+      <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;color:${r === 0 ? 'var(--muted)' : 'var(--accent)'}">${r === 0 ? '—' : fmt(diff)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── SOLD ─────────────────────────────────────────────────────────────────────
+function renderSold() {
+  const allSold = items.filter(i => i.currentStatus.toLowerCase() === 'sold');
+  const totalProfit = allSold.reduce((s, i) => s + (i.actualProfit || 0), 0);
+  const totalCost   = allSold.reduce((s, i) => s + (i.myCost || 0), 0);
+  const totalRev    = allSold.reduce((s, i) => s + (i.salePrice || 0), 0);
+  const wins        = allSold.filter(i => (i.actualProfit || 0) > 0).length;
+  const losses      = allSold.filter(i => (i.actualProfit || 0) < 0).length;
+
+  $('sold-stats').innerHTML = `
+    <div class="stat-card green">
+      <div class="stat-label">Total Actual Profit</div>
+      <div class="stat-value profit">${fmt(totalProfit)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Items Sold</div>
+      <div class="stat-value">${allSold.length}</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-value">${fmt(totalRev)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Cost Basis</div>
+      <div class="stat-value">${fmt(totalCost)}</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Profitable Sales</div>
+      <div class="stat-value profit">${wins}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Loss Sales</div>
+      <div class="stat-value ${losses > 0 ? 'loss' : ''}">${losses}</div>
+    </div>
+  `;
+
+  // Populate purchaser dropdown
+  const purchasers = [...new Set(allSold.map(i => i.purchaser).filter(p => p && p.trim()))].sort();
+  const sp = $('sold-purchaser');
+  if (sp) {
+    const cur = sp.value;
+    sp.innerHTML = '<option value="">All Purchasers</option>' +
+      purchasers.map(p => `<option value="${p}" ${p === cur ? 'selected' : ''}>${p}</option>`).join('');
+    sp.value = cur;
+  }
+
+  // Apply search + purchaser filter
+  const q  = ($('sold-search')?.value || '').toLowerCase();
+  const pu = $('sold-purchaser')?.value || '';
+  const filtered = allSold.filter(i => {
+    if (q  && !i.item.toLowerCase().includes(q)) return false;
+    if (pu && (i.purchaser || '') !== pu) return false;
+    return true;
+  });
+
+  $('sold-body').innerHTML = filtered.map(i => {
+    const p = i.actualProfit;
+    const m = i.salePrice > 0 && p != null ? ((p / i.salePrice) * 100).toFixed(1) + '%' : '—';
+    return `<tr>
+      <td class="no-label"><div class="item-name">${i.item.trim()}</div></td>
+      <td data-label="Cost" class="mono">${fmt(i.myCost)}</td>
+      <td data-label="Sold For" class="mono">${fmt(i.salePrice)}</td>
+      <td data-label="Actual Profit" class="mono ${p >= 0 ? 'profit-cell' : 'loss-cell'}">${fmt(p)}</td>
+      <td data-label="Profit %" class="mono ${p >= 0 ? 'profit-cell' : 'loss-cell'}">${m}</td>
+      <td data-label="Purchaser" style="font-size:12px;color:var(--muted)">${i.purchaser || '—'}</td>
+      <td data-label="Notes" style="font-size:12px;color:var(--muted)">${i.notes || ''}</td>
+    </tr>`;
+  }).join('');
+}
+
+function clearSoldFilters() {
+  if ($('sold-search'))    $('sold-search').value    = '';
+  if ($('sold-purchaser')) $('sold-purchaser').value = '';
+  renderSold();
+}
+
+// ─── CLEAR INV FILTERS ────────────────────────────────────────────────────────
+function clearInvFilters() {
+  if ($('inv-search'))    $('inv-search').value    = '';
+  if ($('inv-status'))    $('inv-status').value    = '';
+  if ($('inv-purchaser')) $('inv-purchaser').value = '';
+  renderInventory();
+}
+
+function filterLowProfit() {
+  // Switch to inventory tab
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-inventory').classList.remove('hidden');
+  document.querySelectorAll('.tab')[1].classList.add('active');
+  currentTab = 'inventory';
+  // Clear other filters, then sort by eBay profit ascending so low profit items are at top
+  if ($('inv-search'))    $('inv-search').value    = '';
+  if ($('inv-status'))    $('inv-status').value    = '';
+  if ($('inv-purchaser')) $('inv-purchaser').value = '';
+  if ($('inv-sort'))      $('inv-sort').value      = 'ebay-asc';
+  invPage = 0;
+  renderInvTable();
+}
+
+// ─── COPY TO PREDICTOR ────────────────────────────────────────────────────────
+function copyToPredictor(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  // Switch to predictor tab
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-predictor').classList.remove('hidden');
+  document.querySelectorAll('.tab')[2].classList.add('active');
+  currentTab = 'predictor';
+  calcPredictor(); // ensure rendered
+  // Populate fields
+  setTimeout(() => {
+    $('p-cost').value       = item.myCost ?? 0;
+    $('p-price').value      = item.salePrice ?? 0;
+    $('p-ship-charge').value = item.shippingCharged ?? 0;
+    $('p-ship-cost').value  = item.actualShipping ?? 0;
+    $('p-promo').value      = item.promoPct ? (item.promoPct * 100).toFixed(1) : 0;
+    calcPredictor();
+  }, 50);
+}
+
+// ─── ADD ITEM ─────────────────────────────────────────────────────────────────
+function openAddModal() { $('add-modal').classList.add('open'); }
+function closeAddModal() { $('add-modal').classList.remove('open'); }
+function addItem() {
+  const name = $('m-name').value.trim();
+  if (!name) { alert('Please enter an item name.'); return; }
+
+  const cost = parseFloat($('m-cost').value) || 0;
+  const price = parseFloat($('m-price').value) || 0;
+  const shipC = parseFloat($('m-ship-c').value) || 0;
+  const shipA = parseFloat($('m-ship-a').value) || 0;
+  const promo = parseFloat($('m-promo').value) || 0;
+  const status = $('m-status').value;
+  const notes = $('m-notes').value.trim();
+
+  const total = price + shipC;
+  const fvf = total * 0.1325 + 0.30;
+  const promoFee = price * (promo / 100);
+  const ebayNet = total - fvf - promoFee - shipA;
+  const fbNet = price;
+
+  items.push({
+    id: Date.now(),
+    item: name,
+    ebayStatus: status === 'Listed' ? 'Listed' : '',
+    fbStatus: status === 'Listed' ? 'Listed' : '',
+    currentStatus: status,
+    myCost: cost,
+    salePrice: price,
+    shippingCharged: shipC,
+    taxCollected: 0,
+    totalCollected: total,
+    actualShipping: shipA,
+    promoPct: promo / 100,
+    promoFees: promoFee,
+    ebayNet,
+    fbNet,
+    actualProfit: null,
+    purchaser: '',
+    notes
+  });
+
+  closeAddModal();
+  renderInventory();
+  saveAll();
+  $('m-name').value = '';
+}
+
+// ─── EDIT ITEM ────────────────────────────────────────────────────────────────
+let editingId = null;
+
+function openEditModal(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  editingId = id;
+
+  $('e-name').value = item.item.trim();
+  $('e-cost').value = item.myCost ?? 0;
+  $('e-price').value = item.salePrice ?? 0;
+  $('e-ship-c').value = item.shippingCharged ?? 0;
+  $('e-ship-a').value = item.actualShipping ?? 0;
+  $('e-tax').value = item.taxCollected ?? 0;
+  $('e-promo').value = item.promoPct != null ? (item.promoPct * 100).toFixed(1) : 0;
+  $('e-status').value = item.currentStatus || 'Not Created';
+  $('e-ebay-status').value = item.ebayStatus || '';
+  $('e-fb-status').value = item.fbStatus || '';
+  $('e-actual-profit').value = item.actualProfit != null ? item.actualProfit : '';
+  $('e-purchaser').value = item.purchaser || '';
+  $('e-notes').value = item.notes || '';
+
+  // Clear any previous warning
+  const w = $('e-platform-warning');
+  if (w) w.style.display = 'none';
+
+  updateEditPreview();
+  $('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  $('edit-modal').classList.remove('open');
+  editingId = null;
+}
+
+function updateEditPreview() {
+  const cost  = parseFloat($('e-cost').value)   || 0;
+  const price = parseFloat($('e-price').value)  || 0;
+  const shipC = parseFloat($('e-ship-c').value) || 0;
+  const shipA = parseFloat($('e-ship-a').value) || 0;
+  const promo = (parseFloat($('e-promo').value) || 0) / 100;
+
+  const total    = price + shipC;
+  const fvfFee   = total * 0.1325 + 0.30;
+  const promoFee = price * promo;
+  const net      = total - fvfFee - promoFee - shipA;
+  const profit   = net - cost;
+  const breakEven = (cost + 0.30 + shipA - shipC) / (1 - 0.1325 - promo);
+
+  $('ep-net').textContent    = fmt(net);
+  $('ep-profit').textContent = fmt(profit);
+  $('ep-profit').style.color = profit >= 0 ? '#5dbb80' : '#e07070';
+  $('ep-fb').textContent     = fmt(price - cost);
+  $('ep-be').textContent     = fmt(breakEven);
+}
+
+function onEditStatusChange() {
+  updateEditPreview();
+  const status   = $('e-status').value;
+  const ebaySt   = $('e-ebay-status').value;
+  const fbSt     = $('e-fb-status').value;
+  const warning  = $('e-platform-warning');
+  const profitEl = $('e-actual-profit');
+
+  warning.style.display = 'none';
+  warning.textContent   = '';
+  if (status !== 'Sold') return;
+
+  const ebaySold = ebaySt === 'Sold';
+  const fbSold   = fbSt   === 'Sold';
+
+  const showWarning = (msg, bg, color, border) => {
+    warning.style.display    = 'block';
+    warning.style.background = bg;
+    warning.style.color      = color;
+    warning.style.border     = '1px solid ' + border;
+    warning.textContent      = msg;
+  };
+
+  if (ebaySold && fbSold) {
+    showWarning('⚠️ Both platforms show Sold — please verify which one and enter profit manually.', '#fff3cd', '#856404', '#ffc107');
+  } else if (fbSold) {
+    const price = parseFloat($('e-price').value) || 0;
+    const cost  = parseFloat($('e-cost').value)  || 0;
+    profitEl.value = (price - cost).toFixed(2);
+    showWarning('✓ Facebook sale — profit auto-calculated as Sale Price − My Cost. Edit if needed.', '#d4edda', '#155724', '#c3e6cb');
+  } else if (ebaySold) {
+    const cost   = parseFloat($('e-cost').value)   || 0;
+    const price  = parseFloat($('e-price').value)  || 0;
+    const shipC  = parseFloat($('e-ship-c').value) || 0;
+    const shipA  = parseFloat($('e-ship-a').value) || 0;
+    const promo  = (parseFloat($('e-promo').value) || 0) / 100;
+    const total  = price + shipC;
+    const fvfFee = total * 0.1325 + 0.30;
+    const net    = total - fvfFee - (price * promo) - shipA;
+    profitEl.value = (net - cost).toFixed(2);
+    showWarning('✓ eBay sale — profit auto-calculated after fees. Edit if needed.', '#d4edda', '#155724', '#c3e6cb');
+  } else {
+    showWarning("⚠️ Don't forget to set which platform this sold on (eBay or Facebook).", '#fff3e0', '#e65100', '#ffb300');
+  }
+}
+
+function saveEdit() {
+  const item = items.find(i => i.id === editingId);
+  if (!item) return;
+
+  const status  = $('e-status').value;
+  const ebaySt  = $('e-ebay-status').value;
+  const fbSt    = $('e-fb-status').value;
+  const warning = $('e-platform-warning');
+
+  // Hard block: Sold with no platform
+  if (status === 'Sold' && ebaySt !== 'Sold' && fbSt !== 'Sold') {
+    warning.style.display    = 'block';
+    warning.style.background = '#f8d7da';
+    warning.style.color      = '#721c24';
+    warning.style.border     = '1px solid #f5c6cb';
+    warning.textContent      = '🚫 Cannot save — item is marked Sold but no platform is set to Sold. Please update eBay or Facebook status.';
+    warning.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
+
+  // Soft warning: profit blank on a Sold item
+  const actualProfitRaw = $('e-actual-profit').value;
+  if (status === 'Sold' && actualProfitRaw === '') {
+    if (!confirm('Actual Profit is empty — save anyway?')) return;
+  }
+
+  const cost     = parseFloat($('e-cost').value)   || 0;
+  const price    = parseFloat($('e-price').value)  || 0;
+  const shipC    = parseFloat($('e-ship-c').value) || 0;
+  const shipA    = parseFloat($('e-ship-a').value) || 0;
+  const tax      = parseFloat($('e-tax').value)    || 0;
+  const promo    = (parseFloat($('e-promo').value) || 0) / 100;
+  const total    = price + shipC;
+  const fvfFee   = total * 0.1325 + 0.30;
+  const promoFee = price * promo;
+  const ebayNet  = total - fvfFee - promoFee - shipA;
+
+  item.item            = $('e-name').value.trim() || item.item;
+  item.myCost          = cost;
+  item.salePrice       = price;
+  item.shippingCharged = shipC;
+  item.actualShipping  = shipA;
+  item.taxCollected    = tax;
+  item.totalCollected  = total;
+  item.promoPct        = promo;
+  item.promoFees       = promoFee;
+  item.ebayNet         = ebayNet;
+  item.fbNet           = price;
+  item.currentStatus   = status;
+  item.ebayStatus      = ebaySt;
+  item.fbStatus        = fbSt;
+  item.actualProfit    = actualProfitRaw !== '' ? parseFloat(actualProfitRaw) : null;
+  item.purchaser       = $('e-purchaser').value.trim();
+  item.notes           = $('e-notes').value.trim();
+
+  closeEditModal();
+  renderInvTable();
+  saveAll();
+  if (currentTab === 'dashboard') renderDashboard();
+  if (currentTab === 'sold') renderSold();
+}
+
+function deleteItem(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  if (!confirm(`Delete "${item.item.trim()}"?\nThis cannot be undone.`)) return;
+  items = items.filter(i => i.id !== id);
+  renderInvTable();
+  saveAll();
+  if (currentTab === 'dashboard') renderDashboard();
+}
+
+// ─── DEBT / RECOUPING SPEND ───────────────────────────────────────────────────
+
+let debtNextId = 100;
+
+function renderDebt() {
+  const totalReturns = debtData.returns.reduce((s, r) => s + r.amount, 0);
+  const totalPotentials = debtData.potentials.reduce((s, p) => s + p.value, 0);
+  const totalSpend = debtData.spendRows.reduce((s, r) => s + r.amount, 0);
+  const gap = totalSpend - totalReturns;
+  const gapWithPotentials = totalSpend - totalReturns - totalPotentials;
+  const pct = totalSpend > 0 ? Math.min(100, (totalReturns / totalSpend) * 100) : 0;
+  const pctWithPotentials = totalSpend > 0 ? Math.min(100, ((totalReturns + totalPotentials) / totalSpend) * 100) : 0;
+
+  // Scoreboard
+  document.getElementById('debt-scoreboard').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Total Spend</div>
+      <div class="stat-value loss">${fmt(totalSpend)}</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Total Returns</div>
+      <div class="stat-value profit">${fmt(totalReturns)}</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">Remaining Gap</div>
+      <div class="stat-value" style="color:var(--accent2)">${fmt(gap)}</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Total Potentials</div>
+      <div class="stat-value" style="color:var(--blue)">${fmt(totalPotentials)}</div>
+    </div>
+    <div class="stat-card ${gapWithPotentials <= 0 ? 'green' : ''}">
+      <div class="stat-label">Gap After Potentials</div>
+      <div class="stat-value ${gapWithPotentials <= 0 ? 'profit' : 'loss'}">${fmt(gapWithPotentials)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">% Recouped (Sales)</div>
+      <div class="stat-value" style="color:var(--green)">${pct.toFixed(1)}%</div>
+    </div>
+  `;
+
+  // Progress bar
+  document.getElementById('debt-gap-pct').textContent = pct.toFixed(1) + '%';
+  document.getElementById('debt-progress-bar').style.width = pct + '%';
+  document.getElementById('debt-gap-label').textContent = `Gap: ${fmt(gap)} remaining`;
+
+  // Returns table
+  document.getElementById('returns-body').innerHTML = debtData.returns.map(r => `
+    <tr>
+      <td><input type="text" value="${r.year}" onchange="updateReturn(${r.id},'year',this.value)"
+        style="width:60px;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:12px;font-family:'DM Mono',monospace;background:var(--cream)"></td>
+      <td><input type="text" value="${escHtml(r.desc)}" onchange="updateReturn(${r.id},'desc',this.value)"
+        style="width:100%;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--cream)"></td>
+      <td style="text-align:right"><input type="number" value="${r.amount.toFixed(2)}" onchange="updateReturn(${r.id},'amount',parseFloat(this.value)||0)"
+        style="width:100px;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:12px;font-family:'DM Mono',monospace;text-align:right;background:var(--cream)"></td>
+      <td style="text-align:center"><button class="btn-delete" onclick="deleteReturn(${r.id})" style="margin:0">✕</button></td>
+    </tr>
+  `).join('');
+  document.getElementById('returns-total').textContent = fmt(totalReturns);
+
+  // Potentials table
+  document.getElementById('potentials-body').innerHTML = debtData.potentials.map(p => `
+    <tr>
+      <td><input type="text" value="${escHtml(p.item)}" onchange="updatePotential(${p.id},'item',this.value)"
+        style="width:100%;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--cream)"></td>
+      <td style="text-align:right"><input type="number" value="${p.value.toFixed(2)}" onchange="updatePotential(${p.id},'value',parseFloat(this.value)||0)"
+        style="width:110px;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:12px;font-family:'DM Mono',monospace;text-align:right;background:var(--cream)"></td>
+      <td style="text-align:center"><button class="btn-delete" onclick="deletePotential(${p.id})" style="margin:0">✕</button></td>
+    </tr>
+  `).join('');
+  document.getElementById('potentials-total').textContent = fmt(totalPotentials);
+
+  // Spend table
+  document.getElementById('spend-body').innerHTML = debtData.spendRows.map(s => `
+    <tr>
+      <td><input type="text" value="${escHtml(s.desc)}" onchange="updateSpend(${s.id},'desc',this.value)"
+        style="width:100%;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--cream)"></td>
+      <td style="text-align:right"><input type="number" value="${s.amount.toFixed(2)}" onchange="updateSpend(${s.id},'amount',parseFloat(this.value)||0)"
+        style="width:140px;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:12px;font-family:'DM Mono',monospace;text-align:right;background:var(--cream)"></td>
+      <td style="text-align:center"><button class="btn-delete" onclick="deleteSpend(${s.id})" style="margin:0">✕</button></td>
+    </tr>
+  `).join('');
+  document.getElementById('spend-total').textContent = fmt(totalSpend);
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function updateReturn(id, key, val)    { const r = debtData.returns.find(r=>r.id===id); if(r) r[key]=val; saveAll(); renderDebt(); }
+function updatePotential(id, key, val) { const p = debtData.potentials.find(p=>p.id===id); if(p) p[key]=val; saveAll(); renderDebt(); }
+function updateSpend(id, key, val)     { const s = debtData.spendRows.find(s=>s.id===id); if(s) s[key]=val; saveAll(); renderDebt(); }
+
+function deleteReturn(id)    { debtData.returns    = debtData.returns.filter(r=>r.id!==id);    saveAll(); renderDebt(); }
+function deletePotential(id) { debtData.potentials = debtData.potentials.filter(p=>p.id!==id); saveAll(); renderDebt(); }
+function deleteSpend(id)     { debtData.spendRows  = debtData.spendRows.filter(s=>s.id!==id);  saveAll(); renderDebt(); }
+
+function addReturnRow() {
+  debtData.returns.push({ id: ++debtNextId, year: new Date().getFullYear().toString(), desc: 'New return', amount: 0 });
+  saveAll(); renderDebt();
+  const rows = document.querySelectorAll('#returns-body tr');
+  if (rows.length) rows[rows.length-1].scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+function addPotentialRow() {
+  debtData.potentials.push({ id: ++debtNextId, item: 'New item', value: 0 });
+  saveAll(); renderDebt();
+}
+function addSpendRow() {
+  debtData.spendRows.push({ id: ++debtNextId, desc: 'New spend', amount: 0 });
+  saveAll(); renderDebt();
+}
+
+// ─── COLUMN TOGGLE ────────────────────────────────────────────────────────────
+const hiddenCols = new Set(JSON.parse(localStorage.getItem('cst_hidden_cols') || '[]'));
+
+function applyColVisibility() {
+  const table = document.getElementById('inv-table');
+  if (!table) return;
+  // Remove all hide classes first
+  ['status','ebay','fb','cost','price','enet','eprofit','margin','fbnet','promo','purchaser','notes','breakeven']
+    .forEach(c => table.classList.remove('hide-col-' + c));
+  // Apply hidden ones
+  hiddenCols.forEach(c => table.classList.add('hide-col-' + c));
+}
+
+function toggleCol(col, checkbox) {
+  if (checkbox.checked) hiddenCols.delete(col);
+  else hiddenCols.add(col);
+  localStorage.setItem('cst_hidden_cols', JSON.stringify([...hiddenCols]));
+  applyColVisibility();
+}
+
+function toggleColPanel(e) {
+  e.stopPropagation();
+  document.getElementById('col-panel').classList.toggle('open');
+}
+
+// Close panel when clicking outside
+document.addEventListener('click', () => {
+  const p = document.getElementById('col-panel');
+  if (p) p.classList.remove('open');
+});
+
+function initColToggles() {
+  // Restore saved hidden cols and sync checkboxes
+  const panel = document.getElementById('col-panel');
+  if (!panel) return;
+  hiddenCols.forEach(col => {
+    const cb = panel.querySelector(`input[onchange*="'${col}'"]`);
+    if (cb) cb.checked = false;
+  });
+  applyColVisibility();
+}
+
+// ─── BULK CSV IMPORT ─────────────────────────────────────────────────────────
+// Expected CSV columns (case-insensitive, order doesn't matter):
+// Item, My Cost, Sale Price, Shipping Charged, Actual Shipping,
+// Promo Rate %, Status, eBay Status, Facebook Status, Purchaser, Notes
+
+function bulkImportCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const lines = e.target.result.split('\n').map(l => l.trim()).filter(l => l);
+      if (lines.length < 2) { alert('CSV appears empty — need at least a header row and one data row.'); return; }
+
+      // Parse header row — normalize to lowercase, strip quotes
+      const headers = lines[0].split(',').map(h => h.replace(/["']/g,'').trim().toLowerCase());
+
+      // Column index helpers
+      const col = (names) => {
+        for (const n of names) {
+          const idx = headers.indexOf(n);
+          if (idx !== -1) return idx;
+        }
+        return -1;
+      };
+
+      const iItem    = col(['item','item name','description','name']);
+      const iCost    = col(['my cost','cost','purchase price','buy cost']);
+      const iPrice   = col(['sale price','price','asking price','list price']);
+      const iShipC   = col(['shipping charged','ship charged','shipping charge','ship charge']);
+      const iShipA   = col(['actual shipping','actual ship','shipping cost','ship cost']);
+      const iPromo   = col(['promo rate %','promo rate','promo %','promotion rate','promotion %']);
+      const iStatus  = col(['status','current status']);
+      const iEbay    = col(['ebay status','ebay listing status','ebay listing']);
+      const iFb      = col(['facebook status','fb status','facebook listing','fb listing']);
+      const iPurch   = col(['purchaser','buyer','sold to']);
+      const iNotes   = col(['notes','note','comments']);
+
+      if (iItem === -1) {
+        alert('Could not find an "Item" column in the CSV. Make sure your header row has a column named "Item" or "Item Name".');
+        return;
+      }
+
+      // Parse CSV values (handle quoted fields with commas inside)
+      function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') { inQuotes = !inQuotes; }
+          else if (ch === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+          else { current += ch; }
+        }
+        result.push(current.trim());
+        return result;
+      }
+
+      const getVal  = (cols, idx) => idx !== -1 && cols[idx] ? cols[idx].replace(/["']/g,'').trim() : '';
+      const getNum  = (cols, idx) => { const v = parseFloat(getVal(cols,idx).replace(/[$,]/g,'')); return isNaN(v) ? 0 : v; };
+
+      let added = 0, skipped = 0, skippedNames = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCSVLine(lines[i]);
+        const itemName = getVal(cols, iItem);
+        if (!itemName) continue;
+
+        // Duplicate check — match on item name (case-insensitive)
+        const isDupe = items.some(existing =>
+          existing.item.trim().toLowerCase() === itemName.toLowerCase()
+        );
+        if (isDupe) { skipped++; skippedNames.push(itemName); continue; }
+
+        const cost   = getNum(cols, iCost);
+        const price  = getNum(cols, iPrice);
+        const shipC  = getNum(cols, iShipC);
+        const shipA  = getNum(cols, iShipA);
+        const promo  = getNum(cols, iPromo) / 100;
+        const status = getVal(cols, iStatus) || 'Not Created';
+        const eBaySt = getVal(cols, iEbay)   || '';
+        const fbSt   = getVal(cols, iFb)     || '';
+        const purch  = getVal(cols, iPurch)   || '';
+        const notes  = getVal(cols, iNotes)   || '';
+
+        const total    = price + shipC;
+        const fvfFee   = total * 0.1325 + 0.30;
+        const promoFee = price * promo;
+        const ebayNet  = total - fvfFee - promoFee - shipA;
+
+        items.push({
+          id: Date.now() + i,
+          item: itemName,
+          ebayStatus: eBaySt,
+          fbStatus: fbSt,
+          currentStatus: status,
+          myCost: cost,
+          salePrice: price,
+          shippingCharged: shipC,
+          taxCollected: 0,
+          totalCollected: total,
+          actualShipping: shipA,
+          promoPct: promo,
+          promoFees: promoFee,
+          ebayNet,
+          fbNet: price,
+          actualProfit: null,
+          purchaser: purch,
+          notes
+        });
+        added++;
+      }
+
+      saveAll();
+      renderInventory();
+      if (currentTab === 'dashboard') renderDashboard();
+
+      // Show result modal
+      const body = document.getElementById('bulk-result-body');
+      body.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div style="background:#d4edda;border-radius:8px;padding:14px;text-align:center">
+            <div style="font-size:32px;font-family:'DM Mono',monospace;font-weight:600;color:#155724">${added}</div>
+            <div style="font-size:12px;color:#155724;font-weight:600;text-transform:uppercase;letter-spacing:1px">Items Added</div>
+          </div>
+          <div style="background:#fff3cd;border-radius:8px;padding:14px;text-align:center">
+            <div style="font-size:32px;font-family:'DM Mono',monospace;font-weight:600;color:#856404">${skipped}</div>
+            <div style="font-size:12px;color:#856404;font-weight:600;text-transform:uppercase;letter-spacing:1px">Duplicates Skipped</div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:${skippedNames.length ? '10px' : '0'}">
+          ${added + skipped} rows processed from <strong>${file.name}</strong>
+        </div>
+        ${skippedNames.length ? `
+          <details style="font-size:12px;color:var(--muted)">
+            <summary style="cursor:pointer;font-weight:600;color:var(--ink)">View skipped duplicates (${skippedNames.length})</summary>
+            <ul style="margin:8px 0 0 16px;line-height:1.8">
+              ${skippedNames.map(n => `<li>${n}</li>`).join('')}
+            </ul>
+          </details>` : ''}
+      `;
+      document.getElementById('bulk-result-modal').classList.add('open');
+
+    } catch(err) {
+      alert('Failed to parse CSV — make sure it is a valid comma-separated file exported from Google Sheets.');
+      console.error(err);
+    }
+    event.target.value = ''; // reset so same file can be re-imported
+  };
+  reader.readAsText(file);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+// No loadAll — data comes from Drive only. Show connect prompt on first render.
+renderDashboard();
+calcPredictor();
+initColToggles();
+</script>
+</body>
+</html>
