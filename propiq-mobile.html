@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PropIQ Mobile</title>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1117;--bg2:#111827;--card:#111827;--border:#1e2d45;--border2:#2a3f5e;--gold:#d4a843;--gold2:#e8c468;--gold3:rgba(212,168,67,0.12);--teal:#38bdf8;--teal2:#7dd3fc;--teal3:rgba(56,189,248,0.1);--red:#f87171;--red3:rgba(248,113,113,0.1);--text:#e2e8f0;--text2:#64748b;--text3:#1e3352;--label:#5b8ab0;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px;}
+.login-box{background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:36px 28px;width:100%;max-width:360px;}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo .icon{width:52px;height:52px;background:linear-gradient(135deg,var(--teal),var(--gold));border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px;}
+.login-logo h1{font-family:'Libre Baskerville',serif;font-size:20px;color:var(--text);}
+.login-logo p{font-size:11px;color:var(--text3);margin-top:3px;font-family:'DM Mono',monospace;}
+.field-wrap{margin-bottom:16px;}
+.field-wrap label{display:block;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px;}
+.pw-wrap{position:relative;}
+.pw-wrap input{width:100%;padding:12px 44px 12px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;}
+.pw-wrap input:focus{border-color:var(--teal);}
+.pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;opacity:0.4;}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#f0b429,#d97706);border:none;border-radius:10px;color:#0d1117;font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.login-error{color:var(--red);font-size:12px;margin-top:8px;text-align:center;display:none;}
+
+/* HEADER */
+.m-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.m-header-logo{font-family:'Libre Baskerville',serif;font-size:16px;color:var(--text);display:flex;align-items:center;gap:8px;}
+.m-header-dot{width:7px;height:7px;background:#f0b429;border-radius:50%;}
+.m-header-right{display:flex;align-items:center;gap:8px;}
+.m-timer{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;}
+.m-logout-btn{padding:5px 12px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text3);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+/* BOTTOM NAV */
+.m-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;z-index:100;}
+.m-nav-btn{flex:1;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:10px;}
+.m-nav-btn.active{color:var(--teal);}
+.m-nav-icon{font-size:20px;}
+
+/* SCREENS */
+.screen{display:none;padding:16px;}
+.screen.active{display:block;}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;}
+.card-title{font-size:11px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px;}
+
+/* INPUTS */
+.field-group{margin-bottom:14px;}
+.field-group label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px;}
+.m-input{width:100%;padding:12px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;}
+.m-input:focus{border-color:var(--teal);}
+.m-select{width:100%;padding:12px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:15px;font-family:'DM Sans',sans-serif;outline:none;}
+.m-select option{background:var(--bg2);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* METRIC CARDS */
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.metric-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;overflow:hidden;}
+.metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--teal);}
+.metric-card.gold::before{background:var(--gold);}
+.metric-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;font-weight:600;}
+.metric-value{font-size:20px;font-family:'DM Mono',monospace;color:var(--text);}
+
+/* MODE PILLS */
+.mode-pills{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.mode-pill{padding:7px 16px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);color:var(--text2);background:transparent;font-family:'DM Sans',sans-serif;}
+.mode-pill.active{background:var(--teal);border-color:var(--teal);color:#fff;}
+
+/* PL TABLE */
+.pl-table{width:100%;border-collapse:collapse;font-size:12px;}
+.pl-table tr td{padding:7px 0;border-bottom:1px solid rgba(30,45,69,0.4);}
+.pl-table tr:last-child td{border-bottom:none;}
+.pl-label{color:var(--text2);}
+.pl-value{text-align:right;font-family:'DM Mono',monospace;}
+.pl-highlight td{font-weight:600;}
+.pl-highlight .pl-value{color:var(--teal);}
+.pl-highlight.red .pl-value{color:var(--red);}
+
+/* PROPERTY CARDS */
+.prop-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;}
+.prop-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.prop-nickname{font-family:'Libre Baskerville',serif;font-size:14px;color:var(--text);flex:1;padding-right:8px;}
+.type-badge{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;background:var(--teal3);color:var(--teal2);white-space:nowrap;}
+.prop-notes{font-size:11px;color:var(--gold2);font-style:italic;margin-bottom:6px;}
+.prop-specs{font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.5;}
+.prop-metrics-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.prop-metric{background:var(--bg2);border-radius:7px;padding:8px 10px;}
+.prop-metric-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;}
+.prop-metric-value{font-size:15px;font-family:'DM Mono',monospace;margin-top:2px;}
+
+/* SBS */
+.sbs-row{display:grid;grid-template-columns:1fr 1fr 1fr;padding:7px 0;border-bottom:1px solid rgba(30,45,69,0.3);font-size:12px;}
+.sbs-row:last-child{border-bottom:none;}
+.sbs-key{color:var(--text2);font-size:11px;}
+.sbs-val{text-align:right;font-family:'DM Mono',monospace;}
+.sbs-val.winner{color:var(--teal);font-weight:700;}
+.sbs-val.loser{color:var(--red);}
+.sbs-section-header{padding:6px 0;font-size:10px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:0.7px;border-bottom:1px solid var(--border);margin-top:6px;}
+
+/* BUTTONS */
+.btn-primary{width:100%;padding:14px;background:linear-gradient(135deg,var(--teal),#0284c7);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-secondary{width:100%;padding:12px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;}
+
+/* DRIVE BANNER */
+.drive-banner{background:linear-gradient(90deg,rgba(240,180,41,0.1),rgba(240,180,41,0.04));border-bottom:1px solid rgba(240,180,41,0.2);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--gold2);}
+.drive-banner.hidden{display:none;}
+.drive-banner-btn{padding:6px 14px;background:var(--gold);border:none;border-radius:6px;color:#000;font-size:11px;font-weight:700;cursor:pointer;}
+
+/* TIMEOUT */
+.timeout-warning{position:fixed;bottom:90px;left:16px;right:16px;background:var(--card);border:1px solid var(--gold);border-radius:12px;padding:16px;box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:200;display:none;}
+.timeout-warning h4{color:var(--gold);font-size:13px;margin-bottom:6px;}
+.timeout-countdown{font-size:28px;color:var(--gold);font-family:'DM Mono',monospace;}
+.btn-stay{margin-top:10px;padding:10px;background:var(--teal);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;width:100%;}
+
+/* QUICK SAVE MODAL */
+.qs-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;display:none;align-items:flex-end;justify-content:center;}
+.qs-modal-overlay.open{display:flex;}
+.qs-modal{background:var(--card);border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:500px;}
+.qs-modal h3{font-family:'Libre Baskerville',serif;font-size:16px;margin-bottom:6px;}
+.qs-modal p{font-size:12px;color:var(--text2);margin-bottom:16px;}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:48px 20px;color:var(--text3);}
+.empty-state .icon{font-size:36px;margin-bottom:12px;}
+.empty-state h3{font-family:'Libre Baskerville',serif;font-size:16px;color:var(--text2);margin-bottom:6px;}
+.empty-state p{font-size:13px;line-height:1.6;}
+
+/* TOAST */
+#m-toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--teal);color:var(--teal);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:300;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<div id="m-toast"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="icon">🏡</div>
+      <h1>PropIQ Mobile</h1>
+      <p>Property Investment Analyzer</p>
+    </div>
+    <div class="field-wrap">
+      <label>Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()">
+        <button class="pw-eye" onclick="toggleEye()" tabindex="-1"><span id="pw-eye-icon">👁</span></button>
+      </div>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Access PropIQ</button>
+    <div class="login-error" id="login-error">Incorrect password. Try again.</div>
+  </div>
+</div>
+
+<!-- DRIVE BANNER -->
+<div class="drive-banner hidden" id="drive-banner">
+  <span id="drive-banner-msg">Connect Drive to sync your properties</span>
+  <button class="drive-banner-btn" onclick="connectDrive()">Connect Drive</button>
+</div>
+
+<!-- TIMEOUT WARNING -->
+<div class="timeout-warning" id="timeout-warning">
+  <h4>⏱ Session Expiring</h4>
+  <p style="font-size:12px;color:var(--text2);">Logging out in:</p>
+  <div class="timeout-countdown" id="countdown-num">60</div>
+  <button class="btn-stay" onclick="resetTimer()">Stay Logged In</button>
+</div>
+
+<!-- HEADER -->
+<div class="m-header" id="app-header" style="display:none;">
+  <div class="m-header-logo"><span class="m-header-dot"></span>PropIQ</div>
+  <div class="m-header-right">
+    <span class="m-timer" id="timer-display">10:00</span>
+    <button class="m-logout-btn" onclick="doLogout()">Logout</button>
+  </div>
+</div>
+
+<!-- QUICK SAVE MODAL -->
+<div class="qs-modal-overlay" id="qs-modal">
+  <div class="qs-modal">
+    <h3>📱 Quick Save</h3>
+    <p>Save this analysis to Drive. Tagged as mobile entry — open on desktop to add full details.</p>
+    <div class="field-group">
+      <label>Property Nickname</label>
+      <input type="text" id="qs-nickname" class="m-input" placeholder="e.g. 423 Raven Ridge">
+    </div>
+    <div class="field-group">
+      <label>Quick Note (optional)</label>
+      <input type="text" id="qs-note" class="m-input" placeholder="e.g. Saw today, asking price high" maxlength="80">
+    </div>
+    <button class="btn-primary" onclick="confirmQuickSave()">Save to Drive</button>
+    <button class="btn-secondary" onclick="closeQSModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- SCREENS -->
+
+<!-- ANALYZER -->
+<div class="screen active" id="screen-analyzer">
+  <div class="card">
+    <div class="card-title">Quick Analyzer</div>
+    <div class="mode-pills" id="m-mode-pills">
+      <button class="mode-pill active" onclick="setMMode('ltr',this)">LTR</button>
+      <button class="mode-pill" onclick="setMMode('str',this)">STR</button>
+      <button class="mode-pill" onclick="setMMode('both',this)">Both</button>
+    </div>
+    <div class="field-group">
+      <label>Purchase Price ($)</label>
+      <input type="number" id="m-price" class="m-input" value="350000" oninput="mCalc()">
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <label>Down %</label>
+        <input type="number" id="m-down" class="m-input" value="20" oninput="mCalc()">
+      </div>
+      <div class="field-group">
+        <label>Interest %</label>
+        <input type="number" id="m-rate" class="m-input" value="7.5" step="0.125" oninput="mCalc()">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <label>Property Tax %</label>
+        <input type="number" id="m-tax" class="m-input" value="1.2" step="0.05" oninput="mCalc()">
+      </div>
+      <div class="field-group">
+        <label>HOA ($/mo)</label>
+        <input type="number" id="m-hoa" class="m-input" value="0" oninput="mCalc()">
+      </div>
+    </div>
+    <div id="m-ltr-inputs">
+      <div class="field-row">
+        <div class="field-group">
+          <label>Monthly Rent ($)</label>
+          <input type="number" id="m-rent" class="m-input" value="1800" oninput="mCalc()">
+        </div>
+        <div class="field-group">
+          <label>Op Expense %</label>
+          <input type="number" id="m-opex-ltr" class="m-input" value="35" oninput="mCalc()">
+        </div>
+      </div>
+    </div>
+    <div id="m-str-inputs" style="display:none;">
+      <div class="field-row">
+        <div class="field-group">
+          <label>Nightly Rate ($)</label>
+          <input type="number" id="m-nightly" class="m-input" value="175" oninput="mCalc()">
+        </div>
+        <div class="field-group">
+          <label>Occupancy %</label>
+          <input type="number" id="m-occ" class="m-input" value="62" oninput="mCalc()">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Platform Fee %</label>
+          <input type="number" id="m-pfee" class="m-input" value="3" oninput="mCalc()">
+        </div>
+        <div class="field-group">
+          <label>Op Expense %</label>
+          <input type="number" id="m-opex-str" class="m-input" value="35" oninput="mCalc()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="m-results"></div>
+
+  <!-- FIELD NOTES — persistent jot pad while at showing -->
+  <div class="card" style="margin-top:4px;padding:14px;">
+    <div class="card-title" style="margin-bottom:8px;">📝 Field Notes</div>
+    <textarea id="m-field-notes" rows="3" placeholder="Jot notes while you're here — condition, negotiation ideas, things to check..."
+      style="width:100%;padding:10px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;line-height:1.5;"
+      onfocus="this.style.borderColor='var(--teal)'"
+      onblur="this.style.borderColor='var(--border2)'"></textarea>
+    <div style="font-size:10px;color:var(--text3);margin-top:6px;font-family:'DM Mono',monospace;">Notes carry into Quick Save automatically</div>
+  </div>
+
+  <!-- QUICK SAVE BUTTON -->
+  <button class="btn-primary" onclick="openQSModal()" style="margin-top:8px;">📱 Quick Save to Drive</button>
+</div>
+
+<!-- MY PROPERTIES -->
+<div class="screen" id="screen-properties">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div>
+      <h2 style="font-family:'Libre Baskerville',serif;font-size:20px;">My Properties</h2>
+      <p style="font-size:12px;color:var(--text2);" id="m-prop-count">Loading...</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span id="m-drive-status" style="font-size:10px;font-family:monospace;color:var(--text3);">⬤ Not connected</span>
+      <button onclick="loadFromDrive()" style="padding:7px 14px;background:transparent;border:1px solid var(--border2);border-radius:7px;color:var(--text2);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">↻ Sync Drive</button>
+    </div>
+  </div>
+  <div id="m-prop-grid"></div>
+</div>
+
+<!-- COMPARE -->
+<div class="screen" id="screen-compare">
+  <h2 style="font-family:'Libre Baskerville',serif;font-size:20px;margin-bottom:4px;">Compare</h2>
+  <p style="font-size:12px;color:var(--text2);margin-bottom:16px;">Pick two saved properties</p>
+  <div class="field-group">
+    <label>Property A</label>
+    <select id="m-sbs-a" class="m-select" onchange="mRenderSBS()"><option value="">— Select —</option></select>
+  </div>
+  <div class="field-group">
+    <label>Property B</label>
+    <select id="m-sbs-b" class="m-select" onchange="mRenderSBS()"><option value="">— Select —</option></select>
+  </div>
+  <div id="m-sbs-content">
+    <div class="empty-state"><div class="icon">⚖️</div><h3>Select Two Properties</h3><p>Load properties from Drive first</p></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="m-nav" id="app-nav" style="display:none;">
+  <button class="m-nav-btn active" onclick="showScreen('analyzer',this)">
+    <span class="m-nav-icon">📐</span>
+    <span>Analyze</span>
+  </button>
+  <button class="m-nav-btn" onclick="showScreen('properties',this)">
+    <span class="m-nav-icon">🏘️</span>
+    <span>Properties</span>
+  </button>
+  <button class="m-nav-btn" onclick="showScreen('compare',this)">
+    <span class="m-nav-icon">⚖️</span>
+    <span>Compare</span>
+  </button>
+</nav>
+
+<script>
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+const PASS_KEY = 'propiq2_pass'; // shared with desktop
+const DEFAULT_PASS = 'propiq2024';
+const DATA_KEY = 'propiq2_data'; // same data as desktop
+
+async function sha256(s){
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+async function doLogin(){
+  const v = document.getElementById('pw-input').value;
+  const h = await sha256(v);
+  let s = localStorage.getItem(PASS_KEY);
+  if(!s){ s = await sha256(DEFAULT_PASS); localStorage.setItem(PASS_KEY,s); }
+  if(h===s){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-header').style.display = 'flex';
+    document.getElementById('app-nav').style.display = 'flex';
+    document.getElementById('drive-banner').classList.remove('hidden');
+    sessionStorage.setItem('piqm_auth','1');
+    startTimer();
+    loadLocal();
+    mCalc();
+    renderMProps();
+    refreshMPickers();
+    // If we already have local data, show it immediately
+    if(appData.properties && appData.properties.length > 0){
+      showToast(appData.properties.length + ' propert' + (appData.properties.length===1?'y':'ies') + ' loaded locally');
+    }
+    // If Drive token exists from previous session, auto-sync
+    if(driveConnected && accessToken){
+      setTimeout(async ()=>{ await loadFromDrive(); }, 600);
+    }
+  } else {
+    const e = document.getElementById('login-error');
+    e.style.display='block';
+    document.getElementById('pw-input').value='';
+    setTimeout(()=>e.style.display='none',2500);
+  }
+}
+
+function toggleEye(){
+  const i = document.getElementById('pw-input');
+  const ic = document.getElementById('pw-eye-icon');
+  if(i.type==='password'){i.type='text';ic.textContent='🙈';}
+  else{i.type='password';ic.textContent='👁';}
+}
+
+function doLogout(){
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app-header').style.display='none';
+  document.getElementById('app-nav').style.display='none';
+  document.getElementById('drive-banner').classList.add('hidden');
+  document.getElementById('pw-input').value='';
+  sessionStorage.removeItem('piqm_auth');
+  timeLeft=600; clearInterval(timerInterval);
+}
+
+(async function initAuth(){
+  if(!localStorage.getItem(PASS_KEY)) localStorage.setItem(PASS_KEY, await sha256(DEFAULT_PASS));
+  if(sessionStorage.getItem('piqm_auth')==='1'){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app-header').style.display='flex';
+    document.getElementById('app-nav').style.display='flex';
+    document.getElementById('drive-banner').classList.remove('hidden');
+    startTimer(); loadLocal(); mCalc(); renderMProps(); refreshMPickers();
+    if(appData.properties.length) showToast(appData.properties.length + ' properties loaded');
+  }
+})();
+
+// ── TIMER ────────────────────────────────────────────────────────────────────
+let timeLeft=600, timerInterval;
+function startTimer(){
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    const m=Math.floor(timeLeft/60),s=timeLeft%60;
+    const el=document.getElementById('timer-display');
+    if(el) el.textContent=m+':'+(s<10?'0':'')+s;
+    if(timeLeft===60) document.getElementById('timeout-warning').style.display='block';
+    const cd=document.getElementById('countdown-num');
+    if(cd&&document.getElementById('timeout-warning').style.display!=='none') cd.textContent=timeLeft;
+    if(timeLeft<=0){clearInterval(timerInterval);doLogout();}
+  },1000);
+}
+function resetTimer(){timeLeft=600;document.getElementById('timeout-warning').style.display='none';clearInterval(timerInterval);startTimer();}
+['touchstart','click','keydown'].forEach(e=>document.addEventListener(e,()=>{if(sessionStorage.getItem('piqm_auth')==='1')resetTimer();}));
+
+// ── NAV ──────────────────────────────────────────────────────────────────────
+function showScreen(id,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.m-nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='properties') renderMProps();
+  if(id==='compare') refreshMPickers();
+}
+
+// ── DATA ─────────────────────────────────────────────────────────────────────
+let appData = {properties:[]};
+function loadLocal(){
+  const s = localStorage.getItem(DATA_KEY);
+  if(s){try{appData=JSON.parse(s);}catch(e){appData={properties:[]};}}
+}
+function saveLocal(){ localStorage.setItem(DATA_KEY, JSON.stringify(appData)); }
+
+// ── CALCULATOR ───────────────────────────────────────────────────────────────
+let mMode = 'ltr';
+
+function setMMode(m, btn){
+  mMode = m;
+  document.querySelectorAll('#m-mode-pills .mode-pill').forEach(p=>p.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById('m-ltr-inputs').style.display = m!=='str'?'block':'none';
+  document.getElementById('m-str-inputs').style.display = m!=='ltr'?'block':'none';
+  mCalc();
+}
+
+function gn(id){ return parseFloat(document.getElementById(id)?.value||0)||0; }
+
+function calcMortgage(p,r,y){
+  if(p<=0) return 0;
+  const mr=r/12,n=y*12;
+  if(mr===0) return p/n;
+  return p*(mr*Math.pow(1+mr,n))/(Math.pow(1+mr,n)-1);
+}
+
+function mCalc(){
+  const price=gn('m-price'), downPct=gn('m-down')/100, ir=gn('m-rate')/100;
+  const tax=gn('m-tax')/100, hoa=gn('m-hoa');
+  const down=price*downPct, loan=price-down;
+  const monthly$=calcMortgage(loan,ir,30);
+  const annualDebt=monthly$*12, annualTax=price*tax, annualHOA=hoa*12;
+  const f$=n=>'$'+Math.abs(n||0).toLocaleString('en-US',{maximumFractionDigits:0});
+  const cfC=v=>v>=200?'#4ade80':v>=0?'#d4a843':'#f87171';
+  const cocC=v=>v>=0.08?'#4ade80':v>=0.04?'#d4a843':v>=0?'#64748b':'#f87171';
+  const fPct=n=>((n||0)*100).toFixed(1)+'%';
+
+  let h = `<div class="metric-grid">
+    <div class="metric-card"><div class="metric-label">Monthly Mortgage</div><div class="metric-value">${f$(monthly$)}</div></div>
+    <div class="metric-card gold"><div class="metric-label">Down Payment</div><div class="metric-value">${f$(down)}</div></div>
+  </div>`;
+
+  if(mMode!=='str'){
+    const rent=gn('m-rent'), opex=gn('m-opex-ltr')/100;
+    const gross=rent*12, opexAmt=gross*opex, noi=gross-opexAmt;
+    const noiFix=noi-annualTax-annualHOA, cf=noiFix-annualDebt;
+    const coc=down>0?cf/down:0;
+    h+=`<div class="card">
+      <div class="card-title">LTR — Long-Term Rental</div>
+      <div class="metric-grid">
+        <div class="metric-card"><div class="metric-label">CF / Month</div><div class="metric-value" style="color:${cfC(cf/12)}">${f$(cf/12)}</div></div>
+        <div class="metric-card"><div class="metric-label">Cash-on-Cash</div><div class="metric-value" style="color:${cocC(coc)}">${fPct(coc)}</div></div>
+      </div>
+      <table class="pl-table">
+        <tr><td class="pl-label">Gross Rent/yr</td><td class="pl-value">${f$(gross)}</td></tr>
+        <tr><td class="pl-label">Operating Costs</td><td class="pl-value" style="color:var(--red)">-${f$(opexAmt)}</td></tr>
+        <tr><td class="pl-label">Tax + HOA</td><td class="pl-value" style="color:var(--red)">-${f$(annualTax+annualHOA)}</td></tr>
+        <tr><td class="pl-label">Debt Service</td><td class="pl-value" style="color:var(--red)">-${f$(annualDebt)}</td></tr>
+        <tr class="pl-highlight ${cf<0?'red':''}"><td class="pl-label">Annual CF</td><td class="pl-value">${cf>=0?'+':'-'}${f$(cf)}</td></tr>
+      </table>
+    </div>`;
+  }
+
+  if(mMode!=='ltr'){
+    const nightly=gn('m-nightly'), occ=gn('m-occ')/100, pfee=gn('m-pfee')/100, opexStr=gn('m-opex-str')/100;
+    const gross=nightly*365*occ, pf=gross*pfee, net=gross-pf, opexAmt=net*opexStr;
+    const noi=net-opexAmt, noiFix=noi-annualTax-annualHOA, cf=noiFix-annualDebt;
+    const coc=down>0?cf/down:0;
+    h+=`<div class="card">
+      <div class="card-title">STR — Short-Term Rental</div>
+      <div class="metric-grid">
+        <div class="metric-card"><div class="metric-label">CF / Month</div><div class="metric-value" style="color:${cfC(cf/12)}">${f$(cf/12)}</div></div>
+        <div class="metric-card"><div class="metric-label">Cash-on-Cash</div><div class="metric-value" style="color:${cocC(coc)}">${fPct(coc)}</div></div>
+      </div>
+      <table class="pl-table">
+        <tr><td class="pl-label">Gross Revenue/yr</td><td class="pl-value">${f$(gross)}</td></tr>
+        <tr><td class="pl-label">Platform + Op Costs</td><td class="pl-value" style="color:var(--red)">-${f$(pf+opexAmt)}</td></tr>
+        <tr><td class="pl-label">Tax + HOA</td><td class="pl-value" style="color:var(--red)">-${f$(annualTax+annualHOA)}</td></tr>
+        <tr><td class="pl-label">Debt Service</td><td class="pl-value" style="color:var(--red)">-${f$(annualDebt)}</td></tr>
+        <tr class="pl-highlight ${cf<0?'red':''}"><td class="pl-label">Annual CF</td><td class="pl-value">${cf>=0?'+':'-'}${f$(cf)}</td></tr>
+      </table>
+    </div>`;
+  }
+
+  document.getElementById('m-results').innerHTML = h;
+}
+
+// ── QUICK SAVE ────────────────────────────────────────────────────────────────
+function openQSModal(){
+  // Pre-fill note from field notes if present
+  const fieldNotes = document.getElementById('m-field-notes')?.value.trim();
+  const qsNote = document.getElementById('qs-note');
+  if(fieldNotes && qsNote && !qsNote.value) qsNote.value = fieldNotes;
+  document.getElementById('qs-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('qs-nickname').focus(),100);
+}
+function closeQSModal(){ document.getElementById('qs-modal').classList.remove('open'); }
+
+async function confirmQuickSave(){
+  const nickname = document.getElementById('qs-nickname').value.trim() || 'Mobile Entry';
+  const note = document.getElementById('qs-note').value.trim();
+  const price=gn('m-price'), downPct=gn('m-down')/100, ir=gn('m-rate')/100;
+  const tax=gn('m-tax')/100, hoa=gn('m-hoa');
+  const down=price*downPct, loan=price-down;
+  const monthly$=calcMortgage(loan,ir,30);
+  const annualDebt=monthly$*12, annualTax=price*tax, annualHOA=hoa*12;
+  const rent=gn('m-rent'), opex=gn('m-opex-ltr')/100;
+  const ltrGross=rent*12*(1-0.05), ltrOpex=ltrGross*opex, ltrNOI=ltrGross-ltrOpex;
+  const ltrFix=ltrNOI-annualTax-annualHOA, ltrCF=ltrFix-annualDebt;
+  const nightly=gn('m-nightly'), occ=gn('m-occ')/100, pfee=gn('m-pfee')/100, opexStr=gn('m-opex-str')/100;
+  const strGross=nightly*365*occ, strPF=strGross*pfee, strNet=strGross-strPF;
+  const strOpex=strNet*opexStr, strNOI=strNet-strOpex, strFix=strNOI-annualTax-annualHOA, strCF=strFix-annualDebt;
+
+  const p = {
+    id: 'p_'+Date.now(),
+    savedAt: new Date().toISOString(),
+    source: 'mobile',
+    nickname,
+    notes: (note || '📱 Mobile Entry — needs desktop review'),
+    mode: mMode,
+    purchasePrice: price, downPct: gn('m-down'), interestRate: gn('m-rate'),
+    taxRate: gn('m-tax'), hoa: gn('m-hoa'),
+    monthlyRent: gn('m-rent'), opexLTR: gn('m-opex-ltr'),
+    nightlyRate: gn('m-nightly'), occupancy: gn('m-occ'),
+    platformFee: gn('m-pfee'), opexSTR: gn('m-opex-str'),
+    results:{
+      totalCost:price, down, loan, monthly$, annualDebt, annualTax, annualHOA,
+      ltr:{gross:ltrGross,opex:ltrOpex,noi:ltrNOI,noiFix:ltrFix,cf:ltrCF,coc:down>0?ltrCF/down:0,cap:price>0?ltrFix/price:0,monthlyRent:rent},
+      str:{gross:strGross,pf:strPF,opex:strOpex,noi:strNOI,noiFix:strFix,cf:strCF,coc:down>0?strCF/down:0,cap:price>0?strFix/price:0}
+    }
+  };
+  appData.properties.push(p);
+  saveLocal();
+  await saveToDrive();
+  closeQSModal();
+  document.getElementById('qs-nickname').value='';
+  document.getElementById('qs-note').value='';
+  document.getElementById('m-field-notes').value='';
+  showToast('✓ Saved to Drive as mobile entry!');
+}
+
+// ── MY PROPERTIES ─────────────────────────────────────────────────────────────
+function loadIntoAnalyzer(id){
+  const p = appData.properties.find(x=>x.id===id);
+  if(!p) return;
+  // Populate analyzer inputs from saved property
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v; };
+  set('m-price', p.purchasePrice||350000);
+  set('m-down', p.downPct||20);
+  set('m-rate', p.interestRate||7.5);
+  set('m-tax', p.taxRate||1.2);
+  set('m-hoa', p.hoa||0);
+  set('m-rent', p.monthlyRent||1800);
+  set('m-opex-ltr', p.opexLTR||35);
+  set('m-nightly', p.nightlyRate||175);
+  set('m-occ', p.occupancy||62);
+  set('m-pfee', p.platformFee||3);
+  set('m-opex-str', p.opexSTR||35);
+  set('qs-nickname', p.nickname||'');
+  // Set mode
+  const mode = p.mode||'ltr';
+  document.querySelectorAll('#m-mode-pills .mode-pill').forEach(btn=>{
+    const m = btn.getAttribute('onclick')?.match(/setMMode\('(\w+)'/)?.[1];
+    if(m) btn.classList.toggle('active', m===mode);
+  });
+  mMode = mode;
+  document.getElementById('m-ltr-inputs').style.display = mode!=='str'?'block':'none';
+  document.getElementById('m-str-inputs').style.display = mode!=='ltr'?'block':'none';
+  mCalc();
+  // Navigate to analyzer screen
+  showScreen('analyzer', document.querySelector('.m-nav-btn'));
+  showToast('✓ ' + (p.nickname||'Property') + ' loaded');
+}
+
+function renderMProps(){
+  const grid = document.getElementById('m-prop-grid');
+  const count = document.getElementById('m-prop-count');
+  count.textContent = appData.properties.length + ' propert' + (appData.properties.length===1?'y':'ies') + ' saved';
+  if(!appData.properties.length){
+    grid.innerHTML='<div class="empty-state"><div class="icon">🏘️</div><h3>No Properties</h3><p>Connect Drive to load your saved properties, or quick-save from the Analyze tab</p></div>';
+    return;
+  }
+  const f$=n=>'$'+Math.abs(n||0).toLocaleString('en-US',{maximumFractionDigits:0});
+  const fPct=n=>((n||0)*100).toFixed(1)+'%';
+  const cfC=v=>v>=200?'#4ade80':v>=0?'#d4a843':'#f87171';
+  const cocC=v=>v>=0.08?'#4ade80':v>=0.04?'#d4a843':v>=0?'#64748b':'#f87171';
+  grid.innerHTML = appData.properties.map(p=>{
+    const r=p.results;
+    const tl={'sfh':'SFH','cabin':'Cabin/STR','build':'Build'}[p.type]||p.type||'Property';
+    const isMobile = p.source==='mobile';
+    const lCF=(r?.ltr?.cf||0)/12, sCF=(r?.str?.cf||0)/12;
+    const lCoC=r?.ltr?.coc||0, sCoC=r?.str?.coc||0;
+    return `<div class="prop-card" style="${isMobile?'border-color:rgba(240,180,41,0.3);':''}">
+      <div class="prop-card-header">
+        <div class="prop-nickname">${isMobile?'📱 ':''}${p.nickname}</div>
+        <span class="type-badge">${tl}</span>
+      </div>
+      ${p.notes?`<div class="prop-notes">"${p.notes}"</div>`:''}
+      <div class="prop-specs">${p.address||p.zip||''} · ${f$(r?.totalCost)} · ${p.downPct||20}% down</div>
+      <div class="prop-metrics-row">
+        ${p.mode!=='str'?`<div class="prop-metric"><div class="prop-metric-label">LTR CF/mo</div><div class="prop-metric-value" style="color:${cfC(lCF)}">${f$(lCF)}</div></div>`:''}
+        ${p.mode!=='ltr'?`<div class="prop-metric"><div class="prop-metric-label">STR CF/mo</div><div class="prop-metric-value" style="color:${cfC(sCF)}">${f$(sCF)}</div></div>`:''}
+        ${p.mode!=='str'?`<div class="prop-metric"><div class="prop-metric-label">LTR CoC</div><div class="prop-metric-value" style="color:${cocC(lCoC)}">${fPct(lCoC)}</div></div>`:''}
+        ${p.mode!=='ltr'?`<div class="prop-metric"><div class="prop-metric-label">STR CoC</div><div class="prop-metric-value" style="color:${cocC(sCoC)}">${fPct(sCoC)}</div></div>`:''}
+      </div>
+      <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:10px;">Saved ${new Date(p.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+      <button onclick="loadIntoAnalyzer('${p.id}')" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--teal),#0284c7);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Load into Analyzer</button>
+    </div>`;
+  }).join('');
+}
+
+// ── COMPARE ──────────────────────────────────────────────────────────────────
+function refreshMPickers(){
+  const opts = '<option value="">— Select —</option>' + appData.properties.map(p=>{
+    const label = p.notes ? `${p.nickname} — ${p.notes}` : p.nickname;
+    return `<option value="${p.id}">${p.source==='mobile'?'📱 ':''}${label}</option>`;
+  }).join('');
+  document.getElementById('m-sbs-a').innerHTML = opts;
+  document.getElementById('m-sbs-b').innerHTML = opts;
+  mRenderSBS();
+}
+
+function mRenderSBS(){
+  const aid=document.getElementById('m-sbs-a').value;
+  const bid=document.getElementById('m-sbs-b').value;
+  const con=document.getElementById('m-sbs-content');
+  if(!aid||!bid){con.innerHTML='<div class="empty-state"><div class="icon">⚖️</div><h3>Select Two Properties</h3></div>';return;}
+  const A=appData.properties.find(p=>p.id===aid);
+  const B=appData.properties.find(p=>p.id===bid);
+  if(!A||!B) return;
+  const rA=A.results, rB=B.results;
+  const f$=n=>'$'+Math.abs(n||0).toLocaleString('en-US',{maximumFractionDigits:0});
+  const fPct=n=>((n||0)*100).toFixed(1)+'%';
+  const win=(vA,vB,lb=false)=>{if(lb)return vA<vB?['winner','loser']:vA>vB?['loser','winner']:['',''];return vA>vB?['winner','loser']:vA<vB?['loser','winner']:['',''];};
+  const row=(label,vA,vB,fmt,lb=false)=>{
+    const[wA,wB]=win(typeof vA==='number'?vA:0,typeof vB==='number'?vB:0,lb);
+    return `<div class="sbs-row"><span class="sbs-key">${label}</span><span class="sbs-val ${wA}">${fmt(vA)}</span><span class="sbs-val ${wB}">${fmt(vB)}</span></div>`;
+  };
+  con.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;margin-bottom:12px;gap:4px;">
+      <div style="font-size:10px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:0.6px;">Metric</div>
+      <div style="font-size:11px;font-weight:700;color:var(--teal);text-align:right;">${A.nickname}</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gold);text-align:right;">${B.nickname}</div>
+    </div>
+    <div class="sbs-section-header">Cost</div>
+    ${row('Price',rA?.totalCost,rB?.totalCost,f$,true)}
+    ${row('Down $',rA?.down,rB?.down,f$,true)}
+    ${row('Mortgage/mo',rA?.monthly$,rB?.monthly$,f$,true)}
+    <div class="sbs-section-header">LTR Performance</div>
+    ${row('CF / Month',(rA?.ltr?.cf||0)/12,(rB?.ltr?.cf||0)/12,f$)}
+    ${row('Cash-on-Cash',rA?.ltr?.coc,rB?.ltr?.coc,fPct)}
+    ${row('Cap Rate',rA?.ltr?.cap,rB?.ltr?.cap,fPct)}
+    ${row('Annual NOI',rA?.ltr?.noiFix,rB?.ltr?.noiFix,f$)}
+    <div class="sbs-section-header">STR Performance</div>
+    ${row('CF / Month',(rA?.str?.cf||0)/12,(rB?.str?.cf||0)/12,f$)}
+    ${row('Cash-on-Cash',rA?.str?.coc,rB?.str?.coc,fPct)}
+    ${row('Cap Rate',rA?.str?.cap,rB?.str?.cap,fPct)}
+    ${row('Gross Revenue',rA?.str?.gross,rB?.str?.gross,f$)}
+  `;
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg){
+  const t=document.getElementById('m-toast');
+  t.textContent=msg; t.style.opacity='1';
+  setTimeout(()=>t.style.opacity='0',2500);
+}
+
+// ── GOOGLE DRIVE ──────────────────────────────────────────────────────────────
+const CLIENT_ID='305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com';
+const SCOPES='https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILE='propiq2_data.json'; // same file as desktop
+let accessToken=null, driveConnected=false, driveFileId=localStorage.getItem('propiq2_fid')||null;
+
+function updateDriveBanner(){
+  const b=document.getElementById('drive-banner');
+  if(driveConnected) b.classList.add('hidden');
+  else b.classList.remove('hidden');
+  const s=document.getElementById('m-drive-status');
+  if(s) s.textContent = driveConnected ? '⬤ Drive connected' : '⬤ Not connected';
+  if(s) s.style.color = driveConnected ? '#4ade80' : 'var(--text3)';
+  const msg = document.getElementById('drive-banner-msg');
+  if(msg) msg.textContent = driveConnected ? '✓ Drive connected' : 'Connect Drive to sync your properties';
+}
+
+function connectDrive(){
+  sessionStorage.setItem('piqm_was_authed','1');
+  const uri=window.location.href.split('#')[0];
+  window.location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(uri)}&response_type=token&scope=${encodeURIComponent(SCOPES)}`;
+}
+
+async function saveToDrive(){
+  if(!driveConnected||!accessToken) return;
+  try{
+    const blob=new Blob([JSON.stringify(appData,null,2)],{type:'application/json'});
+    let url,method;
+    if(driveFileId){url=`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`;method='PATCH';}
+    else{url='https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';method='POST';}
+    const form=new FormData();
+    if(!driveFileId) form.append('metadata',new Blob([JSON.stringify({name:DRIVE_FILE,parents:['appDataFolder']})],{type:'application/json'}));
+    form.append('file',blob);
+    const res=await fetch(url,{method,headers:{'Authorization':'Bearer '+accessToken},body:driveFileId?blob:form});
+    const j=await res.json();
+    if(j.id){driveFileId=j.id;localStorage.setItem('propiq2_fid',driveFileId);}
+  }catch(e){console.error(e);}
+}
+
+async function loadFromDrive(){
+  if(!driveConnected||!accessToken){
+    showToast('Connecting to Drive...');
+    connectDrive();
+    return;
+  }
+  showToast('Loading from Drive...');
+  console.log('loadFromDrive: fileId=', driveFileId, 'token=', accessToken?'present':'missing');
+  try{
+    // Step 1: If we already have the file ID from localStorage, try it directly first
+    if(driveFileId){
+      console.log('Trying direct fetch with fileId:', driveFileId);
+      const direct = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
+        {headers:{'Authorization':'Bearer '+accessToken}}
+      );
+      if(direct.ok){
+        const j = await direct.json();
+        if(j && j.properties && Array.isArray(j.properties)){
+          appData=j; saveLocal();
+          renderMProps(); refreshMPickers();
+          showToast('✓ ' + j.properties.length + ' propert' + (j.properties.length===1?'y':'ies') + ' loaded!');
+          return;
+        }
+      }
+    }
+    // Step 2: Search appDataFolder by filename
+    const q = encodeURIComponent("name='" + DRIVE_FILE + "' and trashed=false");
+    let res = await fetch(
+      'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q='+q+'&fields=files(id,name)',
+      {headers:{'Authorization':'Bearer '+accessToken}}
+    );
+    let d = await res.json();
+    // Step 3: Fall back to regular Drive search
+    if(!d.files || !d.files.length){
+      res = await fetch(
+        'https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id,name)',
+        {headers:{'Authorization':'Bearer '+accessToken}}
+      );
+      d = await res.json();
+    }
+    if(!d.files || !d.files.length){
+      showToast('No PropIQ data found in Drive yet');
+      return;
+    }
+    driveFileId = d.files[0].id;
+    localStorage.setItem('propiq2_fid', driveFileId);
+    const r = await fetch(
+      'https://www.googleapis.com/drive/v3/files/'+driveFileId+'?alt=media',
+      {headers:{'Authorization':'Bearer '+accessToken}}
+    );
+    const j = await r.json();
+    if(j && j.properties && Array.isArray(j.properties)){
+      appData=j; saveLocal();
+      renderMProps(); refreshMPickers();
+      showToast('✓ ' + j.properties.length + ' propert' + (j.properties.length===1?'y':'ies') + ' loaded!');
+    } else {
+      showToast('Drive file found but data format unexpected');
+      console.log('Drive data received:', j);
+    }
+  }catch(e){
+    showToast('Could not load — check connection');
+    console.error('loadFromDrive error:', e);
+  }
+}
+
+// Handle OAuth return
+(function oauthReturn(){
+  const h=window.location.hash;
+  if(h&&h.includes('access_token')){
+    const params=new URLSearchParams(h.substring(1)),token=params.get('access_token');
+    if(token){
+      accessToken=token; driveConnected=true;
+      sessionStorage.setItem('piqm_token',token);
+      sessionStorage.setItem('piqm_auth','1'); // mark as authenticated
+      window.history.replaceState(null,'',window.location.pathname);
+      if(sessionStorage.getItem('piqm_was_authed')==='1'){
+        sessionStorage.removeItem('piqm_was_authed');
+        // Show app UI
+        document.getElementById('login-screen').style.display='none';
+        document.getElementById('app-header').style.display='flex';
+        document.getElementById('app-nav').style.display='flex';
+        updateDriveBanner();
+        startTimer();
+        loadLocal(); // load from localStorage first
+        mCalc();
+        renderMProps();
+        refreshMPickers();
+        // Then sync from Drive with a small delay to let UI settle
+        setTimeout(async ()=>{
+          await loadFromDrive();
+        }, 500);
+        setTimeout(()=>showToast('✓ Drive connected!'), 300);
+        return;
+      }
+      updateDriveBanner();
+    }
+  } else {
+    const t=sessionStorage.getItem('piqm_token');
+    if(t){
+      accessToken=t;
+      driveConnected=true;
+      // Auto-reload from Drive on session restore
+      if(sessionStorage.getItem('piqm_auth')==='1'){
+        setTimeout(async ()=>{ await loadFromDrive(); }, 800);
+      }
+    }
+  }
+  updateDriveBanner();
+})();
+</script>
+</body>
+</html>
