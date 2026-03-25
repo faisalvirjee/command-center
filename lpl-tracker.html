@@ -1,0 +1,2938 @@
+<!DOCTYPE html>
+<!-- LPL Financial Tracker | v1.6 | 2026-03-25 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LPL Financial Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #0f1525;
+    --bg3: #161d30;
+    --card: #1a2235;
+    --card2: #1f2a40;
+    --border: #2a3650;
+    --accent: #4f8ef7;
+    --accent2: #7eb8f7;
+    --gold: #f0b429;
+    --gold2: #ffd166;
+    --green: #2dd4a0;
+    --red: #f87171;
+    --text: #e8edf5;
+    --text2: #8fa3c0;
+    --text3: #4a6080;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --radius: 14px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== LOGIN SCREEN ===== */
+  #loginScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 30% 40%, #1a2a4a 0%, #0a0e1a 60%);
+    position: relative;
+  }
+  #loginScreen::before {
+    content:'';
+    position:absolute; inset:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(79,142,247,0.03) 60px, rgba(79,142,247,0.03) 61px),
+                repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(79,142,247,0.03) 60px, rgba(79,142,247,0.03) 61px);
+    pointer-events:none;
+  }
+  .login-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px;
+    width: 400px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(79,142,247,0.1);
+    position: relative;
+    z-index:1;
+  }
+  .login-logo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .login-logo .logo-icon {
+    width: 60px; height: 60px;
+    background: linear-gradient(135deg, var(--accent), var(--gold));
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(79,142,247,0.3);
+  }
+  .login-logo h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--text);
+    letter-spacing: 0.3px;
+  }
+  .login-logo p { font-size: 13px; color: var(--text2); margin-top:4px; }
+  .form-group { margin-bottom: 20px; }
+  .form-group label { display:block; font-size:12px; font-weight:600; color:var(--text2); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:8px; }
+  .form-group input {
+    width:100%; padding:12px 16px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-size:15px;
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .form-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,142,247,0.15); }
+  .btn-primary {
+    width:100%; padding:13px; background: linear-gradient(135deg, var(--accent), #3a6fd4);
+    border:none; border-radius:10px; color:#fff; font-size:15px;
+    font-weight:600; cursor:pointer; transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79,142,247,0.4); }
+  .pw-wrap { position:relative; }
+  .pw-wrap input { padding-right: 44px; }
+  .pw-eye {
+    position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    background:none; border:none; cursor:pointer; color:var(--text3);
+    font-size:16px; padding:4px; transition:color 0.2s;
+  }
+  .pw-eye:hover { color:var(--text2); }
+
+  /* ===== MAIN APP ===== */
+  #app { display:none; min-height:100vh; }
+
+  /* HEADER */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky; top:0; z-index:100;
+  }
+  .header-left { display:flex; align-items:center; gap:16px; }
+  .header-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--text);
+    display:flex; align-items:center; gap:10px;
+  }
+  .header-logo .dot {
+    width:8px; height:8px;
+    background: var(--gold);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--gold);
+  }
+  .nav-tabs { display:flex; gap:4px; }
+  .nav-tab {
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none; background: transparent;
+  }
+  .nav-tab:hover { color: var(--text); background: var(--card); }
+  .nav-tab.active { color: var(--accent); background: rgba(79,142,247,0.12); }
+  .header-right { display:flex; align-items:center; gap:12px; }
+  .timeout-indicator {
+    font-size: 12px; color: var(--text3);
+    display:flex; align-items:center; gap:6px;
+  }
+  .timeout-dot { width:6px; height:6px; background: var(--green); border-radius:50%; }
+  .btn-logout {
+    padding: 7px 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text2);
+    font-size: 13px; font-weight:500;
+    cursor: pointer; transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  /* BANNER */
+  .banner {
+    background: linear-gradient(90deg, rgba(240,180,41,0.15), rgba(240,180,41,0.05));
+    border-bottom: 1px solid rgba(240,180,41,0.3);
+    padding: 10px 32px;
+    display:flex; align-items:center; justify-content:space-between;
+    font-size: 13px; color: var(--gold2);
+  }
+  .banner.hidden { display:none; }
+  .banner-btn {
+    padding: 5px 14px; background: var(--gold); border:none;
+    border-radius: 6px; color: #000; font-size:12px; font-weight:700;
+    cursor:pointer; font-family:'DM Sans',sans-serif;
+  }
+
+  /* TIMEOUT WARNING */
+  .timeout-warning {
+    position: fixed; bottom:24px; right:24px;
+    background: var(--card2); border: 1px solid var(--gold);
+    border-radius: 14px; padding: 20px 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    z-index:1000; display:none; max-width:300px;
+  }
+  .timeout-warning h4 { color: var(--gold); font-size:14px; margin-bottom:8px; }
+  .timeout-warning p { color: var(--text2); font-size:13px; margin-bottom:16px; }
+  .timeout-warning .countdown { font-size:28px; font-weight:700; color:var(--gold); font-family:'Playfair Display',serif; }
+  .btn-stay { padding:8px 20px; background:var(--accent); border:none; border-radius:8px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; }
+
+  /* CONTENT */
+  .content { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px; color: var(--text);
+    margin-bottom: 6px;
+  }
+  .section-sub { font-size:13px; color:var(--text2); margin-bottom:28px; }
+
+  /* STAT CARDS */
+  .stat-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:16px; margin-bottom:28px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 22px;
+    position:relative; overflow:hidden;
+    transition: transform 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+  .stat-card.gold::before { background: linear-gradient(90deg, var(--gold), transparent); }
+  .stat-card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
+  .stat-card.red::before { background: linear-gradient(90deg, var(--red), transparent); }
+  .stat-label { font-size:11px; font-weight:600; color:var(--text3); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:10px; }
+  .stat-value { font-family:'Playfair Display',serif; font-size:26px; color:var(--text); }
+  .stat-sub { font-size:12px; color:var(--text2); margin-top:6px; }
+
+  /* ACCOUNT CARDS */
+  .account-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:16px; margin-top:20px; }
+  .account-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    transition: all 0.2s;
+  }
+  .account-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .account-card.closed { opacity:0.5; }
+  .account-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+  .account-name { font-weight:600; font-size:15px; color:var(--text); }
+  .account-num { font-size:11px; color:var(--text3); margin-top:2px; }
+  .account-badge {
+    padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;
+  }
+  .badge-fv { background:rgba(79,142,247,0.15); color:var(--accent2); }
+  .badge-hv { background:rgba(240,180,41,0.15); color:var(--gold2); }
+  .badge-closed { background:rgba(248,113,113,0.15); color:var(--red); }
+  .account-type { font-size:12px; color:var(--text2); margin-bottom:14px; }
+  .account-metrics { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .metric { background:var(--bg2); border-radius:8px; padding:10px 12px; }
+  .metric-label { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:4px; }
+  .metric-value { font-size:15px; font-weight:600; color:var(--text); }
+  .metric-value.green { color:var(--green); }
+  .metric-value.red { color:var(--red); }
+
+  /* TABLES */
+  .table-wrap { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .table-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .table-header h3 { font-size:15px; font-weight:600; color:var(--text); }
+  table { width:100%; border-collapse:collapse; }
+  th { padding:11px 16px; font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:0.7px; text-align:left; border-bottom:1px solid var(--border); background:var(--bg2); }
+  td { padding:12px 16px; font-size:13px; color:var(--text); border-bottom:1px solid rgba(42,54,80,0.5); }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(79,142,247,0.04); }
+  .type-badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+  .type-contribution { background:rgba(45,212,160,0.15); color:var(--green); }
+  .type-transfer { background:rgba(79,142,247,0.15); color:var(--accent2); }
+  .type-fee { background:rgba(248,113,113,0.15); color:var(--red); }
+  .type-snapshot { background:rgba(240,180,41,0.15); color:var(--gold2); }
+  .type-event { background:rgba(167,139,250,0.15); color:#a78bfa; }
+
+  /* FORMS */
+  .form-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; margin-bottom:20px; }
+  .form-card h3 { font-size:15px; font-weight:600; color:var(--text); margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+  .form-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:14px; margin-bottom:14px; }
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field label { font-size:11px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.7px; }
+  .field input, .field select, .field textarea {
+    padding:10px 12px; background:var(--bg2); border:1px solid var(--border);
+    border-radius:8px; color:var(--text); font-size:13px;
+    font-family:'DM Sans',sans-serif; outline:none; transition:border-color 0.2s;
+  }
+  .field input:focus, .field select:focus { border-color:var(--accent); }
+  .field select option { background:var(--bg2); }
+  .btn-add {
+    padding:10px 22px; background:linear-gradient(135deg,var(--accent),#3a6fd4);
+    border:none; border-radius:8px; color:#fff; font-size:13px; font-weight:600;
+    cursor:pointer; transition:all 0.2s; font-family:'DM Sans',sans-serif;
+  }
+  .btn-add:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(79,142,247,0.4); }
+  .btn-secondary {
+    padding:10px 22px; background:transparent; border:1px solid var(--border);
+    border-radius:8px; color:var(--text2); font-size:13px; font-weight:500;
+    cursor:pointer; transition:all 0.2s; font-family:'DM Sans',sans-serif;
+  }
+  .btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-danger {
+    padding:6px 14px; background:transparent; border:1px solid rgba(248,113,113,0.3);
+    border-radius:6px; color:var(--red); font-size:12px; cursor:pointer;
+    font-family:'DM Sans',sans-serif; transition:all 0.2s;
+  }
+  .btn-danger:hover { background:rgba(248,113,113,0.1); }
+
+  /* CURRENT VALUES TAB */
+  .snapshot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin-bottom:24px; }
+  .snapshot-card {
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px;
+  }
+  .snapshot-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .snapshot-card-name { font-weight:600; font-size:14px; color:var(--text); }
+  .snapshot-last { font-size:11px; color:var(--text3); }
+  .snapshot-input-wrap { display:flex; gap:8px; align-items:center; }
+  .snapshot-input-wrap input { flex:1; padding:9px 12px; background:var(--bg2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:'DM Sans',sans-serif; outline:none; }
+  .snapshot-input-wrap input:focus { border-color:var(--green); }
+
+  /* CHARTS */
+  .chart-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+  .pill-group { display:flex; gap:6px; flex-wrap:wrap; }
+  .pill {
+    padding:6px 14px; border-radius:20px; font-size:12px; font-weight:500;
+    cursor:pointer; transition:all 0.2s; border:1px solid var(--border); color:var(--text2);
+    background:transparent;
+  }
+  .pill:hover { border-color:var(--accent); color:var(--accent); }
+  .pill.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .chart-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; margin-bottom:20px; }
+  .chart-card h3 { font-size:14px; font-weight:600; color:var(--text2); margin-bottom:20px; text-transform:uppercase; letter-spacing:0.8px; }
+  .chart-wrap { position:relative; height:300px; }
+  .slider-wrap { margin-top:16px; }
+  .slider-wrap label { font-size:12px; color:var(--text2); display:block; margin-bottom:8px; }
+  input[type=range] { width:100%; accent-color:var(--accent); }
+
+  /* SETTINGS */
+  .settings-section { margin-bottom:28px; }
+  .settings-section h3 { font-size:14px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+  .settings-row { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid rgba(42,54,80,0.4); }
+  .settings-row-info h4 { font-size:14px; color:var(--text); margin-bottom:3px; }
+  .settings-row-info p { font-size:12px; color:var(--text2); }
+  .toggle { position:relative; width:44px; height:24px; }
+  .toggle input { opacity:0; width:0; height:0; }
+  .toggle-slider {
+    position:absolute; inset:0; background:var(--border); border-radius:24px; cursor:pointer; transition:0.3s;
+  }
+  .toggle-slider:before { content:''; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:0.3s; }
+  .toggle input:checked + .toggle-slider { background:var(--accent); }
+  .toggle input:checked + .toggle-slider:before { transform:translateX(20px); }
+
+  /* FILTERS */
+  .filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+  .filter-bar select, .filter-bar input {
+    padding:8px 12px; background:var(--card); border:1px solid var(--border);
+    border-radius:8px; color:var(--text); font-size:13px; font-family:'DM Sans',sans-serif; outline:none;
+  }
+  .filter-bar select:focus, .filter-bar input:focus { border-color:var(--accent); }
+
+  /* UTILS */
+  .flex-between { display:flex; justify-content:space-between; align-items:center; }
+  .gap-8 { gap:8px; }
+  .mt-8 { margin-top:8px; }
+  .mt-16 { margin-top:16px; }
+  .text-green { color:var(--green); }
+  .text-red { color:var(--red); }
+  .text-gold { color:var(--gold); }
+  .empty-state { text-align:center; padding:40px; color:var(--text3); font-size:14px; }
+
+  /* PROJECTIONS */
+  .proj-disclaimer { background:rgba(240,180,41,0.08); border:1px solid rgba(240,180,41,0.2); border-radius:10px; padding:12px 16px; font-size:12px; color:var(--gold2); margin-bottom:24px; line-height:1.6; }
+  .proj-scenario-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }
+  .proj-scenario-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; }
+  .proj-scenario-card.conservative { border-top:3px solid var(--red); }
+  .proj-scenario-card.moderate     { border-top:3px solid var(--gold); }
+  .proj-scenario-card.optimistic   { border-top:3px solid var(--green); }
+  .proj-scenario-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px; }
+  .proj-scenario-card.conservative .proj-scenario-label { color:var(--red); }
+  .proj-scenario-card.moderate     .proj-scenario-label { color:var(--gold); }
+  .proj-scenario-card.optimistic   .proj-scenario-label { color:var(--green); }
+  .proj-rate-row { display:flex; align-items:center; gap:10px; }
+  .proj-rate-row label { font-size:12px; color:var(--text2); flex:1; }
+  .proj-rate-input { width:72px; padding:7px 10px; background:var(--bg2); border:1px solid var(--border); border-radius:7px; color:var(--text); font-size:14px; font-family:'DM Mono',monospace; text-align:right; outline:none; }
+  .proj-rate-input:focus { border-color:var(--accent); }
+  .proj-rate-suffix { font-size:13px; color:var(--text2); }
+  .proj-horizon-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; margin-bottom:24px; display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+  .proj-horizon-label { font-size:13px; color:var(--text2); white-space:nowrap; }
+  .proj-horizon-val { font-size:22px; font-family:'Playfair Display',serif; color:var(--accent); font-weight:600; white-space:nowrap; min-width:80px; }
+  .proj-contribs-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:24px; }
+  .proj-contribs-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .proj-contribs-header h3 { font-size:14px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.8px; }
+  .proj-account-row { display:grid; grid-template-columns:200px 1fr 1fr 1fr; gap:0; align-items:center; padding:14px 20px; border-bottom:1px solid rgba(42,54,80,0.4); transition:background 0.15s; }
+  .proj-account-row:last-child { border-bottom:none; }
+  .proj-account-row:hover { background:rgba(79,142,247,0.03); }
+  .proj-acct-name { font-size:13px; font-weight:600; color:var(--text); }
+  .proj-acct-value { font-size:11px; color:var(--text3); margin-top:2px; }
+  .proj-input-group { display:flex; flex-direction:column; gap:4px; padding:0 12px; }
+  .proj-input-label { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.6px; }
+  .proj-input { width:100%; padding:7px 10px; background:var(--bg2); border:1px solid var(--border); border-radius:7px; color:var(--text); font-size:13px; font-family:'DM Mono',monospace; outline:none; transition:border-color 0.2s; }
+  .proj-input:focus { border-color:var(--accent); }
+  .proj-results-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-bottom:24px; }
+  .proj-result-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; }
+  .proj-result-acct { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:12px; }
+  .proj-result-row { display:flex; justify-content:space-between; align-items:baseline; padding:5px 0; border-bottom:1px solid rgba(42,54,80,0.3); }
+  .proj-result-row:last-child { border-bottom:none; }
+  .proj-result-scenario { font-size:11px; color:var(--text3); }
+  .proj-result-val { font-size:13px; font-family:'DM Mono',monospace; font-weight:600; }
+  .proj-result-val.conservative { color:var(--red); }
+  .proj-result-val.moderate     { color:var(--gold); }
+  .proj-result-val.optimistic   { color:var(--green); }
+  .proj-total-card { background:var(--card2); border:1px solid var(--border); border-radius:var(--radius); padding:22px 28px; margin-bottom:24px; }
+  .proj-fee-toggle { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text2); cursor:pointer; user-select:none; }
+  .proj-fee-toggle input { width:16px; height:16px; accent-color:var(--red); cursor:pointer; }
+  @media print {
+    .header, .nav-tabs, .btn-logout, .banner, .timeout-warning, .btn-add, .btn-secondary { display:none!important; }
+    body { background:#fff; color:#000; }
+    .stat-card, .account-card, .table-wrap, .chart-card { border:1px solid #ddd; }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  .drive-status { font-size:12px; color:var(--text2); display:flex; align-items:center; gap:6px; }
+  .drive-connected { color:var(--green); }
+  .drive-disconnected { color:var(--text3); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon">📈</div>
+      <h1>LPL Financial Tracker</h1>
+      <p>Faisal & Heena — Portfolio Dashboard</p>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="passwordInput" placeholder="Enter password" onkeydown="if(event.key==='Enter')login()">
+        <button class="pw-eye" onclick="togglePwEye('passwordInput','loginEyeIcon')" tabindex="-1"><span id="loginEyeIcon">👁</span></button>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="login()">Access Dashboard</button>
+    <div class="login-error" id="loginError" style="display:none;">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- TIMEOUT WARNING -->
+  <div class="timeout-warning" id="timeoutWarning">
+    <h4>⏱ Session Expiring</h4>
+    <p>Your session will auto-save and log out in:</p>
+    <div class="countdown" id="countdownNum">60</div>
+    <div style="margin-top:16px;">
+      <button class="btn-stay" onclick="resetTimer()">Stay Logged In</button>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-logo">
+        <span class="dot"></span>
+        LPL Financial Tracker
+      </div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
+        <button class="nav-tab" onclick="showPage('accounts')">Accounts</button>
+        <button class="nav-tab" onclick="showPage('transactions')">Transaction Log</button>
+        <button class="nav-tab" onclick="showPage('currentValues')">Current Values</button>
+        <button class="nav-tab" onclick="showPage('charts')">Charts</button>
+        <button class="nav-tab" onclick="showPage('projections')">Projections</button>
+        <button class="nav-tab" onclick="showPage('settings')">Settings</button>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="timeout-indicator">
+        <span class="timeout-dot" id="timerDot"></span>
+        <span id="timerDisplay">10:00</span>
+      </div>
+      <button class="btn-logout" onclick="saveAndLogout()">Save & Logout</button>
+    </div>
+  </div>
+
+  <!-- GOOGLE DRIVE BANNER -->
+  <div class="banner" id="driveBanner">
+    <span>⚠️ Google Drive not connected — data is stored locally only. Connect to enable cloud sync & backup.</span>
+    <button class="banner-btn" onclick="driveConnected?updateDriveBanner():connectDrive()">Connect Google Drive</button>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <h2 class="section-title">Portfolio Dashboard</h2>
+      <p class="section-sub" id="dashboardDate">Loading...</p>
+
+      <div class="stat-grid" id="statGrid"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+        <div class="table-wrap">
+          <div class="table-header"><h3>Account Snapshot</h3></div>
+          <table id="dashAccountTable">
+            <thead><tr><th>Account</th><th>Owner</th><th>Invested</th><th>Current Value</th><th>Gain/Loss</th></tr></thead>
+            <tbody id="dashAccountBody"></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>Recent Activity</h3></div>
+          <table>
+            <thead><tr><th>Date</th><th>Type</th><th>Account</th><th>Amount</th></tr></thead>
+            <tbody id="recentActivityBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header"><h3>Fees by Year</h3></div>
+        <table id="feesByYearTable">
+          <thead><tr><th>Year</th><th>Total Fees</th><th>Accounts Tapped</th></tr></thead>
+          <tbody id="feesByYearBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ACCOUNTS -->
+    <div class="page" id="page-accounts">
+      <div class="flex-between" style="margin-bottom:20px;">
+        <div>
+          <h2 class="section-title">Accounts</h2>
+          <p class="section-sub">All LPL managed accounts for Faisal & Heena</p>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <div class="pill-group">
+            <button class="pill active" id="ownerPillBoth" onclick="setOwnerFilter('both')">Both</button>
+            <button class="pill" id="ownerPillFaisal" onclick="setOwnerFilter('Faisal')">Faisal</button>
+            <button class="pill" id="ownerPillHeena" onclick="setOwnerFilter('Heena')">Heena</button>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer;">
+            <input type="checkbox" id="showClosedToggle" onchange="renderAccounts()"> Show Closed Accounts
+          </label>
+        </div>
+      </div>
+      <div class="account-grid" id="accountGrid"></div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div class="page" id="page-transactions">
+      <h2 class="section-title">Transaction Log</h2>
+      <p class="section-sub">All contributions, transfers, backdoor Roth events, and account events</p>
+
+      <div class="form-card">
+        <h3>Add Transaction</h3>
+        <div class="form-row">
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="txDate">
+          </div>
+          <div class="field">
+            <label>Type</label>
+            <select id="txType" onchange="handleTxTypeChange()">
+              <option value="contribution">Contribution (Cash In)</option>
+              <option value="transfer">Transfer / Backdoor Roth</option>
+              <option value="snapshot">Market Value Snapshot</option>
+              <option value="fee">Fee Charged</option>
+              <option value="event">Account Event</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Account</label>
+            <select id="txAccount"></select>
+          </div>
+          <div class="field" id="txToAccountField" style="display:none;">
+            <label>To Account</label>
+            <select id="txToAccount"></select>
+          </div>
+          <div class="field">
+            <label>Amount ($)</label>
+            <input type="number" id="txAmount" placeholder="0.00" step="0.01">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field" id="txCountsBasisField" style="display:none;">
+            <label>Counts as New Money?</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-top:8px;cursor:pointer;">
+              <input type="checkbox" id="txCountsBasis" style="width:16px;height:16px;accent-color:var(--accent);">
+              Yes — this is a Backdoor Roth conversion (new cash)
+            </label>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">Check if this transfer represents fresh money (e.g. Backdoor Roth). Leave unchecked for account mergers or rollovers of existing money.</div>
+          </div>
+          <div class="field" id="txEventTypeField" style="display:none;">
+            <label>Event Type</label>
+            <select id="txEventType">
+              <option value="opened">Opened</option>
+              <option value="closed">Closed</option>
+              <option value="transferred">Transferred</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:span 2;">
+            <label>Notes (optional)</label>
+            <input type="text" id="txNotes" placeholder="e.g. 2024 Backdoor Roth contribution">
+          </div>
+        </div>
+        <button class="btn-add" onclick="addTransaction()">Add Transaction</button>
+      </div>
+
+      <div class="filter-bar">
+        <select id="filterTxType" onchange="renderTransactions()">
+          <option value="">All Types</option>
+          <option value="contribution">Contribution</option>
+          <option value="transfer">Transfer</option>
+          <option value="snapshot">Snapshot</option>
+          <option value="fee">Fee</option>
+          <option value="event">Event</option>
+        </select>
+        <select id="filterTxAccount" onchange="renderTransactions()">
+          <option value="">All Accounts</option>
+        </select>
+        <input type="number" id="filterTxYear" placeholder="Year (e.g. 2024)" onchange="renderTransactions()" style="width:160px;">
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Account</th><th>To Account</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
+          <tbody id="txBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CURRENT VALUES -->
+    <div class="page" id="page-currentValues">
+      <h2 class="section-title">Current Values</h2>
+      <p class="section-sub">Update market values and log new fees from your LPL statement</p>
+
+      <div class="form-card">
+        <h3>📊 Market Value Update</h3>
+        <div class="form-row">
+          <div class="field">
+            <label>Snapshot Date</label>
+            <input type="date" id="snapshotDate">
+          </div>
+        </div>
+        <div class="snapshot-grid" id="snapshotGrid"></div>
+        <button class="btn-add" onclick="saveSnapshot()">Save Market Values</button>
+      </div>
+
+      <div class="form-card">
+        <h3>💸 Log a Fee</h3>
+        <div class="form-row">
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="feeDate">
+          </div>
+          <div class="field">
+            <label>Account Charged</label>
+            <select id="feeAccount"></select>
+          </div>
+          <div class="field">
+            <label>Amount ($)</label>
+            <input type="number" id="feeAmount" placeholder="0.00" step="0.01">
+          </div>
+          <div class="field">
+            <label>Notes (optional)</label>
+            <input type="text" id="feeNotes" placeholder="e.g. Q1 2025 advisory fee">
+          </div>
+        </div>
+        <button class="btn-add" onclick="addFee()">Log Fee</button>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header"><h3>Fee History</h3><span style="font-size:13px;color:var(--text2);">Total: <strong id="totalFeesDisplay" style="color:var(--red);">$0.00</strong></span></div>
+        <table>
+          <thead><tr><th>Date</th><th>Account</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
+          <tbody id="feeHistoryBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="page" id="page-charts">
+      <h2 class="section-title">Portfolio Charts</h2>
+      <p class="section-sub">Visual performance across all accounts and time periods</p>
+
+      <div class="chart-controls">
+        <div class="pill-group" id="chartPills"></div>
+      </div>
+
+      <div class="chart-card">
+        <h3 id="chartTitle">Portfolio Value Over Time</h3>
+        <div class="chart-wrap"><canvas id="valueChart"></canvas></div>
+        <div class="slider-wrap">
+          <label>Date Range: Showing <span id="sliderLabel">All Time</span></label>
+          <input type="range" id="dateSlider" min="0" max="100" value="0" oninput="updateChartRange(this.value)">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="chart-card">
+          <h3>Contributions vs Current Value</h3>
+          <div class="chart-wrap"><canvas id="comparisonChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Account Allocation (Current Value)</h3>
+          <div class="chart-wrap"><canvas id="allocationChart"></canvas></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+        <div class="chart-card">
+          <h3>Account Growth Rate (%)</h3>
+          <p style="font-size:12px;color:var(--text3);margin-bottom:12px;">Normalized gain per account — how hard each dollar is working</p>
+          <div class="chart-wrap"><canvas id="growthRateChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Fees vs Gains by Year</h3>
+          <p style="font-size:12px;color:var(--text3);margin-bottom:12px;">Are you earning more than you're paying?</p>
+          <div class="chart-wrap"><canvas id="feesVsGainsChart"></canvas></div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;" id="feeDragCard"></div>
+    </div>
+
+    <!-- PROJECTIONS -->
+    <div class="page" id="page-projections">
+      <h2 class="section-title">Projections</h2>
+      <p class="section-sub">Model future portfolio growth across scenarios — adjust rates, contributions, and horizon to explore outcomes</p>
+
+      <div class="proj-disclaimer">
+        ⚠️ These projections are illustrative only and are not financial advice. Actual returns will vary based on market conditions, fees, taxes, and other factors. Rates of return shown are hypothetical annual averages applied uniformly across all accounts.
+      </div>
+
+      <!-- SCENARIO RATE CONTROLS -->
+      <div class="proj-scenario-grid">
+        <div class="proj-scenario-card conservative">
+          <div class="proj-scenario-label">Conservative</div>
+          <div class="proj-rate-row">
+            <label>Annual growth rate</label>
+            <input type="number" class="proj-rate-input" id="rateConservative" value="5" min="0" max="30" step="0.5" oninput="renderProjections()">
+            <span class="proj-rate-suffix">%</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:8px;">Modest market, high fee drag</div>
+        </div>
+        <div class="proj-scenario-card moderate">
+          <div class="proj-scenario-label">Moderate</div>
+          <div class="proj-rate-row">
+            <label>Annual growth rate</label>
+            <input type="number" class="proj-rate-input" id="rateModerate" value="8" min="0" max="30" step="0.5" oninput="renderProjections()">
+            <span class="proj-rate-suffix">%</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:8px;">Historical S&P avg minus fees</div>
+        </div>
+        <div class="proj-scenario-card optimistic">
+          <div class="proj-scenario-label">Optimistic</div>
+          <div class="proj-rate-row">
+            <label>Annual growth rate</label>
+            <input type="number" class="proj-rate-input" id="rateOptimistic" value="12" min="0" max="30" step="0.5" oninput="renderProjections()">
+            <span class="proj-rate-suffix">%</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:8px;">Strong bull market performance</div>
+        </div>
+      </div>
+
+      <!-- HORIZON CONTROL -->
+      <div class="proj-horizon-card">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:6px;">Projection Horizon</div>
+          <div class="proj-horizon-label">How many years to model out?</div>
+        </div>
+        <div style="flex:1;padding:0 8px;">
+          <input type="range" id="horizonSlider" min="5" max="30" step="5" value="20" oninput="syncHorizon(this.value)" style="width:100%;">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;">
+            <span>5 yr</span><span>10 yr</span><span>15 yr</span><span>20 yr</span><span>25 yr</span><span>30 yr</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="number" id="horizonInput" value="20" min="1" max="50" style="width:64px;padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:16px;font-family:'DM Mono',monospace;text-align:center;outline:none;" oninput="syncHorizon(this.value)">
+          <div class="proj-horizon-label">years</div>
+        </div>
+      </div>
+
+      <!-- CONTRIBUTION SCHEDULES -->
+      <div class="proj-contribs-card">
+        <div class="proj-contribs-header">
+          <h3>Contribution Schedule</h3>
+          <span style="font-size:12px;color:var(--text3);">Set regular annual contributions and periodic lump sums per account</span>
+        </div>
+        <!-- Header row -->
+        <div class="proj-account-row" style="background:var(--bg2);padding:10px 20px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--text3);">Account</div>
+          <div class="proj-input-group"><span class="proj-input-label">Annual Contribution ($)</span></div>
+          <div class="proj-input-group"><span class="proj-input-label">Lump Sum Amount ($)</span></div>
+          <div class="proj-input-group"><span class="proj-input-label">Every (years)</span></div>
+        </div>
+        <div id="projContribRows"></div>
+      </div>
+
+      <!-- TOGGLES ROW -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+
+        <!-- IRS ESCALATION TOGGLE -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);">Escalate Roth Contributions</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px;">IRS limit increases +$500 every 3 years with inflation (applies to FV-NewROTH annual contribution)</div>
+          </div>
+          <label class="proj-fee-toggle">
+            <input type="checkbox" id="rothEscalateToggle" onchange="renderProjections()" checked>
+            <span style="font-size:13px;">On</span>
+          </label>
+        </div>
+
+        <!-- FEE DRAG TOGGLE -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);">Show Fee Drag Impact</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px;">Add a line showing what your portfolio would be worth if advisory fees were invested instead</div>
+          </div>
+          <label class="proj-fee-toggle">
+            <input type="checkbox" id="feeDragToggle" onchange="renderProjections()">
+            <span style="font-size:13px;">Show on chart</span>
+          </label>
+        </div>
+
+      </div>
+
+      <!-- TOTAL PORTFOLIO CHART -->
+      <div class="chart-card">
+        <h3 id="projChartTitle">Total Portfolio Projection</h3>
+        <div class="chart-wrap" style="height:360px;"><canvas id="projTotalChart"></canvas></div>
+      </div>
+
+      <!-- SUMMARY STAT CARDS -->
+      <div id="projSummaryCards" style="margin-bottom:24px;"></div>
+
+      <!-- PER-ACCOUNT RESULTS TABLE -->
+      <div class="table-wrap" style="margin-bottom:24px;">
+        <div class="table-header">
+          <h3>Per-Account Projections</h3>
+          <span id="projTableSubtitle" style="font-size:12px;color:var(--text3);"></span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table id="projAccountTable">
+            <thead id="projAccountHead"></thead>
+            <tbody id="projAccountBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FEE DRAG DETAIL PANEL -->
+      <div id="projFeeDragPanel" style="display:none;"></div>
+
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <h2 class="section-title">Settings</h2>
+      <p class="section-sub">Data management, sync, and display preferences</p>
+
+      <div class="settings-section">
+        <h3>Google Drive Sync</h3>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <h4>Connection Status</h4>
+            <p id="driveStatusText">Not connected — data stored locally</p>
+          </div>
+          <button class="btn-add" onclick="connectDrive()" id="driveConnectBtn">Connect</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <h4>Save to Google Drive</h4>
+            <p>Push current data to your connected Drive</p>
+          </div>
+          <button class="btn-secondary" onclick="saveToDrive()">Save Now</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <h4>Load from Google Drive</h4>
+            <p>Pull latest data from Drive</p>
+          </div>
+          <button class="btn-secondary" onclick="loadFromDrive()">Load</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Data Import / Export</h3>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <h4>Export JSON</h4>
+            <p>Download all data as a JSON backup file</p>
+          </div>
+          <button class="btn-secondary" onclick="exportJSON()">Export</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <h4>Import JSON</h4>
+            <p>Restore data from a JSON backup</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importJSON(event)">
+            <button class="btn-secondary" onclick="document.getElementById('importFile').click()">Import</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <h4>Print / Save as PDF</h4>
+            <p>Print the current dashboard view</p>
+          </div>
+          <button class="btn-secondary" onclick="window.print()">Print to PDF</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>LPL CSV Import</h3>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <h4>Import LPL Activity CSV</h4>
+            <p>Upload your quarterly activity export from LPL. Imports fees, contributions, and cash events. Skips duplicates automatically.</p>
+            <p id="lastCsvImportDate" style="margin-top:6px;font-size:12px;color:var(--text3);">Last import: —</p>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+            <input type="file" id="csvImportFile" accept=".csv" style="display:none;" onchange="previewCsvImport(event)">
+            <button class="btn-add" onclick="document.getElementById('csvImportFile').click()">Import LPL CSV</button>
+          </div>
+        </div>
+        <!-- Preview table — shown after file is selected, before commit -->
+        <div id="csvPreviewSection" style="display:none;margin-top:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h4 style="font-size:14px;color:var(--text);">Preview — Review before importing</h4>
+            <div style="display:flex;gap:8px;">
+              <button class="btn-secondary" onclick="cancelCsvImport()">Cancel</button>
+              <button class="btn-add" onclick="commitCsvImport()">Confirm Import</button>
+            </div>
+          </div>
+          <div id="csvPreviewStats" style="display:flex;gap:16px;margin-bottom:12px;font-size:13px;"></div>
+          <div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;">
+            <table style="width:100%;font-size:12px;">
+              <thead style="background:var(--card2);position:sticky;top:0;">
+                <tr><th style="padding:8px 12px;text-align:left;color:var(--text2);">Date</th><th style="padding:8px 12px;text-align:left;color:var(--text2);">Type</th><th style="padding:8px 12px;text-align:left;color:var(--text2);">Account</th><th style="padding:8px 12px;text-align:right;color:var(--text2);">Amount</th><th style="padding:8px 12px;text-align:left;color:var(--text2);">Description</th><th style="padding:8px 12px;text-align:left;color:var(--text2);">Status</th></tr>
+              </thead>
+              <tbody id="csvPreviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <h4>Show Closed Accounts</h4>
+            <p>Display FV-ROTH (2136) and HV-Brokerage (2819) throughout the app</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="showClosedSetting" onchange="toggleClosedSetting()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Security</h3>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <h4>Change Password</h4>
+            <p>Update your dashboard access password</p>
+          </div>
+          <button class="btn-secondary" onclick="showChangePassword()">Change</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <h4>Session Timeout</h4>
+            <p>Auto-save and logout after 10 minutes of inactivity</p>
+          </div>
+          <span style="font-size:13px;color:var(--green);">Active (10 min)</span>
+        </div>
+      </div>
+
+      <div id="changePwSection" style="display:none;" class="form-card">
+        <h3>Change Password</h3>
+        <div class="form-row">
+          <div class="field"><label>New Password</label><div class="pw-wrap"><input type="password" id="newPw1" placeholder="New password"><button class="pw-eye" onclick="togglePwEye('newPw1','eye1')" tabindex="-1"><span id="eye1">👁</span></button></div></div>
+          <div class="field"><label>Confirm Password</label><div class="pw-wrap"><input type="password" id="newPw2" placeholder="Confirm"><button class="pw-eye" onclick="togglePwEye('newPw2','eye2')" tabindex="-1"><span id="eye2">👁</span></button></div></div>
+        </div>
+        <button class="btn-add" onclick="changePassword()">Update Password</button>
+        <span id="pwMsg" style="font-size:13px;margin-left:12px;"></span>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<script>
+// ===== CRYPTO HASH =====
+function togglePwEye(inputId, iconId) {
+  const input = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  if(input.type === 'password') {
+    input.type = 'text';
+    icon.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    icon.textContent = '👁';
+  }
+}
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ===== DEFAULT PASSWORD HASH =====
+// Default: "lpl2024" — change via Settings
+let PASS_HASH = localStorage.getItem('lpl_pass') || '';
+const DEFAULT_PASS = 'lpl2024';
+
+// ===== DATA MODEL =====
+let data = {
+  accounts: [],
+  transactions: [],
+  snapshots: [],
+  settings: { showClosed: false }
+};
+
+// ===== SEED DATA =====
+function seedData() {
+  data.accounts = [
+    { id:'fv-brokerage', name:'FV-Brokerage', num:'6363', type:'Brokerage (TOD)', owner:'Faisal', status:'active' },
+    { id:'fv-newroth', name:'FV-NewROTH', num:'6165', type:'Roth IRA', owner:'Faisal', status:'active' },
+    { id:'fv-trad', name:'FV-Traditional IRA', num:'2134', type:'Traditional IRA', owner:'Faisal', status:'active', subtype:'shell', shellNote:'Backdoor Roth conduit — contributions pass through to Roth' },
+    { id:'hv-rollover', name:'HV-Rollover IRA', num:'4104', type:'Rollover IRA', owner:'Heena', status:'active' },
+    { id:'hv-roth', name:'HV-ROTH', num:'4833', type:'Roth IRA', owner:'Heena', status:'active' },
+    { id:'hv-trad', name:'HV-Traditional IRA', num:'8141', type:'Traditional IRA', owner:'Heena', status:'active' },
+    { id:'fv-roth', name:'FV-ROTH', num:'2136', type:'Roth IRA', owner:'Faisal', status:'closed', closedNote:'Fully transferred to FV-NewROTH on 09/04/2025' },
+    { id:'hv-brokerage', name:'HV-Brokerage', num:'2819', type:'Brokerage (TOD)', owner:'Heena', status:'closed', closedNote:'Closed 03/19/2025 — funds moved to FV-Traditional IRA for Backdoor Roth' },
+  ];
+
+  const tx = data.transactions;
+
+  // ── 2023 INITIAL TRANSFERS ──────────────────────────────────────────────────
+  // Faisal: Schwab/TD stocks + cash transferred to FV-Brokerage (stocks liquidated 12/08/2023)
+  tx.push({ id:'init1', date:'2023-11-28', type:'contribution', account:'fv-brokerage', toAccount:'', amount:88664.25, notes:'Initial transfer: Schwab/TD stocks + Fidelity cash to FV-Brokerage (TSLA, AAL, CRSR etc. + $4,235.45 + $4,000 cash)' });
+  // Faisal: Vanguard Brokerage (partial) to FV-Brokerage
+  tx.push({ id:'init2', date:'2023-11-28', type:'contribution', account:'fv-brokerage', toAccount:'', amount:2600.00, notes:'Initial transfer: Vanguard Brokerage partial to FV-Brokerage' });
+  // Faisal: Vanguard ROTH to FV-ROTH (eventually transferred to FV-NewROTH in 2025)
+  // This IS LPL basis — $37,100.42 is what LPL received and is responsible for growing
+  tx.push({ id:'init3', date:'2023-11-29', type:'contribution', account:'fv-newroth', toAccount:'', amount:37100.42, notes:'Initial transfer: Vanguard ROTH → FV-ROTH (2136), transferred to FV-NewROTH (6165) in Sept 2025 — LPL starting value for this Roth' });
+  // Heena: Vanguard ROTH to HV-ROTH (268.256 shares VTIVX, sold 12/11 for $7,004.77)
+  tx.push({ id:'init4', date:'2023-11-29', type:'contribution', account:'hv-roth', toAccount:'', amount:6969.29, notes:'Initial transfer: Vanguard ROTH → HV-ROTH (268.256 shares VTIVX, sold for $7,004.77)' });
+  // Heena: Vanguard Target 2045 to HV-Brokerage (115.664 shares VTIVX, sold 12/11 for $2,994.65)
+  tx.push({ id:'init5', date:'2023-11-28', type:'contribution', account:'hv-brokerage', toAccount:'', amount:2994.65, notes:'Initial transfer: Vanguard Brokerage → HV-Brokerage (115.664 shares VTIVX, sold for $2,994.65)' });
+
+  // ── 2024 CONTRIBUTIONS ──────────────────────────────────────────────────────
+  // Faisal: New cash → FV-Traditional IRA for 2023 Backdoor Roth
+  tx.push({ id:'c2024a', date:'2024-01-18', type:'contribution', account:'fv-trad', toAccount:'', amount:6500.00, notes:'2023 Backdoor Roth — new cash contribution to FV-Traditional IRA' });
+  // Heena: New cash → HV-Traditional IRA
+  tx.push({ id:'c2024b', date:'2024-01-17', type:'contribution', account:'hv-trad', toAccount:'', amount:6500.00, notes:'2024 IRA contribution — new cash to HV-Traditional IRA (Backdoor Roth not possible due to HV-Rollover IRA Pro-Rata Rule)' });
+  // Heena: Rollover from Fidelity 401k #1157 → HV-Rollover IRA
+  tx.push({ id:'c2024c', date:'2024-01-25', type:'contribution', account:'hv-rollover', toAccount:'', amount:48037.07, notes:'Rollover: Fidelity 401k #1157 → HV-Rollover IRA' });
+  // Heena: Rollover from Fidelity 401k #0170 → HV-Rollover IRA
+  tx.push({ id:'c2024d', date:'2024-01-25', type:'contribution', account:'hv-rollover', toAccount:'', amount:70371.15, notes:'Rollover: Fidelity 401k #0170 → HV-Rollover IRA (total rollovers: $118,408.22)' });
+  // Faisal: New cash → FV-Traditional IRA for 2024 Backdoor Roth
+  tx.push({ id:'c2024e', date:'2024-10-23', type:'contribution', account:'fv-trad', toAccount:'', amount:8000.00, notes:'2024 Backdoor Roth — new cash contribution to FV-Traditional IRA' });
+
+  // ── 2024 BACKDOOR ROTH CONVERSIONS ─────────────────────────────────────────
+  // Partial conversion Feb 2024 (leftover from 2023 contribution)
+  tx.push({ id:'bdc2024a', date:'2024-02-16', type:'transfer', account:'fv-trad', toAccount:'fv-roth', countsAsBasis:true, amount:1181.12, notes:'Partial Backdoor Roth conversion: FV-Traditional IRA → FV-ROTH (leftover from 2023 contribution)' });
+  // Main 2024 conversion Oct 2024
+  tx.push({ id:'bdc2024b', date:'2024-10-30', type:'transfer', account:'fv-trad', toAccount:'fv-roth', countsAsBasis:true, amount:7975.00, notes:'2024 Backdoor Roth conversion: FV-Traditional IRA → FV-ROTH ($8,000 contribution minus $25 conversion fee)' });
+
+  // ── 2024 FEES ───────────────────────────────────────────────────────────────
+  // Note: FV-ROTH fees remapped to FV-NewROTH (FV-ROTH transferred to FV-NewROTH Sept 2025)
+  const fees2024 = [
+    ['2024-01-08',163.83,'fv-newroth','Advisory fee (charged to FV-ROTH pre-transfer)'],
+    ['2024-02-09',497.25,'fv-brokerage','Advisory fee'],
+    ['2024-02-09',396.32,'hv-rollover','Advisory fee'],
+    ['2024-04-08',107.27,'fv-newroth','Advisory fee (charged to FV-ROTH pre-transfer)'],
+    ['2024-05-09',370.23,'hv-rollover','Advisory fee'],
+    ['2024-05-09',306.14,'fv-brokerage','Advisory fee'],
+    ['2024-07-09',152.78,'fv-newroth','Advisory fee (charged to FV-ROTH pre-transfer)'],
+    ['2024-08-09',390.71,'hv-rollover','Advisory fee'],
+    ['2024-08-02',336.17,'fv-brokerage','Advisory fee'],
+    ['2024-10-09',161.09,'fv-newroth','Advisory fee (charged to FV-ROTH pre-transfer)'],
+    ['2024-10-30',25.00,'fv-trad','Conversion fee — 2024 Backdoor Roth'],
+    ['2024-11-11',395.27,'hv-rollover','Advisory fee'],
+    ['2024-11-11',341.52,'fv-brokerage','Advisory fee'],
+    ['2024-11-29',40.00,'hv-roth','Retirement account fee'],
+    ['2024-12-31',40.00,'hv-rollover','Retirement account fee'],
+  ];
+  fees2024.forEach((f,i)=>{
+    tx.push({ id:'fee24_'+i, date:f[0], type:'fee', account:f[2], toAccount:'', amount:f[1], notes:f[3] });
+  });
+
+  // ── 2025 CONTRIBUTIONS ──────────────────────────────────────────────────────
+  // HV-Brokerage closure → personal checking → FV-Traditional IRA
+  tx.push({ id:'c2025a', date:'2025-03-24', type:'contribution', account:'fv-trad', toAccount:'', amount:3291.62, notes:'2025 Backdoor Roth funding: HV-Brokerage closure proceeds ($3,291.62) deposited to FV-Traditional IRA' });
+  // FV-Brokerage → FV-Traditional IRA internal transfer
+  tx.push({ id:'c2025b', date:'2025-08-05', type:'contribution', account:'fv-trad', toAccount:'', amount:4708.00, notes:'2025 Backdoor Roth funding: FV-Brokerage → FV-Traditional IRA (internal journal transfer)' });
+
+  // ── 2025 ACCOUNT EVENTS ─────────────────────────────────────────────────────
+  // HV-Brokerage closure
+  tx.push({ id:'ev2025a', date:'2025-03-19', type:'event', account:'hv-brokerage', toAccount:'', amount:3291.62, notes:'HV-Brokerage (2819) closed — $3,291.62 ACH withdrawn to personal checking for 2025 Backdoor Roth funding' });
+  // FV-Brokerage internal transfer out
+  tx.push({ id:'ev2025b', date:'2025-08-05', type:'event', account:'fv-brokerage', toAccount:'fv-trad', amount:4708.00, notes:'FV-Brokerage internal journal: $4,708 moved to FV-Traditional IRA for 2025 Backdoor Roth' });
+  // FV-ROTH full transfer to FV-NewROTH (account closure)
+  tx.push({ id:'ev2025c', date:'2025-09-04', type:'event', account:'fv-roth', toAccount:'fv-newroth', amount:64240.67, notes:'FV-ROTH (2136) fully transferred to FV-NewROTH (6165) — $64,240.67 + $95.73 residual. Account closed.' });
+
+  // ── 2025 BACKDOOR ROTH CONVERSION ──────────────────────────────────────────
+  tx.push({ id:'bdc2025', date:'2025-09-17', type:'transfer', account:'fv-trad', toAccount:'fv-newroth', countsAsBasis:true, amount:7900.00, notes:'2025 Backdoor Roth conversion: FV-Traditional IRA → FV-NewROTH ($7,900 net after $25 conversion fee + $75 rounding)' });
+
+  // ── 2023 BACKDOOR ROTH CONVERSION ──────────────────────────────────────────
+  tx.push({ id:'bdc2023', date:'2023-12-31', type:'transfer', account:'fv-trad', toAccount:'fv-roth', countsAsBasis:true, amount:5319.75, notes:'2023 Backdoor Roth conversion: FV-Traditional IRA → FV-ROTH' });
+
+  // ── 2025 FEES ───────────────────────────────────────────────────────────────
+  // Note: FV-ROTH fees remapped to FV-NewROTH (account closed Sept 2025)
+  const fees2025 = [
+    ['2025-01-09',201.44,'fv-newroth','Advisory fee (charged to FV-ROTH pre-transfer)'],
+    ['2025-01-31',40.00,'fv-trad','Retirement account fee'],
+    ['2025-01-31',40.00,'hv-trad','Retirement account fee'],
+    ['2025-02-10',412.26,'hv-rollover','Advisory fee'],
+    ['2025-02-10',381.92,'fv-brokerage','Advisory fee'],
+    ['2025-04-09',178.68,'fv-newroth','Advisory fee (charged to FV-ROTH pre-transfer)'],
+    ['2025-05-09',387.43,'hv-rollover','Advisory fee'],
+    ['2025-05-09',336.98,'fv-brokerage','Advisory fee'],
+    ['2025-07-09',197.25,'fv-newroth','Advisory fee (charged to FV-ROTH pre-transfer)'],
+    ['2025-08-11',422.22,'hv-rollover','Advisory fee'],
+    ['2025-08-11',376.99,'fv-brokerage','Advisory fee'],
+    ['2025-09-03',-57.89,'fv-newroth','Advisory fee reversal/credit (FV-ROTH pre-transfer)'],
+    ['2025-09-17',25.00,'fv-trad','Conversion fee — 2025 Backdoor Roth'],
+    ['2025-10-08',291.36,'fv-newroth','Advisory fee'],
+    ['2025-11-10',440.46,'hv-rollover','Advisory fee'],
+    ['2025-11-10',394.01,'fv-brokerage','Advisory fee'],
+    ['2025-11-28',40.00,'hv-roth','Retirement account fee'],
+    ['2025-12-31',40.00,'hv-rollover','Retirement account fee'],
+  ];
+  fees2025.forEach((f,i)=>{
+    tx.push({ id:'fee25_'+i, date:f[0], type:'fee', account:f[2], toAccount:'', amount:f[1], notes:f[3] });
+  });
+
+  // ── 2026 YTD FEES ───────────────────────────────────────────────────────────
+  const fees2026 = [
+    ['2026-01-09',230.43,'fv-newroth','Advisory fee'],
+    ['2026-02-09',411.15,'fv-brokerage','Advisory fee'],
+    ['2026-02-09',457.58,'hv-rollover','Advisory fee'],
+  ];
+  fees2026.forEach((f,i)=>{
+    tx.push({ id:'fee26_'+i, date:f[0], type:'fee', account:f[2], toAccount:'', amount:f[1], notes:f[3] });
+  });
+
+  // ── FV-ROTH BASIS TRANSFER TO FV-NEWROTH ────────────────────────────────────
+  // The 2023 + 2024 Backdoor Roth conversions ($5,319.75 + $1,181.12 + $7,975 = $14,475.87)
+  // were originally deposited into FV-ROTH before it merged into FV-NewROTH.
+  // This basis transfer carries those contributions to FV-NewROTH where the value now lives.
+  tx.push({ id:'basis_transfer_fvroth', date:'2025-09-04', type:'transfer', account:'fv-roth', toAccount:'fv-newroth', countsAsBasis:true, amount:14475.87, notes:'Basis transfer: 2023+2024 Backdoor Roth contributions ($5,319.75 + $1,181.12 + $7,975.00) carried from FV-ROTH to FV-NewROTH on account merger' });
+
+  // ── 2026 YTD CONTRIBUTIONS ───────────────────────────────────────────────────
+  // New cash deposited to FV-Brokerage (ACH deposit 03/23/2026)
+  tx.push({ id:'c2026a', date:'2026-03-23', type:'contribution', account:'fv-brokerage', toAccount:'', amount:72922.37, notes:'New cash deposit: ACH transfer to FV-Brokerage (03/23/2026)' });
+  // 2026 Backdoor Roth — new cash to FV-Traditional IRA (conversion to FV-NewROTH pending)
+  tx.push({ id:'c2026b', date:'2026-03-23', type:'contribution', account:'fv-trad', toAccount:'', amount:8600.00, notes:'2026 Backdoor Roth — new cash contribution to FV-Traditional IRA (conversion to FV-NewROTH pending)' });
+  // ── CURRENT VALUE SNAPSHOTS ─────────────────────────────────────────────────
+  // 03/20/2026 — pre-deposit baseline (for chart history)
+  const snapDate = '2026-03-20';
+  const snapshots = [
+    ['fv-brokerage', 119145.54],
+    ['fv-newroth',    71656.32],
+    ['fv-trad',        1252.53],
+    ['hv-rollover',  140065.73],
+    ['hv-roth',        8271.88],
+    ['hv-trad',        7232.16],
+    ['fv-roth',            0.00],
+    ['hv-brokerage',       0.00],
+  ];
+  snapshots.forEach((s,i)=>{
+    tx.push({ id:'snap_0320_'+i, date:snapDate, type:'snapshot', account:s[0], toAccount:'', amount:s[1], notes:'Market value snapshot — COB 03/20/2026 (from LPL portal)' });
+  });
+
+  // 03/24/2026 — latest values including $72,922.37 deposit and $8,600 IRA contribution
+  const snapDate2 = '2026-03-24';
+  const snapshots2 = [
+    ['fv-brokerage', 193651.21],
+    ['fv-newroth',    72092.32],
+    ['fv-trad',        9874.29],
+    ['hv-rollover',  141442.53],
+    ['hv-roth',        8418.74],
+    ['hv-trad',        7340.95],
+    ['fv-roth',            0.00],
+    ['hv-brokerage',       0.00],
+  ];
+  snapshots2.forEach((s,i)=>{
+    tx.push({ id:'snap_0324_'+i, date:snapDate2, type:'snapshot', account:s[0], toAccount:'', amount:s[1], notes:'Market value snapshot — COB 03/24/2026 (from LPL portal)' });
+  });
+
+  // Sort all by date
+  tx.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+// ===== INIT =====
+async function init() {
+  if(!PASS_HASH) {
+    PASS_HASH = await sha256(DEFAULT_PASS);
+    localStorage.setItem('lpl_pass', PASS_HASH);
+  }
+  loadLocalData();
+  startTimer();
+}
+
+// ===== DATA VERSION =====
+const DATA_VERSION = '8';
+
+function loadLocalData() {
+  const saved = localStorage.getItem('lpl_data');
+  const savedVersion = localStorage.getItem('lpl_data_version');
+  if(saved && savedVersion === DATA_VERSION) {
+    try { data = JSON.parse(saved); return; } catch(e) {}
+  }
+  // Fresh seed — either no data or outdated version
+  data = { accounts:[], transactions:[], snapshots:[], settings:{ showClosed:false } };
+  seedData();
+  saveLocal();
+  localStorage.setItem('lpl_data_version', DATA_VERSION);
+}
+
+function saveLocal() {
+  localStorage.setItem('lpl_data', JSON.stringify(data));
+  localStorage.setItem('lpl_data_version', DATA_VERSION);
+}
+
+// ===== LOGIN =====
+async function login() {
+  const pw = document.getElementById('passwordInput').value;
+  const hash = await sha256(pw);
+  if(hash === PASS_HASH) {
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('app').style.display='block';
+    initApp();
+    resetTimer();
+  } else {
+    document.getElementById('loginError').style.display='block';
+    document.getElementById('passwordInput').value='';
+  }
+}
+
+function initApp() {
+  // Fix timezone issue - use local date not UTC
+  const now = new Date();
+  const today = now.getFullYear() + '-' + 
+    String(now.getMonth()+1).padStart(2,'0') + '-' + 
+    String(now.getDate()).padStart(2,'0');
+  document.getElementById('txDate').value = today;
+  document.getElementById('snapshotDate').value = today;
+  document.getElementById('feeDate').value = today;
+  document.getElementById('dashboardDate').textContent = 'Last updated: ' + new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  populateAccountSelects();
+  renderDashboard();
+  renderAccounts();
+  renderTransactions();
+  renderCurrentValues();
+  renderCharts();
+  renderFeeHistory();
+  updateDriveBanner();
+  updateLastCsvImportDisplay();
+  buildProjContribRows();
+  if(localStorage.getItem('lpl_oauth_pending')==='1') {
+    localStorage.removeItem('lpl_oauth_pending');
+    const el = document.getElementById('driveStatusText');
+    if(el) el.textContent = '✓ Connected to Google Drive';
+    updateDriveBanner();
+    setTimeout(()=>alert('✓ Google Drive connected successfully!'),500);
+  }
+}
+
+// ===== TIMER =====
+let timerInterval, countdownInterval, timeLeft = 600;
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    timeLeft--;
+    updateTimerDisplay();
+    if(timeLeft===60) showTimeoutWarning();
+    if(timeLeft<=0) { clearInterval(timerInterval); autoLogout(); }
+  },1000);
+}
+
+function resetTimer() {
+  timeLeft = 600;
+  document.getElementById('timeoutWarning').style.display='none';
+  clearInterval(timerInterval);
+  startTimer();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timeLeft/60), s = timeLeft%60;
+  document.getElementById('timerDisplay').textContent = m+':'+(s<10?'0':'')+s;
+  const dot = document.getElementById('timerDot');
+  dot.style.background = timeLeft>120?'var(--green)':timeLeft>60?'var(--gold)':'var(--red)';
+  if(document.getElementById('timeoutWarning').style.display!=='none') {
+    document.getElementById('countdownNum').textContent = timeLeft;
+  }
+}
+
+function showTimeoutWarning() {
+  document.getElementById('timeoutWarning').style.display='block';
+}
+
+async function autoLogout() {
+  await saveToDrive();
+  saveLocal();
+  logout();
+}
+
+async function saveAndLogout() {
+  saveLocal();
+  await saveToDrive();
+  logout();
+}
+
+function logout() {
+  document.getElementById('timeoutWarning').style.display='none';
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('passwordInput').value='';
+  timeLeft=600;
+  clearInterval(timerInterval);
+}
+
+// Reset timer on activity
+['mousemove','keydown','click','scroll'].forEach(e => document.addEventListener(e, ()=>{ if(document.getElementById('app').style.display!=='none') resetTimer(); }));
+
+// ===== HELPERS =====
+function fmt(n) { return '$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtSigned(n) { return (n>=0?'+':'-')+'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function getAccount(id) { return data.accounts.find(a=>a.id===id); }
+function activeAccounts() { return data.accounts.filter(a=>a.status==='active'); }
+function visibleAccounts() {
+  const showClosed = document.getElementById('showClosedToggle')?.checked || data.settings?.showClosed;
+  return showClosed ? data.accounts : data.accounts.filter(a=>a.status==='active');
+}
+
+function getAccountContributions(accountId) {
+  let total = 0;
+  data.transactions.forEach(t => {
+    // Standard contributions (unless explicitly excluded)
+    if (t.type === 'contribution' && t.account === accountId) {
+      if (t.countsAsBasis !== false) total += t.amount;
+    }
+    // Transfers that count as basis land on the RECEIVING account (toAccount)
+    if (t.type === 'transfer' && t.toAccount === accountId && t.countsAsBasis === true) {
+      total += t.amount;
+    }
+  });
+  return total;
+}
+
+function getAccountFees(accountId) {
+  return data.transactions
+    .filter(t=>t.type==='fee' && t.account===accountId)
+    .reduce((s,t)=>s+t.amount,0);
+}
+
+function getLatestSnapshot(accountId) {
+  const snaps = data.transactions
+    .filter(t=>t.type==='snapshot' && t.account===accountId)
+    .sort((a,b)=>b.date.localeCompare(a.date));
+  return snaps.length ? snaps[0].amount : null;
+}
+
+function getTotalContributed() {
+  // Portfolio total = all direct cash-in contributions (excluding passthrough transfers)
+  // Backdoor Roth conversions are NOT additional money — same cash already counted
+  // when it was contributed to FV-Traditional IRA
+  return data.transactions
+    .filter(t => t.type === 'contribution' && t.countsAsBasis !== false)
+    .reduce((s,t) => s + t.amount, 0);
+}
+
+function getTotalFees() {
+  return data.transactions.filter(t=>t.type==='fee').reduce((s,t)=>s+t.amount,0);
+}
+
+function getTotalCurrentValue() {
+  let total=0;
+  activeAccounts().forEach(a=>{
+    const snap = getLatestSnapshot(a.id);
+    if(snap!==null) total+=snap;
+  });
+  return total;
+}
+
+// ===== POPULATE SELECTS =====
+function populateAccountSelects() {
+  const selects = ['txAccount','txToAccount','feeAccount','filterTxAccount'];
+  selects.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const cur = el.value;
+    el.innerHTML = id==='filterTxAccount'?'<option value="">All Accounts</option>':'';
+    data.accounts.forEach(a=>{
+      el.innerHTML += `<option value="${a.id}">${a.name} (${a.status==='closed'?'CLOSED':''}${a.num})</option>`;
+    });
+    if(cur) el.value=cur;
+  });
+}
+
+function handleTxTypeChange() {
+  const type = document.getElementById('txType').value;
+  document.getElementById('txToAccountField').style.display = ['transfer','event'].includes(type)?'block':'none';
+  document.getElementById('txEventTypeField').style.display = type==='event'?'block':'none';
+  document.getElementById('txCountsBasisField').style.display = type==='transfer'?'block':'none';
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  const totalContrib = getTotalContributed();
+  const totalFees = getTotalFees();
+  const totalValue = getTotalCurrentValue();
+  const netGain = totalValue - totalContrib;
+
+  const ytdContrib = data.transactions
+    .filter(t=>t.type==='contribution' && t.date.startsWith(''+new Date().getFullYear()))
+    .reduce((s,t)=>s+t.amount,0);
+
+  const statGrid = document.getElementById('statGrid');
+  statGrid.innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total Contributed</div><div class="stat-value">${fmt(totalContrib)}</div><div class="stat-sub">All-time cash invested</div></div>
+    <div class="stat-card ${totalValue>=totalContrib?'green':'red'}"><div class="stat-label">Total Current Value</div><div class="stat-value">${totalValue>0?fmt(totalValue):'—'}</div><div class="stat-sub">Latest snapshots</div></div>
+    <div class="stat-card ${netGain>=0?'green':'red'}"><div class="stat-label">Net Gain / Loss</div><div class="stat-value ${netGain>=0?'text-green':'text-red'}">${totalValue>0?fmtSigned(netGain):'—'}</div><div class="stat-sub">${totalValue>0?(netGain/totalContrib*100).toFixed(1)+'% return':'Awaiting snapshots'}</div></div>
+    <div class="stat-card red"><div class="stat-label">Total Fees Paid</div><div class="stat-value text-red">${fmt(totalFees)}</div><div class="stat-sub">Cost of advisory</div></div>
+    <div class="stat-card gold"><div class="stat-label">YTD Contributions</div><div class="stat-value text-gold">${fmt(ytdContrib)}</div><div class="stat-sub">${new Date().getFullYear()} adds</div></div>
+    <div class="stat-card"><div class="stat-label">Active Accounts</div><div class="stat-value">${activeAccounts().length}</div><div class="stat-sub">2 closed accounts</div></div>
+  `;
+
+  // Account table
+  const tbody = document.getElementById('dashAccountBody');
+  tbody.innerHTML = '';
+  activeAccounts().forEach(a=>{
+    const contrib = getAccountContributions(a.id);
+    const value = getLatestSnapshot(a.id);
+    const gain = value!==null ? value-contrib : null;
+    const isShell = a.subtype === 'shell';
+    const gainCell = isShell
+      ? `<span style="color:var(--text3);font-size:12px;" title="${a.shellNote||'Passthrough account'}">— passthrough</span>`
+      : gain!==null ? `<span class="${gain>=0?'text-green':'text-red'}">${fmtSigned(gain)}</span>` : '—';
+    tbody.innerHTML += `<tr>
+      <td><strong>${a.name}</strong>${isShell?` <span style="font-size:10px;background:rgba(240,180,41,0.15);color:var(--gold);padding:1px 6px;border-radius:4px;margin-left:4px;">shell</span>`:''}
+      </td>
+      <td><span class="account-badge badge-${a.owner==='Faisal'?'fv':'hv'}">${a.owner}</span></td>
+      <td>${fmt(contrib)}</td>
+      <td>${value!==null?fmt(value):'<span style="color:var(--text3)">No snapshot</span>'}</td>
+      <td>${gainCell}</td>
+    </tr>`;
+  });
+
+  // Recent activity
+  const recent = [...data.transactions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+  const rbody = document.getElementById('recentActivityBody');
+  rbody.innerHTML = '';
+  recent.forEach(t=>{
+    const acct = getAccount(t.account);
+    rbody.innerHTML += `<tr>
+      <td>${t.date}</td>
+      <td><span class="type-badge type-${t.type}">${t.type}</span></td>
+      <td>${acct?acct.name:t.account}</td>
+      <td>${t.amount?fmt(t.amount):'—'}</td>
+    </tr>`;
+  });
+
+  // Fees by year
+  const feesByYear = {};
+  data.transactions.filter(t=>t.type==='fee').forEach(t=>{
+    const y = t.date.split('-')[0];
+    if(!feesByYear[y]) feesByYear[y]={total:0,accounts:new Set()};
+    feesByYear[y].total+=t.amount;
+    feesByYear[y].accounts.add(t.account);
+  });
+  const fbody = document.getElementById('feesByYearBody');
+  fbody.innerHTML='';
+  Object.keys(feesByYear).sort().reverse().forEach(y=>{
+    fbody.innerHTML+=`<tr><td><strong>${y}</strong></td><td class="text-red">${fmt(feesByYear[y].total)}</td><td style="color:var(--text2)">${[...feesByYear[y].accounts].map(id=>{const a=getAccount(id);return a?a.name:id;}).join(', ')}</td></tr>`;
+  });
+}
+
+// ===== ACCOUNTS =====
+let ownerFilter = 'both';
+function setOwnerFilter(val) {
+  ownerFilter = val;
+  ['Both','Faisal','Heena'].forEach(o=>{
+    const pill = document.getElementById('ownerPill'+o);
+    if(pill) pill.classList.toggle('active', o.toLowerCase()===val);
+  });
+  renderAccounts();
+}
+
+function renderAccounts() {
+  const grid = document.getElementById('accountGrid');
+  grid.innerHTML='';
+  const showClosed = document.getElementById('showClosedToggle')?.checked;
+  let list = showClosed ? data.accounts : data.accounts.filter(a=>a.status==='active');
+  if(ownerFilter !== 'both') list = list.filter(a=>a.owner===ownerFilter);
+  list.forEach(a=>{
+    const contrib=getAccountContributions(a.id);
+    const value=getLatestSnapshot(a.id);
+    const fees=getAccountFees(a.id);
+    const gain=value!==null?value-contrib:null;
+    const isShell = a.subtype === 'shell';
+    const gainDisplay = isShell
+      ? `<div class="metric-value" style="color:var(--text3);font-size:13px;" title="${a.shellNote||'Passthrough account'}">— passthrough</div>`
+      : `<div class="metric-value ${gain===null?'':gain>=0?'green':'red'}">${gain!==null?fmtSigned(gain):'—'}</div>`;
+    grid.innerHTML+=`<div class="account-card ${a.status==='closed'?'closed':''}">
+      <div class="account-header">
+        <div><div class="account-name">${a.name}${isShell?` <span style="font-size:10px;background:rgba(240,180,41,0.15);color:var(--gold);padding:1px 6px;border-radius:4px;margin-left:4px;">shell</span>`:''}</div><div class="account-num">••••${a.num}</div></div>
+        <span class="account-badge ${a.status==='closed'?'badge-closed':a.owner==='Faisal'?'badge-fv':'badge-hv'}">${a.status==='closed'?'Closed':a.owner}</span>
+      </div>
+      <div class="account-type">${a.type}${isShell?`<br><span style="color:var(--gold);font-size:11px;">⟳ ${a.shellNote||'Backdoor Roth conduit'}</span>`:''}${a.closedNote?'<br><span style="color:var(--text3);font-size:11px;">'+a.closedNote+'</span>':''}</div>
+      <div class="account-metrics">
+        <div class="metric"><div class="metric-label">Contributed</div><div class="metric-value">${fmt(contrib)}</div></div>
+        <div class="metric"><div class="metric-label">Current Value</div><div class="metric-value">${value!==null?fmt(value):'—'}</div></div>
+        <div class="metric"><div class="metric-label">Net Gain/Loss</div>${gainDisplay}</div>
+        <div class="metric"><div class="metric-label">Fees Paid</div><div class="metric-value" style="color:var(--red)">${fmt(fees)}</div></div>
+      </div>
+    </div>`;
+  });
+}
+
+// ===== TRANSACTIONS =====
+function addTransaction() {
+  const tx = {
+    id: 'tx'+Date.now(),
+    date: document.getElementById('txDate').value,
+    type: document.getElementById('txType').value,
+    account: document.getElementById('txAccount').value,
+    toAccount: document.getElementById('txToAccount').value||'',
+    amount: parseFloat(document.getElementById('txAmount').value)||0,
+    notes: document.getElementById('txNotes').value
+  };
+  if(tx.type === 'transfer') {
+    tx.countsAsBasis = document.getElementById('txCountsBasis').checked;
+  }
+  if(!tx.date||!tx.account) return alert('Please fill in date and account.');
+  data.transactions.push(tx);
+  data.transactions.sort((a,b)=>a.date.localeCompare(b.date));
+  saveLocal();
+  renderTransactions();
+  renderDashboard();
+  renderAccounts();
+  renderFeeHistory();
+  document.getElementById('txAmount').value='';
+  document.getElementById('txNotes').value='';
+  document.getElementById('txCountsBasis').checked=false;
+}
+
+function editTransaction(id) {
+  const t = data.transactions.find(x=>x.id===id);
+  if(!t) return;
+  const newDate = prompt('Date (YYYY-MM-DD):', t.date);
+  if(newDate===null) return;
+  const newAmount = prompt('Amount:', t.amount);
+  if(newAmount===null) return;
+  const newNotes = prompt('Notes:', t.notes||'');
+  if(newNotes===null) return;
+  t.date = newDate || t.date;
+  t.amount = parseFloat(newAmount) || t.amount;
+  t.notes = newNotes;
+  data.transactions.sort((a,b)=>a.date.localeCompare(b.date));
+  saveLocal(); renderTransactions(); renderDashboard(); renderAccounts(); renderFeeHistory();
+}
+
+function editFee(id) {
+  const t = data.transactions.find(x=>x.id===id);
+  if(!t) return;
+  const newDate = prompt('Date (YYYY-MM-DD):', t.date);
+  if(newDate===null) return;
+  const newAmount = prompt('Amount:', t.amount);
+  if(newAmount===null) return;
+  const newNotes = prompt('Notes:', t.notes||'');
+  if(newNotes===null) return;
+  t.date = newDate || t.date;
+  t.amount = parseFloat(newAmount) || t.amount;
+  t.notes = newNotes;
+  data.transactions.sort((a,b)=>a.date.localeCompare(b.date));
+  saveLocal(); renderFeeHistory(); renderTransactions(); renderDashboard(); renderAccounts();
+}
+
+function deleteTransaction(id) {
+  if(!confirm('Delete this transaction?')) return;
+  data.transactions = data.transactions.filter(t=>t.id!==id);
+  saveLocal();
+  renderTransactions();
+  renderDashboard();
+  renderAccounts();
+  renderFeeHistory();
+}
+
+function renderTransactions() {
+  const typeFilter = document.getElementById('filterTxType').value;
+  const acctFilter = document.getElementById('filterTxAccount').value;
+  const yearFilter = document.getElementById('filterTxYear').value;
+  let list = [...data.transactions].sort((a,b)=>b.date.localeCompare(a.date));
+  if(typeFilter) list=list.filter(t=>t.type===typeFilter);
+  if(acctFilter) list=list.filter(t=>t.account===acctFilter||t.toAccount===acctFilter);
+  if(yearFilter) list=list.filter(t=>t.date.startsWith(yearFilter));
+  const tbody=document.getElementById('txBody');
+  tbody.innerHTML='';
+  if(!list.length){tbody.innerHTML='<tr><td colspan="7" class="empty-state">No transactions found</td></tr>';return;}
+  list.forEach(t=>{
+    const acct=getAccount(t.account);
+    const toAcct=t.toAccount?getAccount(t.toAccount):null;
+    const basisBadge = t.type==='transfer' && t.countsAsBasis===true
+      ? `<span style="font-size:10px;background:rgba(45,212,160,0.15);color:var(--green);padding:1px 5px;border-radius:3px;margin-left:4px;" title="Counts as new contribution (Backdoor Roth)">new $</span>`
+      : t.type==='transfer' && t.countsAsBasis===false
+      ? `<span style="font-size:10px;background:rgba(74,96,128,0.3);color:var(--text3);padding:1px 5px;border-radius:3px;margin-left:4px;" title="Excluded from basis (account merger/rollover)">transfer only</span>`
+      : '';
+    tbody.innerHTML+=`<tr id="txrow_${t.id}">
+      <td>${t.date}</td>
+      <td><span class="type-badge type-${t.type}">${t.type}</span>${basisBadge}</td>
+      <td>${acct?acct.name:t.account}</td>
+      <td>${toAcct?toAcct.name:'—'}</td>
+      <td>${t.amount?(t.amount<0?'<span class="text-red">':'')+fmt(t.amount)+(t.amount<0?'</span>':''):'—'}</td>
+      <td style="color:var(--text2);font-size:12px;">${t.notes||''}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="editTransaction('${t.id}')">Edit</button>
+        <button class="btn-danger" onclick="deleteTransaction('${t.id}')">Delete</button>
+      </td>
+    </tr>`;
+  });
+}
+
+// ===== CURRENT VALUES =====
+function renderCurrentValues() {
+  const grid = document.getElementById('snapshotGrid');
+  grid.innerHTML='';
+  activeAccounts().forEach(a=>{
+    const last=getLatestSnapshot(a.id);
+    grid.innerHTML+=`<div class="snapshot-card">
+      <div class="snapshot-card-header">
+        <div class="snapshot-card-name">${a.name}</div>
+        <div class="snapshot-last">${last!==null?'Last: '+fmt(last):'No data'}</div>
+      </div>
+      <div class="snapshot-input-wrap">
+        <input type="number" id="snap_${a.id}" placeholder="${last!==null?last.toFixed(2):'Enter value'}" step="0.01">
+      </div>
+    </div>`;
+  });
+}
+
+function saveSnapshot() {
+  const date = document.getElementById('snapshotDate').value;
+  if(!date) return alert('Please select a date.');
+  let added=0;
+  activeAccounts().forEach(a=>{
+    const val = parseFloat(document.getElementById('snap_'+a.id)?.value);
+    if(!isNaN(val)&&val>0){
+      data.transactions.push({ id:'snap'+Date.now()+a.id, date, type:'snapshot', account:a.id, toAccount:'', amount:val, notes:'Market value snapshot' });
+      added++;
+    }
+  });
+  if(!added) return alert('No values entered.');
+  data.transactions.sort((a,b)=>a.date.localeCompare(b.date));
+  saveLocal();
+  renderCurrentValues();
+  renderDashboard();
+  renderAccounts();
+  renderCharts();
+  alert(`✓ ${added} account value(s) saved.`);
+}
+
+function addFee() {
+  const date=document.getElementById('feeDate').value;
+  const account=document.getElementById('feeAccount').value;
+  const amount=parseFloat(document.getElementById('feeAmount').value);
+  const notes=document.getElementById('feeNotes').value;
+  if(!date||!account||isNaN(amount)) return alert('Please fill in all fields.');
+  data.transactions.push({ id:'fee'+Date.now(), date, type:'fee', account, toAccount:'', amount, notes });
+  data.transactions.sort((a,b)=>a.date.localeCompare(b.date));
+  saveLocal();
+  renderFeeHistory();
+  renderTransactions();
+  renderDashboard();
+  renderAccounts();
+  document.getElementById('feeAmount').value='';
+  document.getElementById('feeNotes').value='';
+  showFeeSuccess();
+}
+
+function showFeeSuccess() {
+  const btn = document.querySelector('#page-currentValues .btn-add:last-of-type');
+  if(btn) { const orig=btn.textContent; btn.textContent='✓ Fee Logged!'; btn.style.background='var(--green)'; setTimeout(()=>{ btn.textContent=orig; btn.style.background=''; },1500); }
+}
+
+function renderFeeHistory() {
+  const fees = data.transactions.filter(t=>t.type==='fee').sort((a,b)=>b.date.localeCompare(a.date));
+  const total = fees.reduce((s,t)=>s+t.amount,0);
+  document.getElementById('totalFeesDisplay').textContent=fmt(total);
+  const tbody=document.getElementById('feeHistoryBody');
+  tbody.innerHTML='';
+  if(!fees.length){tbody.innerHTML='<tr><td colspan="5" class="empty-state">No fees logged</td></tr>';return;}
+  fees.forEach(t=>{
+    const acct=getAccount(t.account);
+    tbody.innerHTML+=`<tr>
+      <td>${t.date}</td>
+      <td>${acct?acct.name:t.account}</td>
+      <td class="${t.amount<0?'text-green':'text-red'}">${fmt(t.amount)}${t.amount<0?' (credit)':''}</td>
+      <td style="color:var(--text2);font-size:12px;">${t.notes||''}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="editFee('${t.id}')">Edit</button>
+        <button class="btn-danger" onclick="deleteFee('${t.id}')">Delete</button>
+      </td>
+    </tr>`;
+  });
+}
+
+function deleteFee(id) {
+  if(!confirm('Delete this fee entry?')) return;
+  data.transactions=data.transactions.filter(t=>t.id!==id);
+  saveLocal(); renderFeeHistory(); renderTransactions(); renderDashboard(); renderAccounts();
+}
+
+// ===== CHARTS =====
+let valueChartInst, compChartInst, allocationChartInst, growthRateChartInst, feesVsGainsChartInst, projTotalChartInst;
+let selectedChartAccount = 'all';
+
+function renderCharts() {
+  renderChartPills();
+  renderValueChart();
+  renderComparisonChart();
+  renderAllocationChart();
+  renderGrowthRateChart();
+  renderFeesVsGainsChart();
+  renderFeeDragCard();
+}
+
+function renderAllocationChart() {
+  const ctx = document.getElementById('allocationChart').getContext('2d');
+  if(allocationChartInst) allocationChartInst.destroy();
+  const accounts = activeAccounts();
+  const values = accounts.map(a => getLatestSnapshot(a.id) || 0);
+  const total = values.reduce((s,v)=>s+v, 0);
+  if(!total) {
+    ctx.canvas.parentElement.innerHTML = '<div class="empty-state" style="padding:60px;">No snapshot data yet — enter current values first</div>';
+    return;
+  }
+  const colors = ['#4f8ef7','#2dd4a0','#f0b429','#8b5cf6','#f87171','#ec4899','#60a5fa','#a78bfa'];
+  allocationChartInst = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: accounts.map(a => a.name),
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderColor: '#1a2235',
+        borderWidth: 2,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'right', labels:{ color:'#8fa3c0', font:{size:11}, padding:12 }},
+        tooltip: { callbacks: {
+          label: c => {
+            const pct = ((c.raw/total)*100).toFixed(1);
+            return ` ${c.label}: ${fmt(c.raw)} (${pct}%)`;
+          }
+        }}
+      }
+    }
+  });
+}
+
+function renderChartPills() {
+  const pills = document.getElementById('chartPills');
+  pills.innerHTML='';
+  const accounts=[{id:'all',name:'All Accounts'},...activeAccounts()];
+  accounts.forEach(a=>{
+    pills.innerHTML+=`<button class="pill ${selectedChartAccount===a.id?'active':''}" onclick="selectChartAccount('${a.id}')">${a.name}</button>`;
+  });
+}
+
+function selectChartAccount(id) {
+  selectedChartAccount=id;
+  renderChartPills();
+  renderValueChart();
+  document.getElementById('chartTitle').textContent = id==='all'?'Portfolio Value Over Time':(getAccount(id)?.name||'')+ ' — Value Over Time';
+}
+
+function renderValueChart() {
+  const ctx=document.getElementById('valueChart').getContext('2d');
+  if(valueChartInst) valueChartInst.destroy();
+
+  let snaps;
+  if(selectedChartAccount==='all'){
+    const byDate={};
+    data.transactions.filter(t=>t.type==='snapshot').forEach(t=>{
+      if(!byDate[t.date]) byDate[t.date]={};
+      byDate[t.date][t.account]=t.amount;
+    });
+    const allAccts=activeAccounts().map(a=>a.id);
+    const lastKnown={};
+    snaps=Object.keys(byDate).sort().map(d=>{
+      Object.assign(lastKnown,byDate[d]);
+      return { date:d, value:allAccts.reduce((s,id)=>s+(lastKnown[id]||0),0) };
+    });
+  } else {
+    snaps=data.transactions.filter(t=>t.type==='snapshot'&&t.account===selectedChartAccount)
+      .sort((a,b)=>a.date.localeCompare(b.date))
+      .map(t=>({date:t.date,value:t.amount}));
+  }
+
+  if(snaps.length < 2) {
+    ctx.canvas.parentElement.innerHTML = `<div class="empty-state" style="padding:60px;"><div style="font-size:24px;margin-bottom:12px;">📈</div><div>Add more monthly snapshots to see portfolio growth over time</div><div style="font-size:12px;margin-top:8px;color:var(--text3)">Currently showing ${snaps.length} data point${snaps.length===1?' — need at least 2':''}</div></div>`;
+    return;
+  }
+
+  valueChartInst=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:snaps.map(s=>s.date),
+      datasets:[{
+        label:'Value',
+        data:snaps.map(s=>s.value),
+        borderColor:'#4f8ef7',
+        backgroundColor:'rgba(79,142,247,0.1)',
+        fill:true, tension:0.4, pointRadius:4, pointBackgroundColor:'#4f8ef7'
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'Value: '+fmt(c.raw)}}},
+      scales:{
+        x:{ticks:{color:'#4a6080'},grid:{color:'rgba(42,54,80,0.4)'}},
+        y:{ticks:{color:'#4a6080',callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(42,54,80,0.4)'}}
+      }
+    }
+  });
+}
+
+function renderComparisonChart() {
+  const ctx=document.getElementById('comparisonChart').getContext('2d');
+  if(compChartInst) compChartInst.destroy();
+  const accounts=activeAccounts();
+  compChartInst=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:accounts.map(a=>a.name),
+      datasets:[
+        {label:'Contributed',data:accounts.map(a=>getAccountContributions(a.id)),backgroundColor:'rgba(79,142,247,0.7)'},
+        {label:'Current Value',data:accounts.map(a=>getLatestSnapshot(a.id)||0),backgroundColor:'rgba(45,212,160,0.7)'}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8fa3c0'}}},
+      scales:{
+        x:{ticks:{color:'#4a6080',maxRotation:45},grid:{color:'rgba(42,54,80,0.4)'}},
+        y:{ticks:{color:'#4a6080',callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(42,54,80,0.4)'}}
+      }
+    }
+  });
+}
+
+function renderGrowthRateChart() {
+  const ctx = document.getElementById('growthRateChart')?.getContext('2d');
+  if(!ctx) return;
+  if(growthRateChartInst) growthRateChartInst.destroy();
+
+  const accounts = activeAccounts().filter(a => a.subtype !== 'shell');
+  const labels = accounts.map(a => a.name);
+  const rates = accounts.map(a => {
+    const contrib = getAccountContributions(a.id);
+    const value = getLatestSnapshot(a.id);
+    if(!contrib || value === null) return 0;
+    return parseFloat(((value - contrib) / contrib * 100).toFixed(1));
+  });
+
+  if(!rates.some(r => r !== 0)) {
+    ctx.canvas.parentElement.innerHTML = '<div class="empty-state" style="padding:40px;">Add snapshots to see growth rates</div>';
+    return;
+  }
+
+  const colors = rates.map(r => r >= 0 ? 'rgba(45,212,160,0.75)' : 'rgba(248,113,113,0.75)');
+  growthRateChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Growth %',
+        data: rates,
+        backgroundColor: colors,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.raw >= 0 ? '+' : ''}${c.raw}%` } }
+      },
+      scales: {
+        x: { ticks: { color: '#4a6080', maxRotation: 45 }, grid: { color: 'rgba(42,54,80,0.4)' } },
+        y: { ticks: { color: '#4a6080', callback: v => v + '%' }, grid: { color: 'rgba(42,54,80,0.4)' } }
+      }
+    }
+  });
+}
+
+function renderFeesVsGainsChart() {
+  const ctx = document.getElementById('feesVsGainsChart')?.getContext('2d');
+  if(!ctx) return;
+  if(feesVsGainsChartInst) feesVsGainsChartInst.destroy();
+
+  // Fees by year
+  const feesByYear = {};
+  data.transactions.filter(t => t.type === 'fee').forEach(t => {
+    const y = t.date.split('-')[0];
+    feesByYear[y] = (feesByYear[y] || 0) + t.amount;
+  });
+  const displayYears = Object.keys(feesByYear).sort().filter(y => feesByYear[y] > 0);
+
+  // Portfolio-level gain: use latest snapshot vs total contributed
+  const totalContrib = getTotalContributed();
+  const totalValue   = getTotalCurrentValue();
+  const totalGain    = totalValue - totalContrib;
+
+  // Distribute gain across years proportionally by contributions made that year
+  // This gives each year credit proportional to how much capital was at work
+  const contribByYear = {};
+  data.transactions
+    .filter(t => t.type === 'contribution' && t.countsAsBasis !== false)
+    .forEach(t => {
+      const y = t.date.split('-')[0];
+      contribByYear[y] = (contribByYear[y] || 0) + t.amount;
+    });
+  const totalContribForDist = Object.values(contribByYear).reduce((s,v)=>s+v, 0);
+  const gainsByYear = {};
+  displayYears.forEach(y => {
+    const weight = totalContribForDist > 0 ? (contribByYear[y] || 0) / totalContribForDist : 0;
+    gainsByYear[y] = totalGain * weight;
+  });
+
+  // If total gain is negative (snapshot lag), show fees only with a note
+  const gainData = displayYears.map(y => Math.max(0, parseFloat((gainsByYear[y]||0).toFixed(2))));
+  const hasGain  = gainData.some(v => v > 0);
+
+  const datasets = [
+    {
+      label: 'Fees Paid',
+      data: displayYears.map(y => parseFloat(feesByYear[y].toFixed(2))),
+      backgroundColor: 'rgba(248,113,113,0.75)',
+      borderRadius: 4
+    }
+  ];
+  if(hasGain) {
+    datasets.push({
+      label: 'Est. Portfolio Gain (by year)',
+      data: gainData,
+      backgroundColor: 'rgba(45,212,160,0.7)',
+      borderRadius: 4
+    });
+  }
+
+  feesVsGainsChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: displayYears, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#8fa3c0' } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: $${c.raw.toLocaleString()}` } }
+      },
+      scales: {
+        x: { ticks: { color: '#4a6080' }, grid: { color: 'rgba(42,54,80,0.4)' } },
+        y: { ticks: { color: '#4a6080', callback: v => '$' + v.toLocaleString() }, grid: { color: 'rgba(42,54,80,0.4)' } }
+      }
+    }
+  });
+}
+
+function renderFeeDragCard() {
+  const el = document.getElementById('feeDragCard');
+  if(!el) return;
+  const totalContrib = getTotalContributed();
+  const totalValue = getTotalCurrentValue();
+  const totalFees = getTotalFees();
+  const totalGain = totalValue - totalContrib;
+  const feePctOfGain = totalGain > 0 ? (totalFees / totalGain * 100).toFixed(1) : '—';
+  const feePctOfValue = totalValue > 0 ? (totalFees / totalValue * 100).toFixed(1) : '—';
+  const ratio = totalGain > 0 ? (totalGain / totalFees).toFixed(1) : '—';
+  const statusColor = parseFloat(feePctOfGain) < 20 ? 'var(--green)' : parseFloat(feePctOfGain) < 40 ? 'var(--gold)' : 'var(--red)';
+
+  el.innerHTML = `<div class="chart-card">
+    <h3>Fee Drag Summary</h3>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:16px;">How much of your growth goes to advisory fees</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+      <div style="background:var(--card2);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Fees as % of Gain</div>
+        <div style="font-size:28px;font-weight:600;color:${statusColor};font-family:'Playfair Display',serif;">${feePctOfGain}%</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">of total growth paid in fees</div>
+      </div>
+      <div style="background:var(--card2);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Fees as % of Portfolio</div>
+        <div style="font-size:28px;font-weight:600;color:var(--text);font-family:'Playfair Display',serif;">${feePctOfValue}%</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">of current portfolio value</div>
+      </div>
+      <div style="background:var(--card2);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Gain-to-Fee Ratio</div>
+        <div style="font-size:28px;font-weight:600;color:${parseFloat(ratio)>=3?'var(--green)':'var(--gold)'};font-family:'Playfair Display',serif;">${ratio}×</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">earned per $1 in fees</div>
+      </div>
+      <div style="background:var(--card2);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Total Fees All-Time</div>
+        <div style="font-size:28px;font-weight:600;color:var(--red);font-family:'Playfair Display',serif;">${fmt(totalFees)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">vs ${fmt(totalGain)} total gain</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function updateChartRange(val) {
+  const snaps=data.transactions.filter(t=>t.type==='snapshot').sort((a,b)=>a.date.localeCompare(b.date));
+  if(!snaps.length) return;
+  const startIdx=Math.floor(val/100*(snaps.length-1));
+  const label=val==0?'All Time':'From '+snaps[startIdx].date;
+  document.getElementById('sliderLabel').textContent=label;
+}
+
+// ===== LPL CSV IMPORT =====
+let csvPendingRows = []; // rows staged for import, set by previewCsvImport
+
+// Map LPL account number (short or long) to internal account id by last 4 digits
+function matchAccountByNum(numStr) {
+  const last4 = String(numStr).trim().slice(-4);
+  return data.accounts.find(a => a.num === last4) || null;
+}
+
+// Parse a dollar string like "$72,922.37" or "-$411.15" or "$0" into a float
+function parseCsvAmount(str) {
+  if(!str) return null;
+  const cleaned = str.replace(/[\$,\s\t]/g, '');
+  const val = parseFloat(cleaned);
+  return isNaN(val) ? null : val;
+}
+
+// Parse M/D/YYYY date string into YYYY-MM-DD
+function parseCsvDate(str) {
+  if(!str) return null;
+  const parts = str.trim().split('/');
+  if(parts.length !== 3) return null;
+  const [m, d, y] = parts;
+  return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+}
+
+// Activities to import and how they map
+const CSV_ACTIVITY_MAP = {
+  'fee':          { type:'fee',          basisRule: null },
+  'contribution': { type:'contribution', basisRule: null },
+  'ach funds':    { type:'ach_funds',    basisRule: null }, // sign-resolved later
+};
+
+// Activities to silently skip
+const CSV_SKIP_ACTIVITIES = new Set([
+  'dividend reinvest','cash dividend','reinvest interest','interest',
+  'buy','sell','st cap gain reinvest','lt cap gain reinvest',
+  'short term cap gain','long term cap gain','name chg',
+  'dividend reinvestment','capital gain reinvest'
+]);
+
+function previewCsvImport(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const text = ev.target.result;
+    processCsvPreview(text);
+  };
+  reader.readAsText(file);
+  // Reset file input so same file can be re-selected if needed
+  event.target.value = '';
+}
+
+function processCsvPreview(text) {
+  // Split into lines, handle Windows line endings
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+  if(lines.length < 2) {
+    alert('CSV file appears empty or invalid.');
+    return;
+  }
+
+  // Parse header row
+  const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+  const idx = {
+    date:        headers.indexOf('date'),
+    activity:    headers.indexOf('activity'),
+    symbol:      headers.indexOf('symbol'),
+    description: headers.indexOf('description'),
+    value:       headers.indexOf('value'),
+    accountNum:  headers.indexOf('account number'),
+    accountName: headers.indexOf('account nickname'),
+  };
+
+  if(idx.date === -1 || idx.activity === -1 || idx.value === -1) {
+    alert('Could not find required columns (Date, Activity, Value). Make sure this is an LPL activity export.');
+    return;
+  }
+
+  const toImport = [];
+  const skipped  = [];
+  const unmatched = [];
+
+  for(let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    if(cols.length < 3) continue;
+
+    const activity    = (cols[idx.activity] || '').trim().toLowerCase();
+    const dateRaw     = (cols[idx.date]     || '').trim();
+    const valueRaw    = (cols[idx.value]    || '').trim();
+    const description = (cols[idx.description] || '').trim();
+    const accountNum  = idx.accountNum !== -1 ? (cols[idx.accountNum] || '').trim() : '';
+    const accountName = idx.accountName !== -1 ? (cols[idx.accountName] || '').trim() : '';
+
+    // Skip activities we don't care about
+    if(CSV_SKIP_ACTIVITIES.has(activity)) continue;
+
+    // Skip activities not in our map (unknown — flag them)
+    if(!CSV_ACTIVITY_MAP[activity]) {
+      skipped.push({ row: i+1, activity, reason: 'Unknown activity type — skipped' });
+      continue;
+    }
+
+    const date   = parseCsvDate(dateRaw);
+    const amount = parseCsvAmount(valueRaw);
+
+    if(!date || amount === null) {
+      skipped.push({ row: i+1, activity, reason: 'Could not parse date or amount' });
+      continue;
+    }
+
+    // Match account
+    const acct = matchAccountByNum(accountNum);
+    if(!acct) {
+      unmatched.push({ row: i+1, activity, accountNum, accountName, reason: `No account match for number ...${String(accountNum).slice(-4)}` });
+      continue;
+    }
+
+    // Resolve type for ach_funds based on sign (positive = cash in = contribution, negative = cash out = event)
+    let txType = CSV_ACTIVITY_MAP[activity].type;
+    let absAmount = Math.abs(amount);
+    let notes = description;
+
+    if(txType === 'ach_funds') {
+      txType = amount > 0 ? 'contribution' : 'event';
+      notes = amount > 0
+        ? `ACH deposit: ${description}`
+        : `ACH withdrawal: ${description}`;
+    }
+
+    // For fees, LPL exports as negative — store as positive (our model uses positive fee amounts)
+    if(txType === 'fee') {
+      absAmount = Math.abs(amount);
+      notes = description || 'Advisory fee';
+    }
+
+    // Duplicate check: same date + account + amount + type
+    const isDuplicate = data.transactions.some(t =>
+      t.date === date &&
+      t.account === acct.id &&
+      Math.abs(t.amount - absAmount) < 0.01 &&
+      t.type === txType
+    );
+
+    toImport.push({
+      date,
+      type:      txType,
+      account:   acct.id,
+      accountName: acct.name,
+      toAccount: '',
+      amount:    absAmount,
+      notes,
+      isDuplicate
+    });
+  }
+
+  // Store pending rows (only non-duplicates will be committed)
+  csvPendingRows = toImport;
+
+  // Build preview UI
+  const newRows  = toImport.filter(r => !r.isDuplicate);
+  const dupRows  = toImport.filter(r =>  r.isDuplicate);
+
+  const statsEl = document.getElementById('csvPreviewStats');
+  statsEl.innerHTML = `
+    <span style="background:rgba(45,212,160,0.15);color:var(--green);padding:4px 12px;border-radius:20px;font-weight:500;">${newRows.length} new</span>
+    <span style="background:rgba(74,96,128,0.3);color:var(--text2);padding:4px 12px;border-radius:20px;">${dupRows.length} duplicates (will skip)</span>
+    ${unmatched.length ? `<span style="background:rgba(248,113,113,0.15);color:var(--red);padding:4px 12px;border-radius:20px;">${unmatched.length} unmatched accounts</span>` : ''}
+    ${skipped.length  ? `<span style="background:rgba(240,180,41,0.15);color:var(--gold);padding:4px 12px;border-radius:20px;">${skipped.length} skipped rows</span>` : ''}
+  `;
+
+  const tbody = document.getElementById('csvPreviewBody');
+  tbody.innerHTML = '';
+
+  // Show all rows in preview — new ones highlighted, dupes dimmed
+  toImport.forEach(r => {
+    const rowColor = r.isDuplicate ? 'color:var(--text3);' : 'color:var(--text);';
+    const statusBadge = r.isDuplicate
+      ? `<span style="font-size:10px;background:rgba(74,96,128,0.3);color:var(--text3);padding:2px 6px;border-radius:3px;">duplicate — skip</span>`
+      : `<span style="font-size:10px;background:rgba(45,212,160,0.15);color:var(--green);padding:2px 6px;border-radius:3px;">will import</span>`;
+    tbody.innerHTML += `<tr style="${rowColor}opacity:${r.isDuplicate?'0.45':'1'};">
+      <td style="padding:7px 12px;">${r.date}</td>
+      <td style="padding:7px 12px;"><span class="type-badge type-${r.type}">${r.type}</span></td>
+      <td style="padding:7px 12px;">${r.accountName}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;">$${r.amount.toFixed(2)}</td>
+      <td style="padding:7px 12px;font-size:11px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.notes}">${r.notes}</td>
+      <td style="padding:7px 12px;">${statusBadge}</td>
+    </tr>`;
+  });
+
+  // Show unmatched rows as warnings at the bottom
+  unmatched.forEach(r => {
+    tbody.innerHTML += `<tr style="color:var(--red);opacity:0.7;">
+      <td style="padding:7px 12px;">—</td>
+      <td style="padding:7px 12px;">${r.activity}</td>
+      <td style="padding:7px 12px;">${r.accountName || r.accountNum}</td>
+      <td style="padding:7px 12px;">—</td>
+      <td style="padding:7px 12px;font-size:11px;">${r.reason}</td>
+      <td style="padding:7px 12px;"><span style="font-size:10px;background:rgba(248,113,113,0.15);color:var(--red);padding:2px 6px;border-radius:3px;">no match</span></td>
+    </tr>`;
+  });
+
+  if(newRows.length === 0 && toImport.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text3);">No importable rows found in this file.</td></tr>';
+  }
+
+  document.getElementById('csvPreviewSection').style.display = 'block';
+}
+
+// Parse a single CSV line respecting quoted fields
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for(let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if(ch === '"') {
+      inQuotes = !inQuotes;
+    } else if(ch === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+function commitCsvImport() {
+  const newRows = csvPendingRows.filter(r => !r.isDuplicate);
+  if(newRows.length === 0) {
+    alert('No new transactions to import.');
+    cancelCsvImport();
+    return;
+  }
+
+  let imported = 0;
+  newRows.forEach(r => {
+    data.transactions.push({
+      id:        'csv_' + Date.now() + '_' + imported,
+      date:      r.date,
+      type:      r.type,
+      account:   r.account,
+      toAccount: r.toAccount,
+      amount:    r.amount,
+      notes:     r.notes
+    });
+    imported++;
+  });
+
+  // Store the most recent date from this import
+  const importDates = newRows.map(r => r.date).sort();
+  const latestDate = importDates[importDates.length - 1];
+  if(!data.settings) data.settings = {};
+  data.settings.lastCsvImportDate = latestDate;
+
+  // Sort all transactions by date
+  data.transactions.sort((a,b) => a.date.localeCompare(b.date));
+
+  saveLocal();
+  cancelCsvImport();
+  updateLastCsvImportDisplay();
+  renderDashboard();
+  renderAccounts();
+  renderTransactions();
+  renderFeeHistory();
+
+  // Show success
+  const btn = document.getElementById('csvImportFile');
+  alert(`✓ Imported ${imported} transaction${imported!==1?'s':''}. ${csvPendingRows.filter(r=>r.isDuplicate).length} duplicate(s) skipped.`);
+  csvPendingRows = [];
+}
+
+function cancelCsvImport() {
+  csvPendingRows = [];
+  document.getElementById('csvPreviewSection').style.display = 'none';
+  document.getElementById('csvPreviewBody').innerHTML = '';
+  document.getElementById('csvPreviewStats').innerHTML = '';
+}
+
+function updateLastCsvImportDisplay() {
+  const el = document.getElementById('lastCsvImportDate');
+  if(!el) return;
+  const d = data.settings?.lastCsvImportDate;
+  if(d) {
+    el.textContent = `Last import: ${d} — use this as your start date for the next LPL export`;
+    el.style.color = 'var(--green)';
+  } else {
+    el.textContent = 'Last import: — (no CSV imported yet)';
+    el.style.color = 'var(--text3)';
+  }
+}
+
+// ===== SETTINGS =====
+function toggleClosedSetting() {
+  data.settings.showClosed=document.getElementById('showClosedSetting').checked;
+  document.getElementById('showClosedToggle').checked=data.settings.showClosed;
+  saveLocal(); renderAccounts();
+}
+
+function showChangePassword() {
+  const s=document.getElementById('changePwSection');
+  s.style.display=s.style.display==='none'?'block':'none';
+}
+
+async function changePassword() {
+  const p1=document.getElementById('newPw1').value;
+  const p2=document.getElementById('newPw2').value;
+  const msg=document.getElementById('pwMsg');
+  if(!p1||p1!==p2){msg.style.color='var(--red)';msg.textContent='Passwords do not match.';return;}
+  PASS_HASH=await sha256(p1);
+  localStorage.setItem('lpl_pass',PASS_HASH);
+  msg.style.color='var(--green)'; msg.textContent='✓ Password updated.';
+  document.getElementById('newPw1').value='';
+  document.getElementById('newPw2').value='';
+}
+
+// ===== GOOGLE DRIVE =====
+const DRIVE_FILE_NAME='lpl_financial_tracker.json';
+let driveFileId=localStorage.getItem('lpl_drive_file_id')||null;
+let driveConnected=false;
+let accessToken=null;
+const CLIENT_ID='305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com';
+const SCOPES='https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file';
+
+function updateDriveBanner() {
+  const banner=document.getElementById('driveBanner');
+  if(driveConnected) { banner.classList.add('hidden'); }
+  else { banner.classList.remove('hidden'); }
+}
+
+function connectDrive() {
+  if(CLIENT_ID==='YOUR_GOOGLE_CLIENT_ID') {
+    alert('Google Drive integration requires a Google Client ID.\n\nTo set this up:\n1. Go to console.cloud.google.com\n2. Create a project and enable Drive API\n3. Create OAuth credentials\n4. Replace YOUR_GOOGLE_CLIENT_ID in the code\n\nFor now, use Export/Import JSON for data backup.');
+    return;
+  }
+  // Check if we already have a token in the URL hash (returning from OAuth redirect)
+  const hash = window.location.hash;
+  if(hash && hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    const token = params.get('access_token');
+    if(token) {
+      accessToken = token;
+      driveConnected = true;
+      updateDriveBanner();
+      document.getElementById('driveStatusText').textContent = '✓ Connected — faisal.virjee@gmail.com';
+      window.history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+  }
+  const redirectUri = window.location.href.split('#')[0];
+  const authUrl=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(SCOPES)}`;
+  sessionStorage.setItem('lpl_was_authed','1');
+  window.location.href = authUrl;
+}
+
+async function saveToDrive() {
+  if(!driveConnected||!accessToken) return;
+  try {
+    const content=JSON.stringify(data,null,2);
+    const blob=new Blob([content],{type:'application/json'});
+    let url,method;
+    if(driveFileId){url=`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`;method='PATCH';}
+    else{url='https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';method='POST';}
+    const form=new FormData();
+    if(!driveFileId) form.append('metadata',new Blob([JSON.stringify({name:DRIVE_FILE_NAME,parents:['appDataFolder']})],{type:'application/json'}));
+    form.append('file',blob);
+    const res=await fetch(url,{method,headers:{'Authorization':'Bearer '+accessToken},body:driveFileId?blob:form});
+    const json=await res.json();
+    if(json.id){driveFileId=json.id;localStorage.setItem('lpl_drive_file_id',driveFileId);}
+  } catch(e){console.error('Drive save error',e);}
+}
+
+async function loadFromDrive() {
+  if(!driveConnected||!accessToken){alert('Connect Google Drive first.');return;}
+  try {
+    const res=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,{headers:{'Authorization':'Bearer '+accessToken}});
+    const json=await res.json();
+    data=json; saveLocal();
+    initApp();
+    alert('✓ Data loaded from Google Drive.');
+  } catch(e){alert('Could not load from Drive. '+e.message);}
+}
+
+// ===== IMPORT / EXPORT =====
+function exportJSON() {
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='lpl_tracker_'+new Date().toISOString().split('T')[0]+'.json';
+  a.click();
+}
+
+function importJSON(e) {
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try {
+      const imported=JSON.parse(ev.target.result);
+      if(confirm('Replace all current data with imported file?')){
+        data=imported; saveLocal(); initApp();
+        alert('✓ Data imported successfully.');
+      }
+    } catch(err){alert('Invalid JSON file.');}
+  };
+  reader.readAsText(file);
+}
+
+// ===== PROJECTIONS =====
+
+// Default contribution schedules per account — annual contrib + lump sum + frequency
+const PROJ_DEFAULTS = {
+  'fv-newroth':  { annual: 8600, lump: 0, freq: 1 },
+  'fv-brokerage':{ annual: 0,    lump: 0, freq: 2 },
+  'hv-rollover': { annual: 0,    lump: 0, freq: 1 },
+  'hv-roth':     { annual: 0,    lump: 0, freq: 1 },
+  'hv-trad':     { annual: 0,    lump: 0, freq: 1 },
+};
+
+// Store user's contribution inputs in memory (not persisted — projections are exploratory)
+let projContribState = {};
+
+function syncHorizon(val) {
+  const v = Math.max(1, Math.min(50, parseInt(val) || 20));
+  document.getElementById('horizonSlider').value = Math.min(30, v);
+  document.getElementById('horizonInput').value = v;
+  renderProjections();
+}
+
+// Project a single account forward year by year.
+// annualContribOrArray: either a fixed number OR an array of per-year values (length = years)
+function projectAccount(startValue, annualContribOrArray, lumpSum, lumpFreq, rate, years) {
+  const values = [startValue];
+  let current = startValue;
+  const r = rate / 100;
+  for(let y = 1; y <= years; y++) {
+    const contrib = Array.isArray(annualContribOrArray)
+      ? (annualContribOrArray[y - 1] || 0)
+      : annualContribOrArray;
+    current = current * (1 + r) + contrib;
+    if(lumpSum > 0 && lumpFreq > 0 && y % lumpFreq === 0) {
+      current += lumpSum;
+    }
+    values.push(Math.max(0, current));
+  }
+  return values;
+}
+
+// Build escalating Roth contribution schedule:
+// Starts at baseAmount, increases by $500 every escalateEvery years
+function buildEscalatedContribs(baseAmount, years, escalateEvery, stepAmount) {
+  const contribs = [];
+  for(let y = 1; y <= years; y++) {
+    const steps = Math.floor((y - 1) / escalateEvery);
+    contribs.push(baseAmount + steps * stepAmount);
+  }
+  return contribs;
+}
+
+// Get the average annual fees from recent history (2024 + 2025)
+function getAvgAnnualFees() {
+  const feesByYear = {};
+  data.transactions.filter(t => t.type === 'fee' && t.amount > 0).forEach(t => {
+    const y = t.date.split('-')[0];
+    feesByYear[y] = (feesByYear[y] || 0) + t.amount;
+  });
+  const years = Object.keys(feesByYear).sort().slice(-2); // last 2 full years
+  if(!years.length) return 0;
+  return years.reduce((s, y) => s + feesByYear[y], 0) / years.length;
+}
+
+function buildProjContribRows() {
+  const container = document.getElementById('projContribRows');
+  if(!container) return;
+  container.innerHTML = '';
+  // Only active, non-shell accounts
+  const accounts = activeAccounts().filter(a => a.subtype !== 'shell');
+  accounts.forEach(a => {
+    const defaults = PROJ_DEFAULTS[a.id] || { annual: 0, lump: 0, freq: 1 };
+    // Initialize state from defaults if not already set
+    if(!projContribState[a.id]) {
+      projContribState[a.id] = { ...defaults };
+    }
+    const s = projContribState[a.id];
+    const currentVal = getLatestSnapshot(a.id) || 0;
+    const isRoth = a.id === 'fv-newroth';
+    container.innerHTML += `
+      <div class="proj-account-row">
+        <div>
+          <div class="proj-acct-name">${a.name}</div>
+          <div class="proj-acct-value">Current: ${fmt(currentVal)}</div>
+          ${isRoth ? `<div style="font-size:10px;color:var(--accent2);margin-top:3px;" id="rothEscalatePreview">↑ escalation on</div>` : ''}
+        </div>
+        <div class="proj-input-group">
+          <span class="proj-input-label">Annual ($)</span>
+          <input type="number" class="proj-input" id="proj_annual_${a.id}"
+            value="${s.annual}" min="0" step="100"
+            oninput="updateProjState('${a.id}','annual',this.value)">
+        </div>
+        <div class="proj-input-group">
+          <span class="proj-input-label">Lump Sum ($)</span>
+          <input type="number" class="proj-input" id="proj_lump_${a.id}"
+            value="${s.lump}" min="0" step="1000"
+            oninput="updateProjState('${a.id}','lump',this.value)">
+        </div>
+        <div class="proj-input-group">
+          <span class="proj-input-label">Every (yrs)</span>
+          <input type="number" class="proj-input" id="proj_freq_${a.id}"
+            value="${s.freq}" min="1" max="30" step="1"
+            oninput="updateProjState('${a.id}','freq',this.value)">
+        </div>
+      </div>`;
+  });
+}
+
+function updateProjState(accountId, field, value) {
+  if(!projContribState[accountId]) projContribState[accountId] = { annual:0, lump:0, freq:1 };
+  const v = parseFloat(value) || 0;
+  projContribState[accountId][field] = field === 'freq' ? Math.max(1, v) : Math.max(0, v);
+  renderProjections();
+}
+
+function renderProjections() {
+  // Ensure contrib rows are built
+  if(!document.getElementById('projContribRows')?.children.length) {
+    buildProjContribRows();
+  }
+
+  const horizon = parseInt(document.getElementById('horizonInput')?.value) || 20;
+  const rateC = parseFloat(document.getElementById('rateConservative')?.value) || 5;
+  const rateM = parseFloat(document.getElementById('rateModerate')?.value)     || 8;
+  const rateO = parseFloat(document.getElementById('rateOptimistic')?.value)   || 12;
+  const showFeeDrag   = document.getElementById('feeDragToggle')?.checked      || false;
+  const rothEscalate  = document.getElementById('rothEscalateToggle')?.checked !== false; // default true
+
+  const accounts = activeAccounts().filter(a => a.subtype !== 'shell');
+
+  // Build year labels
+  const currentYear = new Date().getFullYear();
+  const yearLabels = [];
+  for(let i = 0; i <= horizon; i++) yearLabels.push(currentYear + i);
+
+  // Project each account under each scenario
+  const projData = {}; // projData[accountId][scenario] = values[]
+  accounts.forEach(a => {
+    const start = getLatestSnapshot(a.id) || 0;
+    const s = projContribState[a.id] || (PROJ_DEFAULTS[a.id] || { annual:0, lump:0, freq:1 });
+
+    // For FV-NewROTH, optionally escalate annual contribution by $500 every 3 years
+    let annualC = s.annual;
+    let annualM = s.annual;
+    let annualO = s.annual;
+    if(a.id === 'fv-newroth' && rothEscalate && s.annual > 0) {
+      annualC = buildEscalatedContribs(s.annual, horizon, 3, 500);
+      annualM = buildEscalatedContribs(s.annual, horizon, 3, 500);
+      annualO = buildEscalatedContribs(s.annual, horizon, 3, 500);
+    }
+
+    projData[a.id] = {
+      conservative: projectAccount(start, annualC, s.lump, s.freq, rateC, horizon),
+      moderate:     projectAccount(start, annualM, s.lump, s.freq, rateM, horizon),
+      optimistic:   projectAccount(start, annualO, s.lump, s.freq, rateO, horizon),
+    };
+  });
+
+  // Sum across all accounts for total portfolio lines
+  const totalC = yearLabels.map((_,i) => accounts.reduce((s,a) => s + (projData[a.id].conservative[i]||0), 0));
+  const totalM = yearLabels.map((_,i) => accounts.reduce((s,a) => s + (projData[a.id].moderate[i]    ||0), 0));
+  const totalO = yearLabels.map((_,i) => accounts.reduce((s,a) => s + (projData[a.id].optimistic[i]  ||0), 0));
+
+  // Fee drag line: project what avg annual fees would be worth if reinvested at moderate rate
+  const avgFees = getAvgAnnualFees();
+  let feeDragLine = null;
+  if(showFeeDrag && avgFees > 0) {
+    // Start from 0, add fees each year compounding at moderate rate
+    feeDragLine = [0];
+    let drag = 0;
+    for(let y = 1; y <= horizon; y++) {
+      drag = drag * (1 + rateM/100) + avgFees;
+      feeDragLine.push(drag);
+    }
+  }
+
+  // Update the escalation preview label on the FV-NewROTH row
+  const previewEl = document.getElementById('rothEscalatePreview');
+  if(previewEl) {
+    const s = projContribState['fv-newroth'] || PROJ_DEFAULTS['fv-newroth'];
+    if(rothEscalate && s.annual > 0) {
+      const schedule = [];
+      for(let step = 0; step * 3 < Math.min(horizon, 15); step++) {
+        const yr = step * 3;
+        const amt = s.annual + step * 500;
+        schedule.push(yr === 0 ? `$${amt.toLocaleString()}/yr` : `yr ${yr+1}: $${amt.toLocaleString()}`);
+      }
+      previewEl.textContent = '↑ ' + schedule.join(' → ');
+      previewEl.style.color = 'var(--accent2)';
+    } else {
+      previewEl.textContent = '↑ escalation off — fixed contribution';
+      previewEl.style.color = 'var(--text3)';
+    }
+  }
+
+  // Render total portfolio chart
+  renderProjTotalChart(yearLabels, totalC, totalM, totalO, feeDragLine, rateC, rateM, rateO);
+
+  // Render summary stat cards (today + half horizon + full horizon)
+  renderProjSummaryCards(totalC, totalM, totalO, horizon, yearLabels);
+
+  // Render per-account table
+  renderProjAccountTable(accounts, projData, horizon, yearLabels);
+
+  // Render fee drag panel
+  renderProjFeeDragPanel(showFeeDrag, avgFees, feeDragLine, horizon);
+
+  // Update chart title
+  const titleEl = document.getElementById('projChartTitle');
+  if(titleEl) titleEl.textContent = `Total Portfolio — ${horizon}-Year Projection`;
+}
+
+function renderProjTotalChart(labels, totalC, totalM, totalO, feeDragLine, rateC, rateM, rateO) {
+  const ctx = document.getElementById('projTotalChart')?.getContext('2d');
+  if(!ctx) return;
+  if(projTotalChartInst) projTotalChartInst.destroy();
+
+  const datasets = [
+    {
+      label: `Conservative (${rateC}%/yr)`,
+      data: totalC,
+      borderColor: '#f87171',
+      backgroundColor: 'rgba(248,113,113,0.06)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+    },
+    {
+      label: `Moderate (${rateM}%/yr)`,
+      data: totalM,
+      borderColor: '#f0b429',
+      backgroundColor: 'rgba(240,180,41,0.06)',
+      borderWidth: 2.5,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+    },
+    {
+      label: `Optimistic (${rateO}%/yr)`,
+      data: totalO,
+      borderColor: '#2dd4a0',
+      backgroundColor: 'rgba(45,212,160,0.06)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+    },
+  ];
+
+  if(feeDragLine) {
+    datasets.push({
+      label: 'Fee Drag (foregone growth)',
+      data: feeDragLine,
+      borderColor: 'rgba(248,113,113,0.5)',
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderDash: [6, 4],
+      fill: false,
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+    });
+  }
+
+  projTotalChartInst = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: '#8fa3c0', font: { size: 12 }, padding: 16 }
+        },
+        tooltip: {
+          callbacks: {
+            label: c => ` ${c.dataset.label}: $${Math.round(c.raw).toLocaleString()}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: '#4a6080',
+            maxTicksLimit: 10,
+            callback: (val, i, ticks) => labels[i]
+          },
+          grid: { color: 'rgba(42,54,80,0.4)' }
+        },
+        y: {
+          ticks: {
+            color: '#4a6080',
+            callback: v => {
+              if(v >= 1000000) return '$' + (v/1000000).toFixed(1) + 'M';
+              if(v >= 1000)    return '$' + (v/1000).toFixed(0) + 'K';
+              return '$' + v;
+            }
+          },
+          grid: { color: 'rgba(42,54,80,0.4)' }
+        }
+      }
+    }
+  });
+}
+
+function renderProjSummaryCards(totalC, totalM, totalO, horizon, yearLabels) {
+  const el = document.getElementById('projSummaryCards');
+  if(!el) return;
+
+  const midIdx  = Math.floor(horizon / 2);
+  const fullIdx = horizon;
+  const midYear  = yearLabels[midIdx];
+  const fullYear = yearLabels[fullIdx];
+  const today    = totalM[0];
+
+  const cards = [
+    { label: 'Today',           c: totalC[0],       m: totalM[0],       o: totalO[0],       yr: yearLabels[0] },
+    { label: `${midYear}`,      c: totalC[midIdx],  m: totalM[midIdx],  o: totalO[midIdx],  yr: midYear },
+    { label: `${fullYear}`,     c: totalC[fullIdx], m: totalM[fullIdx], o: totalO[fullIdx], yr: fullYear },
+  ];
+
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">` +
+    cards.map((card, i) => {
+      const gainM = card.m - today;
+      const gainPct = today > 0 ? ((card.m - today) / today * 100).toFixed(1) : '0.0';
+      return `<div class="proj-total-card">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:14px;">${i === 0 ? 'Starting Value' : 'Projected — ' + card.yr}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Conservative</div>
+            <div style="font-size:16px;font-family:'Playfair Display',serif;color:var(--red);">$${Math.round(card.c).toLocaleString()}</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Moderate</div>
+            <div style="font-size:16px;font-family:'Playfair Display',serif;color:var(--gold);">$${Math.round(card.m).toLocaleString()}</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Optimistic</div>
+            <div style="font-size:16px;font-family:'Playfair Display',serif;color:var(--green);">$${Math.round(card.o).toLocaleString()}</div>
+          </div>
+        </div>
+        ${i > 0 ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(42,54,80,0.4);font-size:11px;color:var(--text3);">
+          Moderate gain: <strong style="color:var(--gold);">+$${Math.round(gainM).toLocaleString()} (+${gainPct}%)</strong>
+        </div>` : ''}
+      </div>`;
+    }).join('') + `</div>`;
+}
+
+function renderProjAccountTable(accounts, projData, horizon, yearLabels) {
+  const thead = document.getElementById('projAccountHead');
+  const tbody = document.getElementById('projAccountBody');
+  const subtitle = document.getElementById('projTableSubtitle');
+  if(!thead || !tbody) return;
+
+  // Choose two checkpoints: 10yr (or horizon/2) and full horizon
+  const mid  = Math.min(10, Math.floor(horizon / 2));
+  const full = horizon;
+  const midYear  = yearLabels[mid];
+  const fullYear = yearLabels[full];
+
+  if(subtitle) subtitle.textContent = `${midYear} and ${fullYear} projections under each scenario`;
+
+  thead.innerHTML = `<tr>
+    <th>Account</th>
+    <th>Current Value</th>
+    <th style="color:var(--red);">${midYear} Conservative</th>
+    <th style="color:var(--gold);">${midYear} Moderate</th>
+    <th style="color:var(--green);">${midYear} Optimistic</th>
+    <th style="color:var(--red);">${fullYear} Conservative</th>
+    <th style="color:var(--gold);">${fullYear} Moderate</th>
+    <th style="color:var(--green);">${fullYear} Optimistic</th>
+  </tr>`;
+
+  let totalCurrent = 0, totalMidC = 0, totalMidM = 0, totalMidO = 0;
+  let totalFullC = 0, totalFullM = 0, totalFullO = 0;
+
+  tbody.innerHTML = accounts.map(a => {
+    const current  = projData[a.id].moderate[0];
+    const midC     = projData[a.id].conservative[mid];
+    const midM     = projData[a.id].moderate[mid];
+    const midO     = projData[a.id].optimistic[mid];
+    const fullC    = projData[a.id].conservative[full];
+    const fullM    = projData[a.id].moderate[full];
+    const fullO    = projData[a.id].optimistic[full];
+
+    totalCurrent += current;
+    totalMidC  += midC;  totalMidM  += midM;  totalMidO  += midO;
+    totalFullC += fullC; totalFullM += fullM; totalFullO += fullO;
+
+    const badge = `<span class="account-badge ${a.owner==='Faisal'?'badge-fv':'badge-hv'}" style="font-size:10px;">${a.owner}</span>`;
+
+    return `<tr>
+      <td><strong>${a.name}</strong><br>${badge}</td>
+      <td style="font-family:'DM Mono',monospace;">${fmt(current)}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--red);">$${Math.round(midC).toLocaleString()}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--gold);">$${Math.round(midM).toLocaleString()}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--green);">$${Math.round(midO).toLocaleString()}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--red);">$${Math.round(fullC).toLocaleString()}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--gold);">$${Math.round(fullM).toLocaleString()}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--green);">$${Math.round(fullO).toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  // Add totals row
+  tbody.innerHTML += `<tr style="background:var(--card2);font-weight:600;">
+    <td><strong>Portfolio Total</strong></td>
+    <td style="font-family:'DM Mono',monospace;">${fmt(totalCurrent)}</td>
+    <td style="font-family:'DM Mono',monospace;color:var(--red);">$${Math.round(totalMidC).toLocaleString()}</td>
+    <td style="font-family:'DM Mono',monospace;color:var(--gold);">$${Math.round(totalMidM).toLocaleString()}</td>
+    <td style="font-family:'DM Mono',monospace;color:var(--green);">$${Math.round(totalMidO).toLocaleString()}</td>
+    <td style="font-family:'DM Mono',monospace;color:var(--red);">$${Math.round(totalFullC).toLocaleString()}</td>
+    <td style="font-family:'DM Mono',monospace;color:var(--gold);">$${Math.round(totalFullM).toLocaleString()}</td>
+    <td style="font-family:'DM Mono',monospace;color:var(--green);">$${Math.round(totalFullO).toLocaleString()}</td>
+  </tr>`;
+}
+
+function renderProjFeeDragPanel(show, avgFees, feeDragLine, horizon) {
+  const el = document.getElementById('projFeeDragPanel');
+  if(!el) return;
+  if(!show || !feeDragLine || avgFees <= 0) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'block';
+  const totalDrag = feeDragLine[horizon];
+  const rateM = parseFloat(document.getElementById('rateModerate')?.value) || 8;
+  el.innerHTML = `<div class="chart-card" style="border-top:3px solid var(--red);">
+    <h3>Fee Drag Analysis</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px;">
+      <div style="background:var(--card2);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Avg Annual Fees (recent)</div>
+        <div style="font-size:24px;font-weight:600;color:var(--red);font-family:'Playfair Display',serif;">${fmt(avgFees)}/yr</div>
+      </div>
+      <div style="background:var(--card2);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Foregone Growth (${horizon} yr)</div>
+        <div style="font-size:24px;font-weight:600;color:var(--red);font-family:'Playfair Display',serif;">$${Math.round(totalDrag).toLocaleString()}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">if fees invested at ${rateM}%/yr instead</div>
+      </div>
+      <div style="background:var(--card2);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Total Fees Paid So Far</div>
+        <div style="font-size:24px;font-weight:600;color:var(--red);font-family:'Playfair Display',serif;">${fmt(getTotalFees())}</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text3);line-height:1.6;padding:12px;background:var(--bg2);border-radius:8px;">
+      ⚠️ Fee drag is the compounding opportunity cost of paying advisory fees rather than reinvesting them.
+      This does not mean advisory fees are bad — if LPL's portfolio management generates returns above what you would achieve independently,
+      the fees may well be worth it. Use this as one data point among many.
+    </div>
+  </div>`;
+}
+
+// ===== NAVIGATION =====
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+  if(id==='charts') renderCharts();
+  if(id==='projections') renderProjections();
+  if(id==='currentValues') { renderCurrentValues(); renderFeeHistory(); populateAccountSelects(); }
+}
+
+// ===== START =====
+// Check for OAuth token return on page load
+(function checkOAuthReturn() {
+  const hash = window.location.hash;
+  if(hash && hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    const token = params.get('access_token');
+    if(token) {
+      accessToken = token;
+      driveConnected = true;
+      sessionStorage.setItem('lpl_drive_token', token);
+      localStorage.setItem('lpl_oauth_pending','1');
+      window.history.replaceState(null, '', window.location.pathname);
+      if(sessionStorage.getItem('lpl_was_authed')==='1') {
+        sessionStorage.removeItem('lpl_was_authed');
+        document.getElementById('loginScreen').style.display='none';
+        document.getElementById('app').style.display='block';
+        setTimeout(()=>{ loadLocalData(); initApp(); resetTimer(); updateDriveBanner(); }, 100);
+        return;
+      }
+    }
+  } else {
+    // Restore token from session if available (same browser session)
+    const savedToken = sessionStorage.getItem('lpl_drive_token');
+    if(savedToken) {
+      accessToken = savedToken;
+      driveConnected = true;
+    }
+  }
+})();
+init();
+</script>
+</body>
+</html>
