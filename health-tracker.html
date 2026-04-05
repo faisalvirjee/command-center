@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Tracker v1.1</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async></script>
+<style>
+:root {
+  --bg:      #0d1117;
+  --bg2:     #161b22;
+  --bg3:     #1c2430;
+  --bg4:     #21262d;
+  --border:  #30363d;
+  --border2: #3d444d;
+  --accent:  #00b4d8;
+  --accent2: #0077a8;
+  --gold:    #ffd700;
+  --gold2:   #b89a00;
+  --text:    #e6edf3;
+  --muted:   #8b949e;
+  --dim:     #484f58;
+  --ok:      #3fb950;
+  --warn:    #d29922;
+  --danger:  #f85149;
+  --info:    #58a6ff;
+  --clinical:#00b4d8;
+  --wellness:#5e6672;
+  --radius:  8px;
+  --radius2: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── AUTH GATE ── */
+#authGate {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.auth-box {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2);
+  padding: 40px 48px; width: 380px; text-align: center;
+}
+.auth-box .logo { font-size: 28px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; margin-bottom: 4px; }
+.auth-box .sub { color: var(--muted); font-size: 12px; margin-bottom: 28px; }
+.auth-box input {
+  width: 100%; padding: 10px 14px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text); font-family: inherit; font-size: 14px;
+  margin-bottom: 12px; outline: none; transition: border-color .2s;
+}
+.auth-box input:focus { border-color: var(--accent); }
+.auth-box .btn-primary {
+  width: 100%; padding: 10px; background: var(--accent); color: #000; font-family: inherit;
+  font-weight: 600; font-size: 14px; border: none; border-radius: var(--radius); cursor: pointer;
+  transition: background .2s;
+}
+.auth-box .btn-primary:hover { background: #00d4ff; }
+.auth-box .err { color: var(--danger); font-size: 12px; margin-top: 8px; min-height: 16px; }
+.auth-box .set-note { color: var(--muted); font-size: 11px; margin-top: 8px; }
+
+/* ── MAIN LAYOUT ── */
+#app { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 52px; background: var(--bg2);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.app-title { font-size: 16px; font-weight: 700; color: var(--accent); }
+.app-ver { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; background: var(--bg3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.drive-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); cursor: pointer; padding: 5px 10px; border-radius: 6px; background: var(--bg3); border: 1px solid var(--border); transition: border-color .2s; }
+.drive-status:hover { border-color: var(--accent); }
+.drive-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
+.drive-dot.connected { background: var(--ok); }
+
+/* ── TABS ── */
+.tabs {
+  display: flex; gap: 0; background: var(--bg2);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 10px 18px; font-family: inherit; font-size: 13px; font-weight: 500;
+  color: var(--muted); background: transparent; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all .2s; white-space: nowrap; flex-shrink: 0;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── CONTENT ── */
+#content { flex: 1; overflow-y: auto; padding: 20px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 16px 20px;
+}
+.card-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, 1fr); }
+.g3 { grid-template-columns: repeat(3, 1fr); }
+.g4 { grid-template-columns: repeat(4, 1fr); }
+.g6 { grid-template-columns: repeat(6, 1fr); }
+@media(max-width:1100px){ .g6{grid-template-columns:repeat(3,1fr);} }
+@media(max-width:900px){ .g4{grid-template-columns:repeat(2,1fr);} .g3{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:600px){ .g2,.g3,.g4,.g6{grid-template-columns:1fr;} }
+
+/* ── METRIC CARDS ── */
+.metric-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 14px 16px;
+  position: relative; overflow: hidden;
+}
+.metric-card .mc-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.metric-card .mc-value { font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 500; line-height: 1.1; margin: 6px 0 2px; }
+.metric-card .mc-unit { font-size: 11px; color: var(--muted); }
+.metric-card .mc-trend { display: flex; align-items: center; gap: 4px; font-size: 11px; margin-top: 4px; }
+.metric-card .mc-range { font-size: 10px; color: var(--dim); margin-top: 2px; }
+.metric-card canvas.sparkline { position: absolute; bottom: 0; right: 0; opacity: 0.4; }
+.mc-ok .mc-value { color: var(--ok); }
+.mc-warn .mc-value { color: var(--warn); }
+.mc-danger .mc-value { color: var(--danger); }
+.mc-info .mc-value { color: var(--info); }
+.trend-up { color: var(--danger); }
+.trend-down { color: var(--ok); }
+.trend-up-good { color: var(--ok); }
+.trend-flat { color: var(--muted); }
+
+/* ── VISIT CARDS ── */
+.visit-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius2); margin-bottom: 10px; overflow: hidden;
+}
+.visit-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; cursor: pointer; transition: background .15s;
+}
+.visit-header:hover { background: var(--bg3); }
+.visit-header-left { display: flex; align-items: center; gap: 10px; }
+.visit-date { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+.visit-facility { font-size: 12px; color: var(--muted); }
+.visit-type-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.badge-clinical { background: rgba(0,180,216,.15); color: var(--clinical); border: 1px solid rgba(0,180,216,.3); }
+.badge-wellness { background: rgba(94,102,114,.15); color: var(--wellness); border: 1px solid rgba(94,102,114,.3); }
+.badge-partial { background: rgba(210,153,34,.15); color: var(--warn); border: 1px solid rgba(210,153,34,.3); }
+.visit-chevron { font-size: 12px; color: var(--muted); transition: transform .2s; }
+.visit-chevron.open { transform: rotate(180deg); }
+.visit-body { padding: 0 16px 16px; display: none; }
+.visit-body.open { display: block; }
+
+.lab-section { margin-bottom: 14px; }
+.lab-section-title {
+  font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .6px; margin-bottom: 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.lab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
+.lab-item {
+  background: var(--bg3); border-radius: 6px; padding: 8px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.lab-item-name { font-size: 11px; color: var(--muted); }
+.lab-item-val { font-family: 'DM Mono', monospace; font-size: 13px; }
+.lab-item-val.flag-h { color: var(--danger); }
+.lab-item-val.flag-l { color: var(--info); }
+.lab-item-val.flag-ok { color: var(--ok); }
+.lab-item-val.flag-none { color: var(--text); }
+.flag-badge {
+  font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px;
+  margin-left: 4px;
+}
+.fb-h { background: rgba(248,81,73,.2); color: var(--danger); }
+.fb-l { background: rgba(88,166,255,.2); color: var(--info); }
+
+.vitals-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.vital-chip {
+  background: var(--bg3); border-radius: 6px; padding: 6px 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.vital-chip .vc-label { font-size: 11px; color: var(--muted); }
+.vital-chip .vc-val { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+
+.visit-notes { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+.fib4-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.fib4-label { font-size: 11px; color: var(--muted); }
+.fib4-val { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+.fib4-interp { font-size: 11px; }
+
+/* ── TRENDS ── */
+.chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); padding: 20px; margin-bottom: 14px; }
+.chart-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.chart-card .chart-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+.chart-wrap { position: relative; height: 220px; }
+
+/* ── MEDICATIONS ── */
+.med-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2);
+  padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: flex-start; justify-content: space-between;
+}
+.med-info { flex: 1; }
+.med-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.med-dose { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent); }
+.med-indication { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.med-dates { font-size: 11px; color: var(--dim); margin-top: 4px; }
+.med-actions { display: flex; gap: 6px; align-items: center; margin-left: 12px; }
+.med-status { font-size: 10px; padding: 3px 8px; border-radius: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.med-active  { background: rgba(63,185,80,.15);  color: var(--ok);     border: 1px solid rgba(63,185,80,.3); }
+.med-prn     { background: rgba(0,180,216,.15);   color: var(--accent); border: 1px solid rgba(0,180,216,.3); }
+.med-stopped { background: rgba(248,81,73,.1);    color: var(--muted);  border: 1px solid var(--border); }
+
+/* ── WEIGHT LOG ── */
+.weight-quick-card {
+  background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+  border: 1px solid var(--border); border-radius: var(--radius2); padding: 20px;
+  margin-bottom: 14px;
+}
+.weight-current { font-family: 'DM Mono', monospace; font-size: 48px; font-weight: 300; color: var(--accent); line-height: 1; }
+.weight-current-unit { font-size: 16px; color: var(--muted); margin-left: 6px; }
+.weight-bmi { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.weight-quick-form { display: flex; gap: 8px; margin-top: 14px; align-items: flex-end; flex-wrap: wrap; }
+.quick-input-group { display: flex; flex-direction: column; gap: 4px; }
+.quick-input-group label { font-size: 11px; color: var(--muted); }
+.quick-input-group input {
+  padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; width: 110px; outline: none;
+  transition: border-color .2s;
+}
+.quick-input-group input:focus { border-color: var(--accent); }
+.weight-log-table { width: 100%; border-collapse: collapse; }
+.weight-log-table th { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+.weight-log-table td { font-size: 13px; padding: 8px 10px; border-bottom: 1px solid var(--border2); }
+.weight-log-table td:nth-child(2) { font-family: 'DM Mono', monospace; }
+.weight-log-table tr:last-child td { border-bottom: none; }
+
+/* ── BP LOG ── */
+.bp-quick-card {
+  background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+  border: 1px solid var(--border); border-radius: var(--radius2); padding: 20px;
+  margin-bottom: 14px;
+}
+.bp-current { font-family: 'DM Mono', monospace; font-size: 40px; font-weight: 300; color: var(--info); line-height: 1; }
+.bp-current-unit { font-size: 14px; color: var(--muted); margin-left: 4px; }
+.bp-source-badge { font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.bps-manual      { background: rgba(88,166,255,.15); color: var(--info);   border: 1px solid rgba(88,166,255,.3); }
+.bps-apple_watch { background: rgba(63,185,80,.15);  color: var(--ok);     border: 1px solid rgba(63,185,80,.3); }
+.bps-home_cuff   { background: rgba(0,180,216,.15);  color: var(--accent); border: 1px solid rgba(0,180,216,.3); }
+.bps-doctor      { background: rgba(210,153,34,.15); color: var(--warn);   border: 1px solid rgba(210,153,34,.3); }
+
+
+.imaging-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); padding: 14px 16px; margin-bottom: 8px; }
+.imaging-type { font-size: 10px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.imaging-desc { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+.imaging-facility { font-size: 11px; color: var(--muted); }
+.imaging-notes-text { font-size: 11px; color: var(--muted); margin-top: 6px; font-style: italic; }
+
+/* ── CONDITIONS ── */
+.condition-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 8px;
+}
+.condition-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.condition-name { font-weight: 600; font-size: 13px; }
+.condition-icd { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+.condition-status { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.cs-active { background: rgba(248,81,73,.15); color: var(--danger); border: 1px solid rgba(248,81,73,.3); }
+.cs-managed { background: rgba(63,185,80,.15); color: var(--ok); border: 1px solid rgba(63,185,80,.3); }
+.cs-monitoring { background: rgba(210,153,34,.15); color: var(--warn); border: 1px solid rgba(210,153,34,.3); }
+.condition-notes-text { font-size: 11px; color: var(--muted); }
+
+/* ── SETTINGS ── */
+.settings-section { margin-bottom: 24px; }
+.settings-section h3 { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border2); }
+.settings-row:last-child { border-bottom: none; }
+.sr-label { font-size: 13px; }
+.sr-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.settings-input {
+  padding: 6px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); font-family: inherit; font-size: 13px; outline: none;
+  transition: border-color .2s; min-width: 200px;
+}
+.settings-input:focus { border-color: var(--accent); }
+
+/* ── BUTTONS ── */
+.btn { padding: 7px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-accent { background: var(--accent); color: #000; }
+.btn-accent:hover { background: #00d4ff; }
+.btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(248,81,73,.3); }
+.btn-danger:hover { background: rgba(248,81,73,.1); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-gold { background: var(--gold); color: #000; }
+.btn-gold:hover { background: #ffe44d; }
+
+/* ── MODAL ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 500; }
+.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); width: 480px; max-width: 95vw; max-height: 85vh; overflow-y: auto; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.modal-header h2 { font-size: 15px; font-weight: 600; }
+.modal-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; }
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 20px; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 8px 12px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-family: inherit; font-size: 13px; outline: none;
+  transition: border-color .2s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+.form-group textarea { resize: vertical; min-height: 60px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 20px; border-top: 1px solid var(--border); }
+
+/* ── MISC ── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-title { font-size: 15px; font-weight: 600; }
+.empty-state { text-align: center; color: var(--muted); padding: 40px 20px; font-size: 13px; }
+.sep { height: 1px; background: var(--border); margin: 16px 0; }
+.tooltip-note { font-size: 10px; color: var(--dim); font-style: italic; }
+
+/* dashboard */
+.dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media(max-width:800px){ .dashboard-grid { grid-template-columns: 1fr; } }
+
+.trend-banner {
+  background: linear-gradient(90deg, rgba(0,180,216,.08) 0%, transparent 100%);
+  border: 1px solid rgba(0,180,216,.2); border-radius: var(--radius2);
+  padding: 12px 16px; margin-bottom: 14px; font-size: 12px; color: var(--muted);
+}
+.trend-banner strong { color: var(--accent); }
+
+/* Chart.js dark theme override */
+</style>
+</head>
+<body>
+
+<!-- AUTH GATE -->
+<div id="authGate">
+  <div class="auth-box">
+    <div class="logo">❤ Health Tracker</div>
+    <div class="sub">Personal Health Dashboard — v1.1</div>
+    <input type="password" id="pwInput" placeholder="Enter password" autocomplete="current-password">
+    <button class="btn-primary" onclick="submitAuth()">Unlock</button>
+    <div class="err" id="authErr"></div>
+    <div class="set-note" id="authNote"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header>
+    <div class="header-left">
+      <div class="app-title">❤ Health Tracker</div>
+      <div class="app-ver">v1.1</div>
+    </div>
+    <div class="header-right">
+      <div class="drive-status" id="driveStatus" onclick="handleDriveClick()">
+        <div class="drive-dot" id="driveDot"></div>
+        <span id="driveLabel">Drive Sync</span>
+      </div>
+    </div>
+  </header>
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('visits')">Lab Visits</button>
+    <button class="tab-btn" onclick="switchTab('trends')">Trends</button>
+    <button class="tab-btn" onclick="switchTab('meds')">Medications</button>
+    <button class="tab-btn" onclick="switchTab('vitals')">Vitals & Weight</button>
+    <button class="tab-btn" onclick="switchTab('imaging')">Imaging & Notes</button>
+    <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
+  </nav>
+  <div id="content">
+    <div id="pane-dashboard" class="tab-pane active"></div>
+    <div id="pane-visits" class="tab-pane"></div>
+    <div id="pane-trends" class="tab-pane"></div>
+    <div id="pane-meds" class="tab-pane"></div>
+    <div id="pane-vitals" class="tab-pane"></div>
+    <div id="pane-imaging" class="tab-pane"></div>
+    <div id="pane-settings" class="tab-pane"></div>
+  </div>
+</div>
+
+<!-- MODAL CONTAINER -->
+<div id="modalContainer"></div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const CLIENT_ID = '305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const DRIVE_FILE = 'health_tracker_data.json';
+const LS_KEY = 'health_v1';
+const PW_KEY = 'health_pw_hash';
+const APP_VER = '1.1';
+
+// ═══════════════════════════════════════════════════════
+// REFERENCE RANGES
+// ═══════════════════════════════════════════════════════
+const REF = {
+  totalCholesterol:{ min:125, max:199, unit:'mg/dL', label:'Total Cholesterol', dir:'low' },
+  triglycerides:   { min:0,   max:149, unit:'mg/dL', label:'Triglycerides',     dir:'low' },
+  hdl:             { min:40,  max:999, unit:'mg/dL', label:'HDL Cholesterol',   dir:'high' },
+  ldl:             { min:0,   max:99,  unit:'mg/dL', label:'LDL Cholesterol',   dir:'low' },
+  directLdl:       { min:0,   max:129, unit:'mg/dL', label:'Direct LDL',        dir:'low' },
+  vldl:            { min:5,   max:40,  unit:'mg/dL', label:'VLDL',              dir:'low' },
+  cholHdlRatio:    { min:0,   max:5.0, unit:'calc',  label:'Chol/HDL Ratio',    dir:'low' },
+  glucose:         { min:65,  max:99,  unit:'mg/dL', label:'Glucose',           dir:'both' },
+  hba1c:           { min:4.0, max:5.6, unit:'%',     label:'HbA1c',             dir:'low' },
+  ast:             { min:10,  max:40,  unit:'U/L',   label:'AST',               dir:'both' },
+  alt:             { min:7,   max:56,  unit:'U/L',   label:'ALT',               dir:'both' },
+  alp:             { min:44,  max:147, unit:'U/L',   label:'ALP',               dir:'both' },
+  albumin:         { min:3.5, max:5.0, unit:'g/dL',  label:'Albumin',           dir:'both' },
+  biliTotal:       { min:0.2, max:1.2, unit:'mg/dL', label:'Total Bilirubin',   dir:'both' },
+  biliDirect:      { min:0,   max:0.2, unit:'mg/dL', label:'Direct Bilirubin',  dir:'low' },
+  totalProtein:    { min:6.3, max:8.2, unit:'g/dL',  label:'Total Protein',     dir:'both' },
+  bun:             { min:7,   max:25,  unit:'mg/dL', label:'BUN',               dir:'both' },
+  creatinine:      { min:0.74,max:1.35,unit:'mg/dL', label:'Creatinine',        dir:'both' },
+  egfr:            { min:60,  max:999, unit:'mL/min',label:'eGFR',              dir:'high' },
+  sodium:          { min:136, max:145, unit:'mEq/L', label:'Sodium',            dir:'both' },
+  potassium:       { min:3.5, max:5.1, unit:'mEq/L', label:'Potassium',         dir:'both' },
+  chloride:        { min:98,  max:107, unit:'mEq/L', label:'Chloride',          dir:'both' },
+  co2:             { min:22,  max:29,  unit:'mEq/L', label:'CO2',               dir:'both' },
+  calcium:         { min:8.5, max:10.2,unit:'mg/dL', label:'Calcium',           dir:'both' },
+  tsh:             { min:0.4, max:4.0, unit:'mIU/L', label:'TSH',               dir:'both' },
+  freeT4:          { min:0.8, max:1.8, unit:'ng/dL', label:'Free T4',           dir:'both' },
+  psa:             { min:0,   max:4.0, unit:'ng/mL', label:'PSA',               dir:'low' },
+  wbc:             { min:4.5, max:11.0,unit:'K/uL',  label:'WBC',               dir:'both' },
+  rbc:             { min:4.5, max:5.9, unit:'M/uL',  label:'RBC',               dir:'both' },
+  hemoglobin:      { min:13.5,max:17.5,unit:'g/dL',  label:'Hemoglobin',        dir:'both' },
+  hematocrit:      { min:41,  max:53,  unit:'%',     label:'Hematocrit',        dir:'both' },
+  platelets:       { min:150, max:400, unit:'K/uL',  label:'Platelets',         dir:'both' },
+  mcv:             { min:80,  max:100, unit:'fL',    label:'MCV',               dir:'both' }
+};
+
+function getFlag(key, val) {
+  if (val == null) return 'none';
+  const r = REF[key];
+  if (!r) return 'none';
+  if (val < r.min) return 'L';
+  if (val > r.max) return 'H';
+  return 'ok';
+}
+
+// ═══════════════════════════════════════════════════════
+// SEED DATA
+// ═══════════════════════════════════════════════════════
+function getSeedData() {
+  return {
+    labVisits: [
+      { id:'lv_2013', date:'2013-10-01', facility:'Quest Diagnostics', visitType:'wellness',
+        labs:{ totalCholesterol:217, hdl:42, triglycerides:158, ldl:143, cholHdlRatio:5.2, glucose:93 },
+        vitals:{ bpSys:111, bpDia:73, waistCirc:35 }, flags:['wellness_rollup'],
+        notes:'Wellness screening. Historical data from 2016 rollup report. Specific day unknown.' },
+      { id:'lv_2014', date:'2014-10-01', facility:'Quest Diagnostics', visitType:'wellness',
+        labs:{ totalCholesterol:210, hdl:34, triglycerides:177, ldl:141, cholHdlRatio:6.2, glucose:88 },
+        vitals:{ bpSys:113, bpDia:76, waistCirc:33 }, flags:['wellness_rollup'],
+        notes:'Wellness screening. Historical data from 2016 rollup report.' },
+      { id:'lv_2015', date:'2015-10-01', facility:'Quest Diagnostics', visitType:'wellness',
+        labs:{ totalCholesterol:205, hdl:27, triglycerides:232, ldl:132, cholHdlRatio:7.6, glucose:83 },
+        vitals:{ bpSys:98, bpDia:72, waistCirc:33 }, flags:['wellness_rollup'],
+        notes:'Wellness screening. Historical data from 2016 rollup report.' },
+      { id:'lv_2016', date:'2016-11-28', facility:'Quest Diagnostics, Tucker GA', visitType:'wellness',
+        labs:{ totalCholesterol:183, hdl:34, triglycerides:119, ldl:125, cholHdlRatio:5.4, glucose:91 },
+        vitals:{ bpSys:126, bpDia:null, waistCirc:35 }, flags:['wellness_screening'],
+        notes:'Annual wellness screening. BP diastolic excluded — OCR error in source document (read as 35, physiologically implausible).' },
+      { id:'lv_2018', date:'2018-11-08', facility:'Quest Diagnostics, Tucker GA', visitType:'wellness',
+        labs:{ totalCholesterol:236, hdl:32, triglycerides:293, ldl:159, cholHdlRatio:7.4, glucose:87 },
+        vitals:{ bpSys:121, bpDia:76, waistCirc:34 }, flags:['wellness_screening'],
+        notes:'Annual wellness screening. Triglycerides crossed into High range.' },
+      { id:'lv_2019', date:'2019-11-22', facility:'Quest Diagnostics, Tucker GA', visitType:'wellness',
+        labs:{ totalCholesterol:255, hdl:32, triglycerides:433, directLdl:139, cholHdlRatio:8.0, glucose:87 },
+        vitals:{ bpSys:129, bpDia:78, waistCirc:35 }, flags:['wellness_screening'],
+        notes:'Calc LDL unavailable — triglycerides >400 mg/dL. Direct LDL used instead. Peak triglyceride year.' },
+      { id:'lv_2020', date:'2020-11-13', facility:'Quest Diagnostics, Lenexa KS', visitType:'wellness',
+        labs:{ totalCholesterol:243, hdl:32, triglycerides:369, directLdl:145, cholHdlRatio:7.6, glucose:66 },
+        vitals:{ bpSys:120, bpDia:70, waistCirc:39 }, flags:['wellness_screening','dried_blood_spot'],
+        notes:'Dried Blood Spot (DBS) remote collection — COVID-era. Results are estimates. Glucose notably low (66) — may reflect fasting or DBS variance.' },
+      { id:'lv_2021', date:'2021-11-12', facility:'Quest Diagnostics, Lenexa KS', visitType:'wellness',
+        labs:{}, vitals:{ bpSys:112, bpDia:69, waistCirc:37 }, flags:['wellness_screening','dried_blood_spot','partial_data'],
+        notes:'DBS collection. Most labs DNR/TNP — likely collection issue. Physical measures only available.' },
+      { id:'lv_2022', date:'2022-08-28', facility:'Quest Diagnostics (via PCP)', visitType:'wellness',
+        labs:{ totalCholesterol:261, hdl:38, triglycerides:376, ldl:159, cholHdlRatio:6.9, glucose:89 },
+        vitals:{ bpSys:122, bpDia:76, waistCirc:35 }, flags:['wellness_screening','pcp_labs'],
+        notes:'Lab results provided by PCP, not performed by Quest as part of the biometric screening. HbA1c of 15.3% in source document excluded as likely erroneous (normal results in 2025/2026).' },
+      { id:'lv_2023', date:'2023-11-13', facility:'Quest Diagnostics (via PCP)', visitType:'wellness',
+        labs:{ totalCholesterol:242, hdl:32, triglycerides:360, ldl:155, cholHdlRatio:7.6, glucose:89 },
+        vitals:{ bpSys:126, bpDia:72 }, flags:['wellness_screening','pcp_labs'],
+        notes:'Lab results provided by PCP.' },
+      { id:'lv_2024', date:'2024-06-25', facility:'Northside / MyOneChart', visitType:'wellness',
+        labs:{ totalCholesterol:146, hdl:37, triglycerides:286, ldl:71, cholHdlRatio:3.9, glucose:93,
+               ast:34, alt:53, alp:65, albumin:4.8, biliTotal:0.6 },
+        vitals:{ weight:164.58, bmi:26.0, bpSys:116, bpDia:76, waistCirc:35 }, flags:['wellness_screening'],
+        notes:'Significant lipid improvement. CT Calcium Score = 0 (2023). Fatty liver ultrasound on record. Meds confirmed starting ~this period.' },
+      { id:'lv_2025', date:'2025-02-20', facility:'Labcorp, Birmingham AL', visitType:'clinical',
+        labs:{
+          totalCholesterol:111, triglycerides:196, hdl:38, ldl:41, vldl:32, cholHdlRatio:2.9,
+          ast:30, alt:37, alp:86, albumin:4.9, biliTotal:0.5, biliDirect:0.20, totalProtein:7.5,
+          glucose:86, bun:11, creatinine:0.83, egfr:107, sodium:140, potassium:4.3, calcium:10.0,
+          hba1c:5.0, tsh:0.824, freeT4:1.18, psa:1.4,
+          wbc:8.3, rbc:5.06, hemoglobin:15.3, hematocrit:45.0, platelets:271, mcv:89
+        },
+        vitals:{ weight:161.6, bmi:25.31, bpSys:103, bpDia:66 }, flags:[],
+        notes:'First full Labcorp clinical panel. All medications confirmed active. LDL 159→41 on Rosuvastatin+Ezetimibe.' },
+      { id:'lv_2026', date:'2026-02-23', facility:'Labcorp, Birmingham AL', visitType:'clinical',
+        labs:{
+          totalCholesterol:99, triglycerides:146, hdl:36, ldl:38, vldl:25, cholHdlRatio:2.8,
+          ast:26, alt:31, alp:60, albumin:4.8, biliTotal:0.6, totalProtein:7.3,
+          glucose:99, bun:14, creatinine:0.87, egfr:104, sodium:139, potassium:4.4, calcium:9.9,
+          hba1c:4.9, tsh:1.24, freeT4:1.24, psa:1.7,
+          wbc:5.2, rbc:5.04, hemoglobin:14.9, hematocrit:45.6, platelets:237, mcv:91
+        },
+        vitals:{ weight:159.4, bmi:24.96, bpSys:113, bpDia:70, pulse:65, o2:97 }, flags:[],
+        notes:'Annual Labcorp panel. Triglycerides below 150 for first time. ALT improved 53→37→31. FIB-4 trending excellently.' }
+    ],
+    medications: [
+      { id:'med_1', name:'Rosuvastatin Calcium',   dose:'10mg',        frequency:'Daily',         indication:'Hypercholesterolemia (E78.00)', startDate:'2025-02-20', stopDate:null, status:'active', notes:'' },
+      { id:'med_2', name:'Ezetimibe',               dose:'10mg',        frequency:'Daily',         indication:'Hypercholesterolemia (E78.00)', startDate:'2025-02-20', stopDate:null, status:'active', notes:'' },
+      { id:'med_3', name:'Xyzal (Levocetirizine)',  dose:'5mg',         frequency:'Daily — evening',indication:'Allergic Rhinitis (J30.9)',    startDate:'2025-02-20', stopDate:null, status:'active', notes:'' },
+      { id:'med_4', name:'Singulair (Montelukast)', dose:'10mg',        frequency:'Daily',         indication:'Asthma (J45.20)',              startDate:'2025-02-20', stopDate:null, status:'active', notes:'' },
+      { id:'med_5', name:'Flonase Sensimist',       dose:'27.5mcg',     frequency:'Daily PRN',     indication:'Rhinitis',                     startDate:'2025-02-20', stopDate:null, status:'prn',    notes:'Use as needed for nasal congestion.' },
+      { id:'med_6', name:'Albuterol HFA',           dose:'4 puffs q4h', frequency:'PRN',           indication:'Asthma (J45.20)',              startDate:'2025-02-20', stopDate:null, status:'prn',    notes:'Rescue inhaler. Drug allergy: hydrocodone.' }
+    ],
+    bpLog: [
+      { id:'bp_2025', date:'2025-02-20', time:'', sys:103, dia:66,  pulse:null, source:'doctor', notes:'Labcorp visit — notably low, excellent.' },
+      { id:'bp_2026', date:'2026-02-23', time:'', sys:113, dia:70,  pulse:65,   source:'doctor', notes:'Labcorp visit. O₂ 97%.' }
+    ],
+    weightLog: [
+      { id:'wt_1', date:'2024-06-25', weight:164.58, bmi:26.00, notes:'Northside screening' },
+      { id:'wt_2', date:'2025-02-20', weight:161.6,  bmi:25.31, notes:'Labcorp visit' },
+      { id:'wt_3', date:'2025-08-18', weight:168.5,  bmi:26.39, notes:'Back-calculated from BMI 26.39 (approximate)' },
+      { id:'wt_4', date:'2025-12-22', weight:161.0,  bmi:25.21, notes:'Back-calculated from BMI 25.21 (approximate)' },
+      { id:'wt_5', date:'2026-02-23', weight:159.4,  bmi:24.96, notes:'Labcorp visit — lowest recorded' }
+    ],
+    imagingNotes: [
+      { id:'img_1', date:'2023-01-01', type:'Ultrasound', description:'Fatty Liver — Grade Unknown', facility:'Unknown facility', notes:'Diagnosed K76.0. Grade pending detailed records. ALT 53→37→31 suggests improvement.' },
+      { id:'img_2', date:'2023-01-01', type:'CT Scan', description:'CT Coronary Calcium Score = 0', facility:'Unknown facility', notes:'Zero calcium score — excellent cardiovascular indicator. No plaque detected.' }
+    ],
+    conditions: [
+      { id:'cond_1', name:'Fatty Liver', icd:'K76.0', status:'active', diagnosedDate:'2023-01-01', notes:'Ultrasound 2023, grade unknown. ALT trending down: 53→37→31. FIB-4 well within low-risk range (<1.3) at both Labcorp visits.' },
+      { id:'cond_2', name:'Hypercholesterolemia', icd:'E78.00', status:'managed', diagnosedDate:'2018-01-01', notes:'Well controlled on Rosuvastatin 10mg + Ezetimibe 10mg. LDL trajectory: 159→71→41→38 mg/dL.' },
+      { id:'cond_3', name:'Asthma', icd:'J45.20', status:'managed', diagnosedDate:'2020-01-01', notes:'Mild intermittent. Managed with Singulair daily + Albuterol HFA rescue inhaler PRN.' },
+      { id:'cond_4', name:'Allergic Rhinitis', icd:'J30.9', status:'managed', diagnosedDate:'2020-01-01', notes:'Managed on Xyzal 5mg daily + Flonase Sensimist PRN.' },
+      { id:'cond_5', name:'AVN Bilateral Hips', icd:'M87.00', status:'monitoring', diagnosedDate:'2022-01-01', notes:'Avascular necrosis. Monitoring. Drug allergy: hydrocodone.' }
+    ],
+    settings: {
+      provider:'Dr. Lauren Brewington',
+      facility:'Sugarloaf Medical PC, Suwanee GA',
+      dob:'1974-09-01',
+      sex:'M',
+      heightIn:67,
+      driveEnabled:false,
+      lastSync:null
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let appData = null;
+let driveFileId = null;
+let tokenClient = null;
+let driveToken = null;
+let activeTab = 'dashboard';
+let chartInstances = {};
+
+function saveState() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(appData)); } catch(e) {}
+}
+function loadState() {
+  try {
+    const s = localStorage.getItem(LS_KEY);
+    if (s) { appData = JSON.parse(s); return true; }
+  } catch(e) {}
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function submitAuth() {
+  const pw = document.getElementById('pwInput').value;
+  if (!pw) return;
+  const stored = localStorage.getItem(PW_KEY);
+  const hash = await sha256(pw);
+  if (!stored) {
+    // First run — set password
+    localStorage.setItem(PW_KEY, hash);
+    unlockApp();
+  } else if (hash === stored) {
+    unlockApp();
+  } else {
+    document.getElementById('authErr').textContent = 'Incorrect password.';
+    document.getElementById('pwInput').value = '';
+  }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const stored = localStorage.getItem(PW_KEY);
+  if (!stored) {
+    document.getElementById('authNote').textContent = 'First run — set a password to get started.';
+  }
+  document.getElementById('pwInput').addEventListener('keydown', e => { if(e.key==='Enter') submitAuth(); });
+});
+function unlockApp() {
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  initApp();
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+function initApp() {
+  if (!loadState()) {
+    appData = getSeedData();
+    saveState();
+  }
+  // Schema migrations
+  if (!appData.conditions)   appData.conditions   = getSeedData().conditions;
+  if (!appData.imagingNotes) appData.imagingNotes = getSeedData().imagingNotes;
+  if (!appData.bpLog)        appData.bpLog        = getSeedData().bpLog;
+  // Migrate med active boolean → status string
+  appData.medications = appData.medications.map(m => {
+    if (m.status) return m; // already migrated
+    return { ...m, status: m.active ? 'active' : 'stopped' };
+  });
+  saveState();
+  renderTab('dashboard');
+  initDrive();
+}
+
+// ═══════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const tabs = ['dashboard','visits','trends','meds','vitals','imaging','settings'];
+    b.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('pane-'+tab).classList.add('active');
+  activeTab = tab;
+  renderTab(tab);
+}
+function renderTab(tab) {
+  switch(tab) {
+    case 'dashboard': renderDashboard(); break;
+    case 'visits':    renderVisits(); break;
+    case 'trends':    renderTrends(); break;
+    case 'meds':      renderMeds(); break;
+    case 'vitals':    renderVitals(); break;
+    case 'imaging':   renderImaging(); break;
+    case 'settings':  renderSettings(); break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+function fmtDateShort(d) {
+  if (!d) return '—';
+  const dt = new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+}
+function sortedVisits() {
+  return [...appData.labVisits].sort((a,b) => b.date.localeCompare(a.date));
+}
+function latestClinical() {
+  return [...appData.labVisits].filter(v=>v.visitType==='clinical').sort((a,b)=>b.date.localeCompare(a.date))[0];
+}
+function latestAny() {
+  return [...appData.labVisits].sort((a,b)=>b.date.localeCompare(a.date))[0];
+}
+function calcAge(date) {
+  const dob = new Date(appData.settings.dob);
+  const d = new Date(date+'T00:00:00');
+  let age = d.getFullYear() - dob.getFullYear();
+  const m = d.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && d.getDate() < dob.getDate())) age--;
+  return age;
+}
+function calcFIB4(visit) {
+  const {ast,alt,platelets} = visit.labs || {};
+  if (!ast||!alt||!platelets) return null;
+  const age = calcAge(visit.date);
+  return (age * ast) / (platelets * Math.sqrt(alt));
+}
+function calcBMI(weight, heightIn) {
+  if (!weight || !heightIn) return null;
+  return (703 * weight) / (heightIn * heightIn);
+}
+function uid() { return 'id_' + Math.random().toString(36).slice(2); }
+
+// Trend direction helpers
+function trendDir(curr, prev, higherIsBetter) {
+  if (curr == null || prev == null) return 'flat';
+  const delta = curr - prev;
+  if (Math.abs(delta) < 0.01) return 'flat';
+  if (higherIsBetter) return delta > 0 ? 'up-good' : 'down-bad';
+  return delta < 0 ? 'down' : 'up';
+}
+function trendHtml(curr, prev, higherIsBetter) {
+  const dir = trendDir(curr, prev, higherIsBetter);
+  if (dir === 'flat') return '<span class="trend-flat">→ no change</span>';
+  if (dir === 'down') return `<span class="trend-down">↓ ${Math.abs(curr-prev).toFixed(1)} vs prior</span>`;
+  if (dir === 'up')   return `<span class="trend-up">↑ ${Math.abs(curr-prev).toFixed(1)} vs prior</span>`;
+  if (dir === 'up-good') return `<span class="trend-up-good">↑ ${Math.abs(curr-prev).toFixed(1)} vs prior</span>`;
+  return `<span class="trend-down">↓ ${Math.abs(curr-prev).toFixed(1)} vs prior</span>`;
+}
+
+// Sparkline
+function drawSparkline(canvas, values, color) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+  const clean = values.filter(v => v != null);
+  if (clean.length < 2) return;
+  const min = Math.min(...clean) * 0.92;
+  const max = Math.max(...clean) * 1.08;
+  const xStep = w / (clean.length - 1);
+  const grad = ctx.createLinearGradient(0,0,w,0);
+  grad.addColorStop(0,'rgba(0,180,216,0.3)');
+  grad.addColorStop(1,color);
+  ctx.beginPath();
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  clean.forEach((v,i) => {
+    const x = i * xStep;
+    const y = h - ((v - min) / (max - min || 1)) * (h - 4) - 2;
+    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  // dot at end
+  const lx = (clean.length-1)*xStep;
+  const ly = h - ((clean[clean.length-1]-min)/(max-min||1))*(h-4)-2;
+  ctx.beginPath();
+  ctx.arc(lx,ly,3,0,Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function getSparkValues(key) {
+  return [...appData.labVisits]
+    .sort((a,b)=>a.date.localeCompare(b.date))
+    .map(v => (v.labs && v.labs[key] != null) ? v.labs[key] : null)
+    .filter(v=>v!=null).slice(-8);
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+function renderDashboard() {
+  const lc = latestClinical();
+  const prev = appData.labVisits.filter(v=>v.visitType==='clinical').sort((a,b)=>b.date.localeCompare(a.date))[1];
+  const prevLabs = prev?.labs || {};
+  const labs = lc?.labs || {};
+
+  const metrics = [
+    { key:'triglycerides', label:'Triglycerides', higherBetter:false },
+    { key:'ldl',           label:'LDL Cholesterol', higherBetter:false },
+    { key:'hdl',           label:'HDL Cholesterol', higherBetter:true  },
+    { key:'hba1c',         label:'HbA1c', higherBetter:false },
+    { key:'alt',           label:'ALT (Liver)', higherBetter:false },
+    { key:'glucose',       label:'Glucose', higherBetter:false }
+  ];
+
+  let cardsHtml = metrics.map(m => {
+    const val = labs[m.key];
+    const pval = prevLabs[m.key];
+    const ref = REF[m.key];
+    const flag = getFlag(m.key, val);
+    const statusClass = flag==='H' ? 'mc-danger' : flag==='L' ? (m.higherBetter ? 'mc-danger' : 'mc-info') : 'mc-ok';
+    const trend = val!=null && pval!=null ? trendHtml(val, pval, m.higherBetter) : '';
+    return `<div class="metric-card ${statusClass}" id="mc-${m.key}">
+      <div class="mc-label">${m.label}</div>
+      <div class="mc-value">${val != null ? val : '—'}<span class="mc-unit"> ${ref?.unit||''}</span></div>
+      <div class="mc-trend">${trend}</div>
+      <div class="mc-range">Ref: ${ref ? (ref.dir==='high'?'≥'+ref.min:ref.dir==='low'?'<'+ref.max:ref.min+'–'+ref.max) : ''} ${ref?.unit||''}</div>
+      <canvas class="sparkline" width="80" height="40" id="spark-${m.key}"></canvas>
+    </div>`;
+  }).join('');
+
+  // Latest weight
+  const wt = [...appData.weightLog].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const prevWt = [...appData.weightLog].sort((a,b)=>b.date.localeCompare(a.date))[1];
+  const wtDelta = (wt && prevWt) ? (wt.weight - prevWt.weight).toFixed(1) : null;
+  const wtDeltaHtml = wtDelta ? `<span style="color:${parseFloat(wtDelta)<0?'var(--ok)':'var(--warn)'}">${parseFloat(wtDelta)>0?'+':''}${wtDelta} lbs vs prior</span>` : '';
+
+  // FIB-4
+  const fib4 = lc ? calcFIB4(lc) : null;
+  const fib4Html = fib4 ? `FIB-4 Score: <strong style="color:${fib4<1.3?'var(--ok)':fib4<2.67?'var(--warn)':'var(--danger)'}">${fib4.toFixed(2)}</strong> <span style="font-size:11px;color:var(--muted)">(${fib4<1.3?'Low risk for fibrosis':fib4<2.67?'Indeterminate — follow up':'High risk — refer for biopsy'})</span>` : '';
+
+  const pane = document.getElementById('pane-dashboard');
+  pane.innerHTML = `
+    <div class="trend-banner">
+      📈 Tracking 13 years of health data (2013–2026). Key lipid story: Triglycerides
+      <strong>433 → 146</strong> · LDL <strong>159 → 38</strong> · HbA1c stable at <strong>4.9%</strong>
+      — medications are clearly working. ${lc ? `<span style="color:var(--muted)">Latest: ${fmtDate(lc.date)}</span>` : ''}
+    </div>
+
+    <div class="grid g6" style="margin-bottom:14px">${cardsHtml}</div>
+
+    <div class="dashboard-grid">
+      <!-- Weight Card -->
+      <div class="weight-quick-card">
+        <div class="card-title" style="margin-bottom:8px">⚖️ Current Weight</div>
+        <div>
+          <span class="weight-current">${wt ? wt.weight : '—'}</span>
+          <span class="weight-current-unit">lbs</span>
+        </div>
+        <div class="weight-bmi">BMI ${wt?.bmi ?? '—'} ${wtDeltaHtml}</div>
+        <div class="weight-quick-form">
+          <div class="quick-input-group">
+            <label>Date</label>
+            <input type="date" id="wtDate" value="${new Date().toISOString().slice(0,10)}" style="width:140px">
+          </div>
+          <div class="quick-input-group">
+            <label>Weight (lbs)</label>
+            <input type="number" id="wtVal" placeholder="159.4" step="0.1" style="width:100px">
+          </div>
+          <button class="btn btn-accent btn-sm" onclick="quickAddWeight()">Log Weight</button>
+        </div>
+      </div>
+
+      <!-- Conditions -->
+      <div class="card">
+        <div class="card-title">Active Conditions</div>
+        ${appData.conditions.map(c => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)">
+            <div>
+              <div style="font-size:13px;font-weight:500">${c.name}</div>
+              <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${c.icd}</div>
+            </div>
+            <span class="condition-status ${c.status==='active'?'cs-active':c.status==='managed'?'cs-managed':'cs-monitoring'}">${c.status}</span>
+          </div>
+        `).join('')}
+        ${fib4Html ? `<div style="font-size:12px;margin-top:10px;color:var(--muted)">🔬 ${fib4Html}</div>` : ''}
+      </div>
+    </div>
+
+    <!-- Latest visit summary -->
+    ${lc ? `
+    <div class="card" style="margin-top:0">
+      <div class="card-title">Latest Full Panel — ${fmtDate(lc.date)} (${lc.facility})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+        ${['totalCholesterol','triglycerides','hdl','ldl','hba1c','glucose','ast','alt','tsh','psa','egfr','wbc'].map(k=>{
+          const v = lc.labs[k];
+          if (v==null) return '';
+          const f = getFlag(k,v);
+          return `<div style="background:var(--bg3);border-radius:6px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--muted)">${REF[k]?.label||k}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:13px;color:${f==='H'?'var(--danger)':f==='L'?'var(--info)':'var(--ok)'}">${v}<span style="font-size:9px;color:var(--dim);margin-left:2px">${f!=='ok'&&f!=='none'?f:''}</span></span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+  `;
+
+  // Draw sparklines
+  requestAnimationFrame(() => {
+    metrics.forEach(m => {
+      const canvas = document.getElementById('spark-'+m.key);
+      const values = getSparkValues(m.key);
+      drawSparkline(canvas, values, '#00b4d8');
+    });
+  });
+}
+
+
+
+
+// ═══════════════════════════════════════════════════════
+// LAB VISITS
+// ═══════════════════════════════════════════════════════
+function renderVisits() {
+  const visits = sortedVisits();
+  const pane = document.getElementById('pane-visits');
+  pane.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Lab Visits <span style="font-size:12px;color:var(--muted);font-weight:400">(${visits.length} total)</span></div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:11px;color:var(--muted)">
+          <span style="display:inline-block;width:8px;height:8px;background:var(--clinical);border-radius:50%;margin-right:4px"></span>Clinical
+          <span style="display:inline-block;width:8px;height:8px;background:var(--wellness);border-radius:50%;margin:0 4px 0 10px"></span>Wellness Screening
+        </span>
+      </div>
+    </div>
+    ${visits.map(v => renderVisitCard(v)).join('')}
+  `;
+}
+
+function renderVisitCard(v) {
+  const isPartial = v.flags?.includes('partial_data');
+  const badgeClass = v.visitType==='clinical' ? 'badge-clinical' : isPartial ? 'badge-partial' : 'badge-wellness';
+  const badgeText = v.visitType==='clinical' ? 'Full Panel' : isPartial ? 'Partial Data' : 'Wellness Screen';
+  const labKeys = Object.keys(v.labs||{}).filter(k => v.labs[k] != null);
+  const fib4 = calcFIB4(v);
+
+  const labSections = buildLabSections(v.labs||{});
+
+  return `<div class="visit-card">
+    <div class="visit-header" onclick="toggleVisit('${v.id}')">
+      <div class="visit-header-left">
+        <div>
+          <div class="visit-date">${fmtDate(v.date)}</div>
+          <div class="visit-facility">${v.facility}</div>
+        </div>
+        <span class="visit-type-badge ${badgeClass}">${badgeText}</span>
+        ${v.visitType==='wellness'?'<span style="font-size:10px;color:var(--dim);font-family:\'DM Mono\',monospace">'+labKeys.length+' values</span>':''}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        ${v.vitals?.bpSys ? `<span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted)">${v.vitals.bpSys}/${v.vitals.bpDia??'?'} mmHg</span>` : ''}
+        ${v.vitals?.weight ? `<span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted)">${v.vitals.weight} lbs</span>` : ''}
+        <span class="visit-chevron" id="chev-${v.id}">▼</span>
+      </div>
+    </div>
+    <div class="visit-body" id="body-${v.id}">
+      ${labSections}
+      ${v.vitals ? renderVitalsChips(v.vitals) : ''}
+      ${fib4 != null ? `<div class="fib4-row"><span class="fib4-label">FIB-4 Score:</span><span class="fib4-val" style="color:${fib4<1.3?'var(--ok)':fib4<2.67?'var(--warn)':'var(--danger)'}">${fib4.toFixed(2)}</span><span class="fib4-interp" style="font-size:11px;color:var(--muted)">${fib4<1.3?'✓ Low risk for advanced fibrosis':fib4<2.67?'⚠ Indeterminate':'⚠ High risk'}</span></div>` : ''}
+      ${v.notes ? `<div class="visit-notes">📋 ${v.notes}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildLabSections(labs) {
+  const sections = {
+    'Lipids': ['totalCholesterol','triglycerides','hdl','ldl','vldl','directLdl','cholHdlRatio'],
+    'Liver': ['ast','alt','alp','albumin','biliTotal','biliDirect','totalProtein'],
+    'Metabolic / CMP': ['glucose','hba1c','bun','creatinine','egfr','sodium','potassium','chloride','co2','calcium'],
+    'Other': ['tsh','freeT4','psa'],
+    'CBC': ['wbc','rbc','hemoglobin','hematocrit','platelets','mcv']
+  };
+  let html = '';
+  for (const [section, keys] of Object.entries(sections)) {
+    const items = keys.filter(k => labs[k] != null);
+    if (!items.length) continue;
+    html += `<div class="lab-section">
+      <div class="lab-section-title">${section}</div>
+      <div class="lab-grid">
+        ${items.map(k => {
+          const val = labs[k];
+          const f = getFlag(k, val);
+          const cls = f==='H'?'flag-h':f==='L'?'flag-l':f==='ok'?'flag-ok':'flag-none';
+          const fb = f==='H'?'<span class="flag-badge fb-h">H</span>':f==='L'?'<span class="flag-badge fb-l">L</span>':'';
+          return `<div class="lab-item">
+            <span class="lab-item-name">${REF[k]?.label||k}</span>
+            <span class="lab-item-val ${cls}">${val}${fb} <span style="font-size:10px;color:var(--dim)">${REF[k]?.unit||''}</span></span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+  if (!html) html = `<div style="color:var(--dim);font-size:12px;padding:8px 0">No lab values recorded for this visit.</div>`;
+  return html;
+}
+
+function renderVitalsChips(vitals) {
+  const chips = [];
+  if (vitals.bpSys != null) chips.push({ label:'BP', val:`${vitals.bpSys}/${vitals.bpDia??'?'} mmHg` });
+  if (vitals.pulse != null) chips.push({ label:'Pulse', val:`${vitals.pulse} bpm` });
+  if (vitals.o2 != null)    chips.push({ label:'O₂', val:`${vitals.o2}%` });
+  if (vitals.temp != null)  chips.push({ label:'Temp', val:`${vitals.temp}°F` });
+  if (vitals.weight != null) chips.push({ label:'Weight', val:`${vitals.weight} lbs` });
+  if (vitals.bmi != null)   chips.push({ label:'BMI', val:`${vitals.bmi}` });
+  if (vitals.waistCirc != null) chips.push({ label:'Waist', val:`${vitals.waistCirc} in` });
+  if (!chips.length) return '';
+  return `<div class="lab-section">
+    <div class="lab-section-title">Vitals & Physical</div>
+    <div class="vitals-row">
+      ${chips.map(c=>`<div class="vital-chip"><span class="vc-label">${c.label}</span><span class="vc-val">${c.val}</span></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function toggleVisit(id) {
+  const body = document.getElementById('body-'+id);
+  const chev = document.getElementById('chev-'+id);
+  const open = body.classList.toggle('open');
+  chev.classList.toggle('open', open);
+}
+
+// ═══════════════════════════════════════════════════════
+// TRENDS
+// ═══════════════════════════════════════════════════════
+function renderTrends() {
+  const pane = document.getElementById('pane-trends');
+  pane.innerHTML = `
+    <div class="trend-banner">
+      Vertical gold markers indicate medication start events. Clinical visits (Labcorp) shown as solid dots; wellness screenings shown as hollow circles.
+    </div>
+    <div class="chart-card">
+      <h3>Lipid Panel — Full History</h3>
+      <div class="chart-sub">Total Cholesterol · LDL · HDL · Triglycerides (2013–2026)</div>
+      <div class="chart-wrap"><canvas id="chartLipids"></canvas></div>
+    </div>
+    <div class="grid g2">
+      <div class="chart-card">
+        <h3>Liver Enzymes</h3>
+        <div class="chart-sub">AST · ALT · ALP</div>
+        <div class="chart-wrap"><canvas id="chartLiver"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Metabolic Markers</h3>
+        <div class="chart-sub">Glucose · HbA1c (right axis)</div>
+        <div class="chart-wrap"><canvas id="chartMetabolic"></canvas></div>
+      </div>
+    </div>
+    <div class="grid g2">
+      <div class="chart-card">
+        <h3>Weight Trend</h3>
+        <div class="chart-sub">lbs over time</div>
+        <div class="chart-wrap"><canvas id="chartWeight"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Blood Pressure</h3>
+        <div class="chart-sub">Systolic · Diastolic (all visits)</div>
+        <div class="chart-wrap"><canvas id="chartBP"></canvas></div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(() => {
+    destroyCharts();
+    buildLipidsChart();
+    buildLiverChart();
+    buildMetabolicChart();
+    buildWeightChart();
+    buildBPChart();
+  });
+}
+
+function destroyCharts() {
+  Object.values(chartInstances).forEach(c => { try { c.destroy(); } catch(e){} });
+  chartInstances = {};
+}
+
+// Med event dates for vertical markers
+const MED_EVENTS = [
+  { date:'2025-02-20', label:'Meds Started\n(Rosuvastatin+Ezetimibe)' }
+];
+
+const chartDefaults = {
+  plugins: {
+    legend: { labels: { color:'#8b949e', font:{ family:'Outfit', size:11 }, usePointStyle:true, pointStyleWidth:8 } }
+  },
+  scales: {
+    x: { ticks:{ color:'#8b949e', font:{family:'DM Mono',size:10} }, grid:{ color:'rgba(48,54,61,0.6)' } },
+    y: { ticks:{ color:'#8b949e', font:{family:'DM Mono',size:10} }, grid:{ color:'rgba(48,54,61,0.6)' } }
+  }
+};
+
+function getVisitSeries(visits, key) {
+  const sorted = [...visits].sort((a,b)=>a.date.localeCompare(b.date));
+  return {
+    labels: sorted.map(v => fmtDateShort(v.date)),
+    values: sorted.map(v => (v.labs&&v.labs[key]!=null) ? v.labs[key] : null),
+    pointStyles: sorted.map(v => v.visitType==='clinical' ? 'circle' : 'rectRot'),
+    pointRadius: sorted.map(v => v.labs&&v.labs[key]!=null ? (v.visitType==='clinical'?5:4) : 0),
+    dates: sorted.map(v=>v.date)
+  };
+}
+
+function medMarkerPlugin(chartId) {
+  return {
+    id: 'medMarker_'+chartId,
+    afterDraw(chart) {
+      const { ctx, chartArea, scales, data } = chart;
+      if (!chartArea) return;
+      MED_EVENTS.forEach(ev => {
+        const idx = data.labels?.findIndex(l => {
+          // find closest label
+          const evDate = new Date(ev.date+'T00:00:00');
+          const evLabel = fmtDateShort(ev.date);
+          return l === evLabel;
+        });
+        if (idx === -1 || idx == null) return;
+        try {
+          const x = scales.x.getPixelForValue(idx);
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255,215,0,0.8)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([5,4]);
+          ctx.beginPath();
+          ctx.moveTo(x, chartArea.top);
+          ctx.lineTo(x, chartArea.bottom);
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(255,215,0,0.9)';
+          ctx.font = '600 9px Outfit, sans-serif';
+          ctx.fillText('💊 Meds', x+3, chartArea.top+12);
+          ctx.restore();
+        } catch(e){}
+      });
+    }
+  };
+}
+
+function buildLipidsChart() {
+  const visits = [...appData.labVisits].sort((a,b)=>a.date.localeCompare(b.date));
+  const labels = visits.map(v=>fmtDateShort(v.date));
+  const mk = key => visits.map(v=>(v.labs&&v.labs[key]!=null)?v.labs[key]:null);
+  const styles = visits.map(v=>v.visitType==='clinical'?'circle':'rectRot');
+  const radii = (key) => visits.map(v=>(v.labs&&v.labs[key]!=null)?(v.visitType==='clinical'?5:4):0);
+
+  const plugin = medMarkerPlugin('lipids');
+  Chart.register(plugin);
+  const ctx = document.getElementById('chartLipids').getContext('2d');
+  chartInstances.lipids = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'Total Cholesterol', data:mk('totalCholesterol'), borderColor:'#58a6ff', backgroundColor:'rgba(88,166,255,0.08)', tension:0.3, pointStyle:styles, pointRadius:radii('totalCholesterol'), spanGaps:true },
+        { label:'LDL', data:mk('ldl')||mk('directLdl'), borderColor:'#f85149', backgroundColor:'rgba(248,81,73,0.08)', tension:0.3, pointStyle:styles, pointRadius:radii('ldl'), spanGaps:true },
+        { label:'HDL', data:mk('hdl'), borderColor:'#3fb950', backgroundColor:'rgba(63,185,80,0.08)', tension:0.3, pointStyle:styles, pointRadius:radii('hdl'), spanGaps:true },
+        { label:'Triglycerides', data:mk('triglycerides'), borderColor:'#ffd700', backgroundColor:'rgba(255,215,0,0.08)', tension:0.3, pointStyle:styles, pointRadius:radii('triglycerides'), spanGaps:true }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ ...chartDefaults.plugins,
+        medMarker_lipids:{},
+        tooltip:{ callbacks:{ title:ctx=>`${labels[ctx[0].dataIndex]} — ${visits[ctx[0].dataIndex]?.facility||''}` } }
+      },
+      scales:{
+        x:{ ...chartDefaults.scales.x, ticks:{ ...chartDefaults.scales.x.ticks, maxRotation:45 } },
+        y:{ ...chartDefaults.scales.y, title:{ display:true, text:'mg/dL', color:'#484f58', font:{size:10} } }
+      }
+    }
+  });
+}
+
+function buildLiverChart() {
+  const visits = [...appData.labVisits].filter(v=>v.labs&&(v.labs.ast||v.labs.alt||v.labs.alp)).sort((a,b)=>a.date.localeCompare(b.date));
+  const labels = visits.map(v=>fmtDateShort(v.date));
+  const plugin = medMarkerPlugin('liver');
+  Chart.register(plugin);
+  const ctx = document.getElementById('chartLiver').getContext('2d');
+  chartInstances.liver = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'AST', data:visits.map(v=>v.labs.ast??null), borderColor:'#ff7b54', tension:0.3, pointRadius:5, spanGaps:true },
+      { label:'ALT', data:visits.map(v=>v.labs.alt??null), borderColor:'#f85149', tension:0.3, pointRadius:5, spanGaps:true },
+      { label:'ALP', data:visits.map(v=>v.labs.alp??null), borderColor:'#d29922', tension:0.3, pointRadius:5, spanGaps:true }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ ...chartDefaults.plugins, medMarker_liver:{} },
+      scales:{ x:chartDefaults.scales.x, y:{ ...chartDefaults.scales.y, title:{ display:true, text:'U/L', color:'#484f58', font:{size:10} } } }
+    }
+  });
+}
+
+function buildMetabolicChart() {
+  const glVisits = [...appData.labVisits].filter(v=>v.labs&&v.labs.glucose!=null).sort((a,b)=>a.date.localeCompare(b.date));
+  const a1cVisits = [...appData.labVisits].filter(v=>v.labs&&v.labs.hba1c!=null).sort((a,b)=>a.date.localeCompare(b.date));
+  const allDates = [...new Set([...glVisits.map(v=>v.date),...a1cVisits.map(v=>v.date)])].sort();
+  const labels = allDates.map(d=>fmtDateShort(d));
+  const byDate = {};
+  appData.labVisits.forEach(v=>{ byDate[v.date]=v; });
+
+  const plugin = medMarkerPlugin('metabolic');
+  Chart.register(plugin);
+  const ctx = document.getElementById('chartMetabolic').getContext('2d');
+  chartInstances.metabolic = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'Glucose (mg/dL)', data:allDates.map(d=>byDate[d]?.labs?.glucose??null), borderColor:'#00b4d8', yAxisID:'y', tension:0.3, pointRadius:4, spanGaps:true },
+      { label:'HbA1c (%)', data:allDates.map(d=>byDate[d]?.labs?.hba1c??null), borderColor:'#9d4edd', yAxisID:'y2', tension:0.3, pointRadius:5, spanGaps:true }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ ...chartDefaults.plugins, medMarker_metabolic:{} },
+      scales:{
+        x:chartDefaults.scales.x,
+        y:{ ...chartDefaults.scales.y, position:'left', title:{ display:true, text:'mg/dL', color:'#484f58', font:{size:10} } },
+        y2:{ ...chartDefaults.scales.y, position:'right', title:{ display:true, text:'%', color:'#484f58', font:{size:10} }, grid:{ drawOnChartArea:false } }
+      }
+    }
+  });
+}
+
+function buildWeightChart() {
+  const wts = [...appData.weightLog].sort((a,b)=>a.date.localeCompare(b.date));
+  const labels = wts.map(w=>fmtDateShort(w.date));
+  const plugin = medMarkerPlugin('weight');
+  Chart.register(plugin);
+  const ctx = document.getElementById('chartWeight').getContext('2d');
+  chartInstances.weight = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'Weight (lbs)', data:wts.map(w=>w.weight), borderColor:'#00b4d8', backgroundColor:'rgba(0,180,216,0.05)', tension:0.3, pointRadius:5, fill:true }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ ...chartDefaults.plugins, medMarker_weight:{} },
+      scales:{
+        x:chartDefaults.scales.x,
+        y:{ ...chartDefaults.scales.y, min:150, title:{ display:true, text:'lbs', color:'#484f58', font:{size:10} } }
+      }
+    }
+  });
+}
+
+function buildBPChart() {
+  // Merge bpLog entries + lab visit vitals into one unified sorted series
+  const entries = [];
+  // From lab visits
+  appData.labVisits.forEach(v => {
+    if (v.vitals?.bpSys != null) {
+      entries.push({ date:v.date, sys:v.vitals.bpSys, dia:v.vitals.bpDia, pulse:v.vitals.pulse||null, source:'doctor', label:fmtDateShort(v.date) });
+    }
+  });
+  // From bpLog (may duplicate lab visit dates — dedupe by id, not date)
+  (appData.bpLog||[]).forEach(b => {
+    // Skip if already covered by a lab visit on same date
+    const alreadyIn = entries.find(e => e.date === b.date && e.source === 'doctor');
+    if (!alreadyIn) {
+      entries.push({ date:b.date, sys:b.sys, dia:b.dia, pulse:b.pulse, source:b.source, label:fmtDateShort(b.date) });
+    }
+  });
+  entries.sort((a,b) => a.date.localeCompare(b.date));
+
+  const labels = entries.map(e => e.label);
+  const sourceColors = { apple_watch:'#3fb950', home_cuff:'#00b4d8', manual:'#58a6ff', doctor:'#d29922' };
+
+  const plugin = medMarkerPlugin('bp');
+  Chart.register(plugin);
+  const ctx = document.getElementById('chartBP').getContext('2d');
+  chartInstances.bp = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'Systolic',  data:entries.map(e=>e.sys),  borderColor:'#f85149', backgroundColor:'rgba(248,81,73,0.05)',  tension:0.3, pointRadius:5,
+          pointBackgroundColor:entries.map(e=>sourceColors[e.source]||'#58a6ff'), fill:false, spanGaps:true },
+        { label:'Diastolic', data:entries.map(e=>e.dia),  borderColor:'#58a6ff', backgroundColor:'rgba(88,166,255,0.05)', tension:0.3, pointRadius:5,
+          pointBackgroundColor:entries.map(e=>sourceColors[e.source]||'#58a6ff'), fill:false, spanGaps:true },
+        { label:'Pulse',     data:entries.map(e=>e.pulse||null), borderColor:'rgba(210,153,34,0.6)', borderDash:[4,3], tension:0.3, pointRadius:3, fill:false, spanGaps:true }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        ...chartDefaults.plugins,
+        medMarker_bp:{},
+        tooltip:{
+          callbacks:{
+            afterBody: ctx => {
+              const e = entries[ctx[0].dataIndex];
+              const sl = { apple_watch:'Apple Watch', home_cuff:'Home Cuff', manual:'Manual', doctor:'Doctor Office' };
+              return [`Source: ${sl[e.source]||e.source}`];
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ ...chartDefaults.scales.x, ticks:{ ...chartDefaults.scales.x.ticks, maxRotation:45 } },
+        y:{ ...chartDefaults.scales.y, min:50, title:{ display:true, text:'mmHg / bpm', color:'#484f58', font:{size:10} } }
+      }
+    }
+  });
+
+  // Legend for source dot colors
+  const legend = document.createElement('div');
+  legend.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:10px;color:var(--muted)';
+  legend.innerHTML = Object.entries(sourceColors).map(([src,col])=>
+    `<span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:${col};display:inline-block"></span>${{apple_watch:'Apple Watch',home_cuff:'Home Cuff',manual:'Manual',doctor:'Doctor Office'}[src]}</span>`
+  ).join('');
+  document.getElementById('chartBP').parentElement.appendChild(legend);
+}
+
+// ═══════════════════════════════════════════════════════
+// MEDICATIONS
+// ═══════════════════════════════════════════════════════
+function renderMeds() {
+  const active  = appData.medications.filter(m => m.status === 'active');
+  const prn     = appData.medications.filter(m => m.status === 'prn');
+  const stopped = appData.medications.filter(m => m.status === 'stopped');
+  const pane = document.getElementById('pane-meds');
+  pane.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Medications</div>
+      <button class="btn btn-accent btn-sm" onclick="openMedModal()">+ Add Medication</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;background:var(--bg3);border-radius:6px;padding:8px 12px;border:1px solid var(--border)">
+      📋 Provider: ${appData.settings.provider||'—'} · ${appData.settings.facility||'—'}
+    </div>
+    ${active.length ? `
+      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+        Daily / Scheduled <span style="font-weight:400;color:var(--dim)">(${active.length})</span>
+      </div>
+      ${active.map(m=>renderMedCard(m)).join('')}
+    ` : ''}
+    ${prn.length ? `
+      <div style="font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px">
+        As-Needed / PRN <span style="font-weight:400;color:var(--dim)">(${prn.length})</span>
+      </div>
+      ${prn.map(m=>renderMedCard(m)).join('')}
+    ` : ''}
+    ${stopped.length ? `
+      <div style="font-size:12px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px">
+        Stopped <span style="font-weight:400">(${stopped.length})</span>
+      </div>
+      ${stopped.map(m=>renderMedCard(m)).join('')}
+    ` : ''}
+  `;
+}
+
+function renderMedCard(m) {
+  const statusMap = {
+    active:  { cls:'med-active',  label:'Active'     },
+    prn:     { cls:'med-prn',     label:'PRN / As-Needed' },
+    stopped: { cls:'med-stopped', label:'Stopped'    }
+  };
+  const st = statusMap[m.status] || statusMap['stopped'];
+  return `<div class="med-card">
+    <div class="med-info">
+      <div class="med-name">${m.name}</div>
+      <div class="med-dose">${m.dose} · ${m.frequency}</div>
+      <div class="med-indication">${m.indication}</div>
+      <div class="med-dates">Started ${fmtDate(m.startDate)}${m.stopDate?' · Stopped '+fmtDate(m.stopDate):''}</div>
+      ${m.notes ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;font-style:italic">${m.notes}</div>` : ''}
+    </div>
+    <div class="med-actions">
+      <span class="med-status ${st.cls}">${st.label}</span>
+      <button class="btn btn-outline btn-sm" onclick="editMed('${m.id}')">Edit</button>
+    </div>
+  </div>`;
+}
+
+function openMedModal(medId) {
+  const med = medId ? appData.medications.find(m=>m.id===medId) : null;
+  const html = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>${med?'Edit':'Add'} Medication</h2>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Medication Name</label>
+            <input type="text" id="mName" value="${med?.name||''}" placeholder="Rosuvastatin Calcium">
+          </div>
+          <div class="form-group">
+            <label>Dose</label>
+            <input type="text" id="mDose" value="${med?.dose||''}" placeholder="10mg">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Frequency</label>
+            <input type="text" id="mFreq" value="${med?.frequency||''}" placeholder="Daily">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="mStatus">
+              <option value="active"  ${!med||med.status==='active' ?'selected':''}>Active — Daily/Scheduled</option>
+              <option value="prn"     ${med?.status==='prn'         ?'selected':''}>As-Needed / PRN</option>
+              <option value="stopped" ${med?.status==='stopped'     ?'selected':''}>Stopped</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Indication</label>
+          <input type="text" id="mIndication" value="${med?.indication||''}" placeholder="Hypercholesterolemia (E78.00)">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" id="mStart" value="${med?.startDate||''}">
+          </div>
+          <div class="form-group">
+            <label>Stop Date</label>
+            <input type="date" id="mStop" value="${med?.stopDate||''}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="mNotes">${med?.notes||''}</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        ${med?`<button class="btn btn-danger btn-sm" onclick="deleteMed('${med.id}')">Delete</button>`:''}
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveMed('${med?.id||''}')">Save</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+
+function editMed(id) { openMedModal(id); }
+function saveMed(id) {
+  const data = {
+    name:       document.getElementById('mName').value,
+    dose:       document.getElementById('mDose').value,
+    frequency:  document.getElementById('mFreq').value,
+    indication: document.getElementById('mIndication').value,
+    startDate:  document.getElementById('mStart').value,
+    stopDate:   document.getElementById('mStop').value || null,
+    status:     document.getElementById('mStatus').value,
+    notes:      document.getElementById('mNotes').value
+  };
+  if (!data.name) return;
+  if (id) {
+    const i = appData.medications.findIndex(m=>m.id===id);
+    if (i>-1) appData.medications[i] = { ...appData.medications[i], ...data };
+  } else {
+    appData.medications.push({ id:uid(), ...data });
+  }
+  saveState(); closeModal(); renderMeds();
+}
+function deleteMed(id) {
+  if (!confirm('Remove this medication?')) return;
+  appData.medications = appData.medications.filter(m=>m.id!==id);
+  saveState(); closeModal(); renderMeds();
+}
+function closeModal() { document.getElementById('modalContainer').innerHTML = ''; }
+
+// ═══════════════════════════════════════════════════════
+// VITALS & WEIGHT
+// ═══════════════════════════════════════════════════════
+function renderVitals() {
+  const wts = [...appData.weightLog].sort((a,b)=>b.date.localeCompare(a.date));
+  const bps = [...(appData.bpLog||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  const latestBp = bps[0];
+  const sourceLabels = { manual:'Manual', apple_watch:'Apple Watch', home_cuff:'Home Cuff', doctor:'Doctor Office' };
+  const sourceCls    = { manual:'bps-manual', apple_watch:'bps-apple_watch', home_cuff:'bps-home_cuff', doctor:'bps-doctor' };
+
+  const pane = document.getElementById('pane-vitals');
+  pane.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Vitals & Weight Log</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="openWeightModal()">+ Weight</button>
+        <button class="btn btn-accent btn-sm" onclick="openBpModal()">+ Blood Pressure</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+
+      <!-- WEIGHT PANEL -->
+      <div class="weight-quick-card" style="margin-bottom:0">
+        <div class="card-title" style="margin-bottom:6px">⚖️ Weight</div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span class="weight-current" style="font-size:36px">${wts[0]?.weight ?? '—'}</span>
+          <span class="weight-current-unit">lbs</span>
+          <span class="weight-bmi" style="margin-left:4px">BMI ${wts[0]?.bmi ?? '—'}</span>
+        </div>
+        <div style="margin-top:10px;height:70px"><canvas id="miniWeightChart"></canvas></div>
+        <!-- Quick entry -->
+        <div class="weight-quick-form" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div class="quick-input-group">
+            <label>Date</label>
+            <input type="date" id="wtDate" value="${new Date().toISOString().slice(0,10)}" style="width:130px">
+          </div>
+          <div class="quick-input-group">
+            <label>Weight (lbs)</label>
+            <input type="number" id="wtVal" placeholder="159.4" step="0.1" style="width:90px">
+          </div>
+          <button class="btn btn-outline btn-sm" style="align-self:flex-end" onclick="quickAddWeight()">Log</button>
+        </div>
+      </div>
+
+      <!-- BP PANEL -->
+      <div class="bp-quick-card" style="margin-bottom:0">
+        <div class="card-title" style="margin-bottom:6px">🫀 Blood Pressure</div>
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <span class="bp-current">${latestBp ? latestBp.sys+'/'+latestBp.dia : '—'}</span>
+          <span class="bp-current-unit">mmHg</span>
+          ${latestBp?.pulse ? `<span style="font-size:13px;color:var(--muted);margin-left:8px">· ${latestBp.pulse} bpm</span>` : ''}
+        </div>
+        ${latestBp ? `<div style="margin-top:4px;display:flex;align-items:center;gap:6px">
+          <span class="bp-source-badge ${sourceCls[latestBp.source]||'bps-manual'}">${sourceLabels[latestBp.source]||latestBp.source}</span>
+          <span style="font-size:11px;color:var(--dim)">${fmtDate(latestBp.date)}</span>
+        </div>` : ''}
+        <div style="margin-top:10px;height:70px"><canvas id="miniBpChart"></canvas></div>
+        <!-- Quick entry -->
+        <div class="weight-quick-form" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div class="quick-input-group">
+            <label>Sys</label>
+            <input type="number" id="bqSys" placeholder="113" style="width:65px">
+          </div>
+          <div class="quick-input-group">
+            <label>Dia</label>
+            <input type="number" id="bqDia" placeholder="70" style="width:65px">
+          </div>
+          <div class="quick-input-group">
+            <label>Pulse</label>
+            <input type="number" id="bqPulse" placeholder="65" style="width:65px">
+          </div>
+          <div class="quick-input-group">
+            <label>Source</label>
+            <select id="bqSource" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:12px;outline:none;width:110px">
+              <option value="apple_watch">Apple Watch</option>
+              <option value="home_cuff">Home Cuff</option>
+              <option value="manual">Manual</option>
+              <option value="doctor">Doctor Office</option>
+            </select>
+          </div>
+          <button class="btn btn-outline btn-sm" style="align-self:flex-end" onclick="quickAddBp()">Log</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEIGHT LOG TABLE -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">Weight History</div>
+      <table class="weight-log-table">
+        <thead><tr><th>Date</th><th>Weight</th><th>BMI</th><th>Notes</th><th></th></tr></thead>
+        <tbody>
+          ${wts.map(w=>`
+            <tr>
+              <td>${fmtDate(w.date)}</td>
+              <td>${w.weight} lbs</td>
+              <td>${w.bmi}</td>
+              <td style="color:var(--muted);font-size:12px">${w.notes||''}</td>
+              <td><button class="btn btn-outline btn-sm" onclick="deleteWeight('${w.id}')">×</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- BP LOG TABLE -->
+    <div class="card">
+      <div class="card-title">Blood Pressure History</div>
+      <table class="weight-log-table">
+        <thead><tr><th>Date</th><th>Time</th><th>Reading</th><th>Pulse</th><th>Source</th><th>Notes</th><th></th></tr></thead>
+        <tbody>
+          ${bps.map(b=>`
+            <tr>
+              <td>${fmtDate(b.date)}</td>
+              <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${b.time||'—'}</td>
+              <td><span style="font-family:'DM Mono',monospace;font-weight:600;color:${bpColor(b.sys,b.dia)}">${b.sys}/${b.dia}</span> <span style="font-size:11px;color:var(--dim)">mmHg</span></td>
+              <td style="font-family:'DM Mono',monospace">${b.pulse ? b.pulse+' bpm' : '—'}</td>
+              <td><span class="bp-source-badge ${sourceCls[b.source]||'bps-manual'}">${sourceLabels[b.source]||b.source||'—'}</span></td>
+              <td style="color:var(--muted);font-size:12px">${b.notes||''}</td>
+              <td><button class="btn btn-outline btn-sm" onclick="deleteBp('${b.id}')">×</button></td>
+            </tr>
+          `).join('')}
+          ${!bps.length?`<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:20px">No BP readings yet. Log your first reading above.</td></tr>`:''}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  requestAnimationFrame(() => {
+    // Weight mini chart
+    const wtSorted = [...wts].reverse();
+    const wCtx = document.getElementById('miniWeightChart')?.getContext('2d');
+    if (wCtx) {
+      if (chartInstances.miniWeight) { try{chartInstances.miniWeight.destroy();}catch(e){} }
+      chartInstances.miniWeight = new Chart(wCtx, {
+        type:'line',
+        data:{ labels:wtSorted.map(w=>fmtDateShort(w.date)), datasets:[{
+          data:wtSorted.map(w=>w.weight), borderColor:'#00b4d8', backgroundColor:'rgba(0,180,216,0.06)',
+          tension:0.4, pointRadius:3, fill:true
+        }]},
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false} },
+          scales:{ x:{ticks:{color:'#484f58',font:{size:9}},grid:{color:'rgba(48,54,61,0.4)'}},
+                   y:{ticks:{color:'#484f58',font:{size:9}},grid:{color:'rgba(48,54,61,0.4)'}} }
+        }
+      });
+    }
+    // BP mini chart
+    const bpSorted = [...bps].reverse();
+    const bCtx = document.getElementById('miniBpChart')?.getContext('2d');
+    if (bCtx && bpSorted.length >= 1) {
+      if (chartInstances.miniBp) { try{chartInstances.miniBp.destroy();}catch(e){} }
+      chartInstances.miniBp = new Chart(bCtx, {
+        type:'line',
+        data:{ labels:bpSorted.map(b=>fmtDateShort(b.date)), datasets:[
+          { data:bpSorted.map(b=>b.sys), borderColor:'#f85149', tension:0.4, pointRadius:3, label:'Sys' },
+          { data:bpSorted.map(b=>b.dia), borderColor:'#58a6ff', tension:0.4, pointRadius:3, label:'Dia' }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false} },
+          scales:{ x:{ticks:{color:'#484f58',font:{size:9}},grid:{color:'rgba(48,54,61,0.4)'}},
+                   y:{ticks:{color:'#484f58',font:{size:9}},grid:{color:'rgba(48,54,61,0.4)'},min:50} }
+        }
+      });
+    }
+  });
+}
+
+function bpColor(sys, dia) {
+  if (!sys) return 'var(--text)';
+  if (sys >= 140 || dia >= 90) return 'var(--danger)';
+  if (sys >= 130 || dia >= 80) return 'var(--warn)';
+  if (sys < 90)                return 'var(--info)';
+  return 'var(--ok)';
+}
+
+function quickAddWeight() {
+  const d = document.getElementById('wtDate').value;
+  const w = parseFloat(document.getElementById('wtVal').value);
+  if (!d || isNaN(w)) return;
+  const h = appData.settings.heightIn || 67;
+  appData.weightLog.push({ id:uid(), date:d, weight:w, bmi:parseFloat(calcBMI(w,h).toFixed(2)), notes:'' });
+  appData.weightLog.sort((a,b)=>a.date.localeCompare(b.date));
+  saveState();
+  renderVitals();
+  if (activeTab==='dashboard') renderDashboard();
+}
+
+function quickAddBp() {
+  const sys   = parseInt(document.getElementById('bqSys').value);
+  const dia   = parseInt(document.getElementById('bqDia').value);
+  const pulse = parseInt(document.getElementById('bqPulse').value) || null;
+  const source = document.getElementById('bqSource').value;
+  if (isNaN(sys) || isNaN(dia)) return;
+  appData.bpLog.push({ id:uid(), date:new Date().toISOString().slice(0,10), time:'', sys, dia, pulse, source, notes:'' });
+  appData.bpLog.sort((a,b)=>a.date.localeCompare(b.date));
+  saveState();
+  renderVitals();
+}
+
+function openWeightModal() {
+  const html = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header"><h2>Add Weight Entry</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label>Date</label><input type="date" id="wDate" value="${new Date().toISOString().slice(0,10)}"></div>
+          <div class="form-group"><label>Weight (lbs)</label><input type="number" id="wWeight" step="0.1" placeholder="159.4"></div>
+        </div>
+        <div class="form-group"><label>Notes</label><input type="text" id="wNotes" placeholder="Optional"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveWeightEntry()">Save</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+function saveWeightEntry() {
+  const d = document.getElementById('wDate').value;
+  const w = parseFloat(document.getElementById('wWeight').value);
+  if (!d||isNaN(w)) return;
+  const h = appData.settings.heightIn||67;
+  appData.weightLog.push({ id:uid(), date:d, weight:w, bmi:parseFloat(calcBMI(w,h).toFixed(2)), notes:document.getElementById('wNotes').value });
+  appData.weightLog.sort((a,b)=>a.date.localeCompare(b.date));
+  saveState(); closeModal(); renderVitals();
+}
+function deleteWeight(id) {
+  appData.weightLog = appData.weightLog.filter(w=>w.id!==id);
+  saveState(); renderVitals();
+}
+
+function openBpModal(bpId) {
+  const bp = bpId ? (appData.bpLog||[]).find(b=>b.id===bpId) : null;
+  const html = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header"><h2>${bp?'Edit':'Add'} Blood Pressure Reading</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label>Date</label><input type="date" id="bpDate" value="${bp?.date||new Date().toISOString().slice(0,10)}"></div>
+          <div class="form-group"><label>Time (optional)</label><input type="time" id="bpTime" value="${bp?.time||''}"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Systolic (mmHg)</label><input type="number" id="bpSys" value="${bp?.sys||''}" placeholder="113"></div>
+          <div class="form-group"><label>Diastolic (mmHg)</label><input type="number" id="bpDia" value="${bp?.dia||''}" placeholder="70"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Pulse (bpm)</label><input type="number" id="bpPulse" value="${bp?.pulse||''}" placeholder="65"></div>
+          <div class="form-group">
+            <label>Source</label>
+            <select id="bpSource">
+              <option value="apple_watch" ${bp?.source==='apple_watch'?'selected':''}>Apple Watch</option>
+              <option value="home_cuff"   ${bp?.source==='home_cuff'  ?'selected':''}>Home Cuff</option>
+              <option value="manual"      ${bp?.source==='manual'     ?'selected':''}>Manual</option>
+              <option value="doctor"      ${bp?.source==='doctor'     ?'selected':''}>Doctor Office</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Notes</label><input type="text" id="bpNotes" value="${bp?.notes||''}" placeholder="Optional context"></div>
+      </div>
+      <div class="modal-footer">
+        ${bp?`<button class="btn btn-danger btn-sm" onclick="deleteBp('${bp.id}')">Delete</button>`:''}
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveBpEntry('${bp?.id||''}')">Save</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+
+function saveBpEntry(id) {
+  const sys   = parseInt(document.getElementById('bpSys').value);
+  const dia   = parseInt(document.getElementById('bpDia').value);
+  if (isNaN(sys)||isNaN(dia)) return;
+  const entry = {
+    date:   document.getElementById('bpDate').value,
+    time:   document.getElementById('bpTime').value || '',
+    sys,
+    dia,
+    pulse:  parseInt(document.getElementById('bpPulse').value) || null,
+    source: document.getElementById('bpSource').value,
+    notes:  document.getElementById('bpNotes').value
+  };
+  if (!appData.bpLog) appData.bpLog = [];
+  if (id) {
+    const i = appData.bpLog.findIndex(b=>b.id===id);
+    if (i>-1) appData.bpLog[i] = { ...appData.bpLog[i], ...entry };
+  } else {
+    appData.bpLog.push({ id:uid(), ...entry });
+  }
+  appData.bpLog.sort((a,b)=>a.date.localeCompare(b.date));
+  saveState(); closeModal(); renderVitals();
+}
+
+function deleteBp(id) {
+  appData.bpLog = (appData.bpLog||[]).filter(b=>b.id!==id);
+  saveState(); closeModal(); renderVitals();
+}
+
+// ═══════════════════════════════════════════════════════
+// IMAGING & NOTES
+// ═══════════════════════════════════════════════════════
+function renderImaging() {
+  const imgs = [...appData.imagingNotes].sort((a,b)=>b.date.localeCompare(a.date));
+  const pane = document.getElementById('pane-imaging');
+  pane.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Imaging & Clinical Notes</div>
+      <button class="btn btn-accent btn-sm" onclick="openImagingModal()">+ Add Record</button>
+    </div>
+    ${imgs.map(img=>`
+      <div class="imaging-card">
+        <div class="imaging-type">${img.type}</div>
+        <div class="imaging-desc">${img.description}</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="imaging-facility">${img.facility} · ${fmtDate(img.date)}</div>
+            ${img.notes?`<div class="imaging-notes-text">${img.notes}</div>`:''}
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="deleteImaging('${img.id}')">×</button>
+        </div>
+      </div>
+    `).join('')}
+    ${!imgs.length?'<div class="empty-state">No imaging records. Add ultrasound, MRI, CT results here.</div>':''}
+  `;
+}
+function openImagingModal() {
+  const html = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header"><h2>Add Imaging / Note</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label>Date</label><input type="date" id="iDate" value="${new Date().toISOString().slice(0,10)}"></div>
+          <div class="form-group"><label>Type</label><input type="text" id="iType" placeholder="Ultrasound / CT / MRI / X-Ray"></div>
+        </div>
+        <div class="form-group"><label>Description / Finding</label><input type="text" id="iDesc" placeholder="Fatty liver grade 1 — improving"></div>
+        <div class="form-group"><label>Facility</label><input type="text" id="iFacility" placeholder="Northside Hospital"></div>
+        <div class="form-group"><label>Notes</label><textarea id="iNotes" placeholder="Additional context..."></textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveImaging()">Save</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+function saveImaging() {
+  const rec = {
+    id:uid(),
+    date: document.getElementById('iDate').value,
+    type: document.getElementById('iType').value,
+    description: document.getElementById('iDesc').value,
+    facility: document.getElementById('iFacility').value,
+    notes: document.getElementById('iNotes').value
+  };
+  if (!rec.description) return;
+  appData.imagingNotes.push(rec);
+  saveState(); closeModal(); renderImaging();
+}
+function deleteImaging(id) {
+  appData.imagingNotes = appData.imagingNotes.filter(i=>i.id!==id);
+  saveState(); renderImaging();
+}
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════
+function renderSettings() {
+  const s = appData.settings;
+  const pane = document.getElementById('pane-settings');
+  pane.innerHTML = `
+    <div style="max-width:640px">
+      <div class="settings-section">
+        <h3>Provider</h3>
+        <div class="settings-row">
+          <div><div class="sr-label">Provider Name</div></div>
+          <input class="settings-input" id="sProvider" value="${s.provider||''}" placeholder="Dr. Lauren Brewington">
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Facility</div></div>
+          <input class="settings-input" id="sFacility" value="${s.facility||''}" placeholder="Sugarloaf Medical PC">
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>Profile</h3>
+        <div class="settings-row">
+          <div><div class="sr-label">Date of Birth</div></div>
+          <input class="settings-input" id="sDob" type="date" value="${s.dob||''}" style="min-width:160px">
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Height (inches)</div></div>
+          <input class="settings-input" id="sHeight" type="number" value="${s.heightIn||67}" style="min-width:80px;max-width:100px">
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>Google Drive Sync</h3>
+        <div class="settings-row">
+          <div>
+            <div class="sr-label">Drive Status</div>
+            <div class="sr-sub" id="syncStatus">${s.driveEnabled?'Connected · Last sync: '+(s.lastSync?fmtDate(s.lastSync.split('T')[0]):'Never'):'Not connected'}</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" onclick="handleDriveClick()">Connect Drive</button>
+            ${s.driveEnabled?`<button class="btn btn-accent" onclick="saveToDrive()">Sync Now</button>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>Data</h3>
+        <div class="settings-row">
+          <div><div class="sr-label">Export Data</div><div class="sr-sub">Download full JSON backup</div></div>
+          <button class="btn btn-outline" onclick="exportData()">Export JSON</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Change Password</div></div>
+          <button class="btn btn-outline" onclick="changePassword()">Change Password</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Reset to Seed Data</div><div class="sr-sub" style="color:var(--danger)">Clears all local data</div></div>
+          <button class="btn btn-danger" onclick="resetData()">Reset</button>
+        </div>
+      </div>
+      <button class="btn btn-accent" style="margin-top:8px" onclick="saveSettings()">Save Settings</button>
+      <div style="font-size:10px;color:var(--dim);margin-top:16px;font-family:'DM Mono',monospace">
+        Health Tracker v${APP_VER} · localStorage key: ${LS_KEY} · Drive file: ${DRIVE_FILE} · bpLog entries: ${(appData.bpLog||[]).length}
+      </div>
+    </div>
+  `;
+}
+
+function saveSettings() {
+  appData.settings.provider = document.getElementById('sProvider').value;
+  appData.settings.facility = document.getElementById('sFacility').value;
+  appData.settings.dob = document.getElementById('sDob').value;
+  appData.settings.heightIn = parseFloat(document.getElementById('sHeight').value)||67;
+  saveState();
+  showToast('Settings saved');
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(appData, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `health_tracker_export_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+function changePassword() {
+  const np = prompt('Enter new password:');
+  if (!np) return;
+  sha256(np).then(h => { localStorage.setItem(PW_KEY, h); showToast('Password updated'); });
+}
+
+function resetData() {
+  if (!confirm('This will reset all data to the original seeded dataset. Are you sure?')) return;
+  appData = getSeedData();
+  saveState();
+  renderTab(activeTab);
+  showToast('Data reset to seed');
+}
+
+// Toast
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#161b22;border:1px solid #30363d;color:#e6edf3;padding:10px 16px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { t.style.opacity='1'; });
+  setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 2500);
+}
+
+// ═══════════════════════════════════════════════════════
+// GOOGLE DRIVE
+// ═══════════════════════════════════════════════════════
+function initDrive() {
+  if (appData.settings.driveEnabled) updateDriveUI(true);
+}
+
+function handleDriveClick() {
+  if (!driveToken) {
+    gapi.load('client', async () => {
+      await gapi.client.init({ discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: DRIVE_SCOPE,
+        callback: async (resp) => {
+          if (resp.error) { console.error(resp); return; }
+          driveToken = resp.access_token;
+          appData.settings.driveEnabled = true;
+          updateDriveUI(true);
+          await loadFromDrive();
+        }
+      });
+      tokenClient.requestAccessToken();
+    });
+  } else {
+    saveToDrive();
+  }
+}
+
+function updateDriveUI(connected) {
+  const dot = document.getElementById('driveDot');
+  const label = document.getElementById('driveLabel');
+  if (dot) dot.className = 'drive-dot' + (connected ? ' connected' : '');
+  if (label) label.textContent = connected ? 'Drive Connected' : 'Drive Sync';
+}
+
+async function getDriveFileId() {
+  if (driveFileId) return driveFileId;
+  const res = await gapi.client.drive.files.list({
+    spaces:'appDataFolder', fields:'files(id,name)', q:`name='${DRIVE_FILE}'`
+  });
+  const files = res.result.files;
+  if (files && files.length > 0) { driveFileId = files[0].id; return driveFileId; }
+  return null;
+}
+
+async function saveToDrive() {
+  if (!driveToken) { handleDriveClick(); return; }
+  try {
+    const content = JSON.stringify(appData);
+    const fileId = await getDriveFileId();
+    if (fileId) {
+      await gapi.client.request({ path:`/upload/drive/v3/files/${fileId}`, method:'PATCH',
+        params:{ uploadType:'media' }, body:content });
+    } else {
+      const meta = await gapi.client.drive.files.create({
+        resource:{ name:DRIVE_FILE, parents:['appDataFolder'] }, fields:'id'
+      });
+      driveFileId = meta.result.id;
+      await gapi.client.request({ path:`/upload/drive/v3/files/${driveFileId}`, method:'PATCH',
+        params:{ uploadType:'media' }, body:content });
+    }
+    appData.settings.lastSync = new Date().toISOString();
+    saveState();
+    showToast('Saved to Drive ✓');
+  } catch(e) { console.error(e); showToast('Drive save failed'); }
+}
+
+async function loadFromDrive() {
+  if (!driveToken) return;
+  try {
+    const fileId = await getDriveFileId();
+    if (!fileId) { await saveToDrive(); return; }
+    const res = await gapi.client.drive.files.get({ fileId, alt:'media' });
+    if (res.body) {
+      const remote = JSON.parse(res.body);
+      if (remote.labVisits) { appData = remote; saveState(); renderTab(activeTab); showToast('Loaded from Drive ✓'); }
+    }
+  } catch(e) { console.error(e); }
+}
+</script>
+</body>
+</html>
