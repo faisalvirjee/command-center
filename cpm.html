@@ -1,0 +1,2605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CPM — Construction Project Management</title>
+<!-- <link rel="icon" type="image/x-icon" href="cpm-favicon.ico"> -->
+<link rel="shortcut icon" href="/command-center/cpm-favicon.ico" type="image/x-icon">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060b18;--bg2:#0a1020;--surface:#0c1628;--card:#0f1e35;--card2:#162440;
+  --border:#1a2e4a;--border2:#243d60;
+  --amber:#f59e0b;--amber2:#fbbf24;--amber-dim:rgba(245,158,11,.12);
+  --blue:#3b82f6;--blue-dim:rgba(59,130,246,.12);
+  --green:#10b981;--green-dim:rgba(16,185,129,.12);
+  --red:#ef4444;--red-dim:rgba(239,68,68,.12);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,.12);
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --mono:'IBM Plex Mono',monospace;
+  --font:'Barlow',sans-serif;
+  --cond:'Barlow Condensed',sans-serif;
+  --radius:10px;--radius2:14px;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5}
+a{color:var(--amber);text-decoration:none}
+button{cursor:pointer;font-family:var(--font)}
+input,select,textarea{font-family:var(--font);font-size:14px;background:var(--card2);border:1px solid var(--border2);color:var(--text);border-radius:7px;padding:7px 10px;outline:none;transition:.15s}
+input:focus,select:focus,textarea:focus{border-color:var(--amber)}
+select option{background:var(--card)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── AUTH SCREENS ── */
+.auth-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:9999;flex-direction:column;gap:0}
+.auth-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius2);padding:40px;width:360px;text-align:center;box-shadow:var(--shadow)}
+.auth-logo{font-size:40px;margin-bottom:12px}
+.auth-title{font-family:var(--cond);font-size:28px;font-weight:700;color:var(--amber);letter-spacing:.5px;margin-bottom:4px}
+.auth-sub{font-size:12px;color:var(--text3);margin-bottom:24px;letter-spacing:.5px;text-transform:uppercase}
+.auth-ver{display:inline-block;background:var(--amber-dim);color:var(--amber);font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;margin-bottom:20px}
+.auth-hint{font-size:12px;color:var(--amber2);margin-bottom:16px}
+.pw-wrap{position:relative;margin-bottom:10px}
+.pw-wrap input{width:100%;padding-right:40px;background:var(--card2);border-color:var(--border2);text-align:left}
+.pw-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);font-size:15px;padding:4px}
+.auth-err{font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px}
+.btn-auth{width:100%;padding:11px;background:var(--amber);color:#000;border:none;border-radius:8px;font-weight:700;font-size:14px;font-family:var(--cond);letter-spacing:.5px;transition:.15s}
+.btn-auth:hover{background:var(--amber2)}
+
+/* ── APP SHELL ── */
+#app{display:none;height:100vh;flex-direction:column}
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0}
+.topbar-logo{font-family:var(--cond);font-size:18px;font-weight:700;color:var(--amber);letter-spacing:1px;white-space:nowrap}
+.topbar-ver{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.topbar-spacer{flex:1}
+.project-selector-wrap{display:flex;align-items:center;gap:8px}
+.project-selector-wrap label{font-size:11px;color:var(--text3);white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+#projectSelect{width:240px;font-size:13px;font-weight:500;background:var(--card2)}
+.btn-new-project{padding:5px 12px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);border-radius:6px;font-size:11px;font-weight:700;font-family:var(--cond);letter-spacing:.5px}
+.btn-new-project:hover{background:var(--amber);color:#000}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.btn-topbar{padding:5px 12px;background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:6px;font-size:11px;font-weight:600;transition:.15s}
+.btn-topbar:hover{border-color:var(--amber);color:var(--amber)}
+.timer-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px}
+
+/* ── TABS ── */
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;padding:0 20px;gap:2px;overflow-x:auto}
+.tab-btn{padding:10px 16px;background:none;border:none;color:var(--text3);font-size:12px;font-weight:600;font-family:var(--cond);letter-spacing:.5px;text-transform:uppercase;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--amber);border-bottom-color:var(--amber)}
+
+/* ── TAB CONTENT ── */
+.tab-pane{display:none;flex:1;overflow-y:auto;padding:24px}
+.tab-pane.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);margin-bottom:20px}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.card-title{font-family:var(--cond);font-size:14px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text)}
+.card-sub{font-size:11px;color:var(--text3);margin-left:auto}
+.card-body{padding:20px}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;border-top:3px solid var(--border)}
+.kpi.amber{border-top-color:var(--amber)}
+.kpi.green{border-top-color:var(--green)}
+.kpi.red{border-top-color:var(--red)}
+.kpi.blue{border-top-color:var(--blue)}
+.kpi.purple{border-top-color:var(--purple)}
+.kpi-label{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.kpi-val{font-size:22px;font-family:var(--mono);font-weight:600;color:var(--text)}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* ── PHASE CARDS (Phases & Tasks) ── */
+.phase-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);margin-bottom:12px;overflow:hidden}
+.phase-header{padding:14px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:.15s;user-select:none}
+.phase-header:hover{background:var(--card)}
+.phase-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.phase-name{font-family:var(--cond);font-size:15px;font-weight:700;letter-spacing:.5px}
+.phase-label{font-size:11px;color:var(--text3);margin-left:4px}
+.phase-meta{display:flex;align-items:center;gap:16px;margin-left:auto;font-size:12px}
+.phase-budget{font-family:var(--mono);font-weight:600;color:var(--text)}
+.phase-drawn{font-family:var(--mono);color:var(--red)}
+.phase-pct{font-family:var(--mono);font-size:11px;color:var(--text2)}
+.phase-progress{width:100px;height:5px;background:var(--border2);border-radius:3px;overflow:hidden}
+.phase-progress-fill{height:100%;border-radius:3px;transition:.3s}
+.phase-task-count{font-size:11px;color:var(--text3);background:var(--bg2);padding:2px 8px;border-radius:10px}
+.phase-chevron{color:var(--text3);font-size:14px;transition:.2s;flex-shrink:0}
+.phase-card.open .phase-chevron{transform:rotate(90deg)}
+.phase-tasks{display:none;border-top:1px solid var(--border)}
+.phase-card.open .phase-tasks{display:block}
+
+/* ── TASK TABLE ── */
+.task-table{width:100%;border-collapse:collapse}
+.task-table th{padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);background:var(--bg2);text-align:left;border-bottom:1px solid var(--border)}
+.task-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.task-table tr:last-child td{border-bottom:none}
+.task-table tr:hover td{background:rgba(255,255,255,.02)}
+.task-name{font-weight:500}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.status-pending{background:rgba(71,85,105,.3);color:#94a3b8}
+.status-in-progress{background:var(--blue-dim);color:#60a5fa}
+.status-blocked{background:var(--red-dim);color:#f87171}
+.status-complete{background:var(--green-dim);color:#34d399}
+.task-cost{font-family:var(--mono);font-size:12px}
+.task-blocker{font-size:11px;color:var(--red);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn-task-edit{background:transparent;border:1px solid transparent;color:var(--text3);padding:3px 6px;border-radius:5px;font-size:12px;opacity:.4;transition:.15s}
+tr:hover .btn-task-edit{opacity:1;border-color:var(--border2);color:var(--amber)}
+.phase-task-add{padding:10px 18px;border-top:1px solid var(--border)}
+.btn-add-task{background:none;border:1px dashed var(--border2);color:var(--text3);padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;transition:.15s}
+.btn-add-task:hover{border-color:var(--amber);color:var(--amber)}
+
+/* ── LEDGER ── */
+.ledger-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border)}
+.ledger-filters select,.ledger-filters input{height:32px;font-size:12px;padding:4px 10px}
+.ledger-table{width:100%;border-collapse:collapse}
+.ledger-table th{padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);background:var(--bg2);text-align:left;white-space:nowrap;border-bottom:1px solid var(--border)}
+.ledger-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.ledger-table tr:last-child td{border-bottom:none}
+.ledger-table tr:hover td{background:rgba(255,255,255,.02)}
+.ledger-dep{color:var(--green);font-family:var(--mono);font-size:12px;font-weight:600}
+.ledger-wd{color:var(--red);font-family:var(--mono);font-size:12px;font-weight:600}
+.ledger-bal{font-family:var(--mono);font-size:12px;font-weight:600}
+.ledger-total{background:var(--card2);border-top:2px solid var(--border2)}
+.ledger-total td{font-weight:700;padding:10px 12px}
+.rev-badge{background:var(--red-dim);color:#f87171;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;margin-left:5px}
+.np-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(71,85,105,.2);color:#64748b;border:1px solid #334155;font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;margin-left:5px}
+.phase-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
+.lock-btn{background:none;border:none;color:var(--text3);font-size:14px;padding:2px 5px;opacity:.5;transition:.15s}
+.lock-btn:hover{opacity:1;color:var(--amber)}
+td .edit-btn{background:transparent;border:1px solid transparent;color:var(--text3);padding:3px 6px;border-radius:5px;font-size:12px;opacity:.3;transition:.15s}
+tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
+
+/* ── INVESTORS ── */
+.investor-header-row{display:grid;grid-template-columns:1fr 180px 80px 80px 130px 1fr 32px;gap:8px;padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)}
+.investor-row{display:grid;grid-template-columns:1fr 180px 80px 80px 130px 1fr 32px;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);transition:.15s}
+.investor-row:hover{background:rgba(255,255,255,.02)}
+.investor-row:last-child{border-bottom:none}
+.investor-input{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 9px;width:100%;font-size:13px}
+.investor-totals{display:grid;grid-template-columns:1fr 180px 80px 80px 130px 1fr 32px;gap:8px;padding:10px 12px;background:var(--card2);font-size:13px;font-weight:700;border-top:2px solid var(--border2)}
+.btn-edit-inv{width:26px;height:26px;background:transparent;border:1px solid transparent;border-radius:5px;color:var(--text3);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;opacity:.25;transition:.15s;padding:0}
+.investor-row:hover .btn-edit-inv{opacity:1;background:var(--amber-dim);border-color:var(--amber);color:var(--amber)}
+
+/* ── BUTTONS ── */
+.btn-primary{background:var(--amber);color:#000;border:none;border-radius:7px;padding:8px 18px;font-weight:700;font-size:13px;font-family:var(--cond);letter-spacing:.4px;transition:.15s}
+.btn-primary:hover{background:var(--amber2)}
+.btn-secondary{background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:7px;padding:7px 16px;font-weight:600;font-size:12px;transition:.15s}
+.btn-secondary:hover{border-color:var(--amber);color:var(--amber)}
+.btn-danger{background:transparent;border:1px solid var(--red);color:var(--red);border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;transition:.15s}
+.btn-danger:hover{background:var(--red-dim)}
+.btn-icon{background:none;border:none;color:var(--text3);font-size:16px;padding:4px;transition:.15s;border-radius:4px}
+.btn-icon:hover{color:var(--red)}
+
+/* ── FORMS ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text3)}
+.form-input{background:var(--card2);border:1px solid var(--border2);color:var(--text);border-radius:7px;padding:8px 11px;font-size:13px;width:100%;transition:.15s}
+.form-input:focus{border-color:var(--amber);outline:none}
+.form-input[readonly]{opacity:.6}
+.money-display{position:relative}
+.money-display input{color:transparent;font-family:var(--mono)}
+.money-display input:focus{color:var(--text)}
+.money-overlay{position:absolute;inset:0;display:flex;align-items:center;padding:8px 11px;font-family:var(--mono);font-size:13px;pointer-events:none;color:var(--text)}
+.money-display input:focus + .money-overlay{display:none}
+.calc-row{background:var(--card2);border:1px solid var(--border);border-radius:7px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.calc-label{font-size:12px;color:var(--text2)}
+.calc-val{font-family:var(--mono);font-weight:700;font-size:14px}
+
+/* ── PROGRESS ── */
+.progress-bar{height:6px;background:var(--border2);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:.3s}
+.fill-green{background:var(--green)}
+.fill-amber{background:var(--amber)}
+.fill-red{background:var(--red)}
+.fill-blue{background:var(--blue)}
+
+/* ── CHART GRID ── */
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:20px}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);padding:16px}
+.chart-box h3{font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+.chart-box canvas{max-height:220px}
+
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:.2s}
+.modal-overlay.open{opacity:1;pointer-events:auto}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius2);padding:24px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow)}
+.modal.wide{max-width:720px}
+.modal h2{font-family:var(--cond);font-size:18px;font-weight:700;color:var(--amber);letter-spacing:.5px;margin-bottom:18px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.modal-context{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--text2)}
+.modal-context strong{display:block;color:var(--text);font-size:14px;margin-bottom:4px}
+.edit-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.edit-inp{width:100%;background:var(--bg2);border:2px solid var(--amber);border-radius:8px;color:var(--text);padding:10px 14px;font-family:var(--mono);font-size:15px;font-weight:600}
+
+/* ── TOAST ── */
+#toastEl{position:fixed;bottom:24px;right:24px;z-index:1000;display:flex;flex-direction:column;gap:8px}
+.toast{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:var(--shadow);animation:slideIn .2s ease}
+.toast.success{background:#064e3b;border:1px solid var(--green);color:#6ee7b7}
+.toast.error{background:#450a0a;border:1px solid var(--red);color:#fca5a5}
+.toast.info{background:#1e3a5f;border:1px solid var(--blue);color:#93c5fd}
+.toast.warning{background:#451a03;border:1px solid var(--amber);color:#fde68a}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── TIMEOUT WARNING ── */
+.timeout-warning{position:fixed;top:70px;right:20px;background:var(--card);border:1px solid var(--amber);border-radius:var(--radius2);padding:16px 20px;z-index:400;min-width:220px;display:none;box-shadow:var(--shadow)}
+.timeout-warning h4{font-family:var(--cond);color:var(--amber);margin-bottom:6px;font-size:14px;letter-spacing:.5px}
+.countdown{font-size:32px;font-family:var(--mono);font-weight:700;color:var(--text);margin:8px 0;text-align:center}
+.btn-stay{background:var(--amber);color:#000;border:none;border-radius:7px;padding:7px 20px;font-weight:700;width:100%;font-family:var(--cond)}
+
+/* ── SETTINGS ── */
+.settings-section{margin-bottom:28px}
+.settings-section h3{font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--amber);margin-bottom:14px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border-bottom:none}
+.settings-row-info h4{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.settings-row-info p{font-size:11px;color:var(--text3)}
+.settings-select{padding:6px 10px;font-size:12px;border-radius:6px;background:var(--card2)}
+
+/* ── PRINT ── */
+.print-check{display:flex;align-items:flex-start;gap:10px;padding:8px 0;cursor:pointer}
+.print-check input{accent-color:var(--amber)}
+.print-check-label{font-size:13px;font-weight:600;color:var(--text)}
+.print-check-desc{display:block;font-size:11px;color:var(--text3);font-weight:400}
+
+/* ── FINANCE FORMS ── */
+.finance-section-title{font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--amber);margin:20px 0 12px;padding-top:12px;border-top:1px solid var(--border)}
+.finance-section-title:first-child{margin-top:0;border-top:none}
+
+/* ── PHASE BUDGET TABLE ── */
+.phase-budget-table{width:100%;border-collapse:collapse}
+.phase-budget-table th{padding:8px 14px;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);background:var(--bg2);border-bottom:1px solid var(--border);text-align:right}
+.phase-budget-table th:first-child{text-align:left}
+.phase-budget-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.phase-budget-table tr:last-child td{border-bottom:none}
+.phase-budget-table .total-row td{font-weight:700;background:var(--card2);border-top:2px solid var(--border2)}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:40px;color:var(--text3)}
+.empty-state .empty-icon{font-size:32px;margin-bottom:12px}
+.empty-state p{font-size:13px}
+
+/* ── RISK TABLE ── */
+.risk-table{width:100%;border-collapse:collapse}
+.risk-table th,.risk-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px;text-align:left}
+.risk-table th{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);background:var(--bg2)}
+.risk-table input,.risk-table select{background:transparent;border:none;color:var(--text);font-size:13px;width:100%;padding:0}
+.risk-table input:focus,.risk-table select:focus{outline:none;border-bottom:1px solid var(--amber)}
+.risk-table select{background:var(--bg2)}
+
+/* ── DELAY SUMMARY ── */
+.delay-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.delay-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+.delay-label{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+.delay-val{font-size:18px;font-weight:700;font-family:var(--mono)}
+
+/* ── REPORT TAB ── */
+.report-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);margin-bottom:20px;overflow:hidden}
+.report-section-header{padding:14px 20px;background:var(--bg2);border-bottom:1px solid var(--border);font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--amber)}
+.report-section-body{padding:20px}
+
+/* ── PRINT STYLES ── */
+@media print{
+  .topbar,.tabs,.no-print,.modal-overlay,.timeout-warning,#toastEl{display:none!important}
+  .tab-pane{display:none!important;overflow:visible!important}
+  .tab-pane.print-include{display:block!important}
+  body,html{height:auto!important}
+  #app{display:block!important;height:auto!important}
+  body{background:#fff;color:#000}
+  .card,.chart-box,.report-section,.phase-card{border:1px solid #ccc;page-break-inside:avoid}
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .phase-meta{display:none}
+  .investor-header-row,.investor-row,.investor-totals{grid-template-columns:1fr 140px 70px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ CREATE PASSWORD SCREEN ═══ -->
+<div id="createPwScreen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:var(--bg);z-index:9999;flex-direction:column">
+  <div class="auth-card">
+    <div class="auth-logo">🏗️</div>
+    <div class="auth-title">CPM</div>
+    <div class="auth-sub">Construction Project Management</div>
+    <div class="auth-hint">First time setup — create your password</div>
+    <div class="pw-wrap">
+      <input type="password" id="createPw1" placeholder="Create password" onkeydown="if(event.key==='Enter')document.getElementById('createPw2').focus()">
+      <button class="pw-eye" onclick="toggleEye('createPw1')">👁</button>
+    </div>
+    <div class="pw-wrap">
+      <input type="password" id="createPw2" placeholder="Confirm password" onkeydown="if(event.key==='Enter')cpmCreatePassword()">
+    </div>
+    <div class="auth-err" id="createErr"></div>
+    <button class="btn-auth" onclick="cpmCreatePassword()">🔐 Create Password</button>
+  </div>
+</div>
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="loginScreen" style="display:flex;position:fixed;inset:0;align-items:center;justify-content:center;background:var(--bg);z-index:9999">
+  <div class="auth-card">
+    <div class="auth-logo">🏗️</div>
+    <div class="auth-title">CPM</div>
+    <div class="auth-sub">Construction Project Management</div>
+    <div class="auth-ver" id="loginVer">v1.0</div>
+    <div class="pw-wrap">
+      <input type="password" id="pwInput" placeholder="Enter password" onkeydown="if(event.key==='Enter')cpmLogin()">
+      <button class="pw-eye" onclick="toggleEye('pwInput')">👁</button>
+    </div>
+    <div class="auth-err" id="loginErr"></div>
+    <button class="btn-auth" onclick="cpmLogin()">🔓 Unlock</button>
+    <div style="margin-top:14px;text-align:center">
+      <a href="#" onclick="showForgotPw();return false" style="font-size:11px;color:var(--text3);text-decoration:none;border-bottom:1px dashed var(--text3);padding-bottom:1px">Forgot password?</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FORGOT PASSWORD SCREEN ═══ -->
+<div id="forgotPwScreen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:var(--bg);z-index:9999">
+  <div class="auth-card" style="max-width:360px">
+    <div class="auth-logo">🔑</div>
+    <div class="auth-title" style="font-size:18px">Reset Password</div>
+    <div class="auth-sub" style="font-size:12px;line-height:1.6;margin-bottom:8px">Verify your identity via Google Drive.<br>Your data will not be affected.</div>
+    <div id="forgotPwStep1" style="width:100%">
+      <button class="btn-auth" onclick="forgotPwConnectDrive()" style="background:var(--amber);margin-bottom:10px">🔗 Verify with Google Drive</button>
+      <div id="forgotPwMsg" style="font-size:12px;min-height:18px;text-align:center;color:var(--text3)"></div>
+    </div>
+    <div id="forgotPwStep2" style="display:none;width:100%">
+      <div class="pw-wrap" style="margin-bottom:8px">
+        <input type="password" id="fpNewPw1" placeholder="New password" class="pw-input" onkeydown="if(event.key==='Enter')document.getElementById('fpNewPw2').focus()">
+        <button class="pw-eye" onclick="toggleEye('fpNewPw1')">👁</button>
+      </div>
+      <div class="pw-wrap" style="margin-bottom:8px">
+        <input type="password" id="fpNewPw2" placeholder="Confirm password" class="pw-input" onkeydown="if(event.key==='Enter')forgotPwSave()">
+        <button class="pw-eye" onclick="toggleEye('fpNewPw2')">👁</button>
+      </div>
+      <div id="forgotPwErr" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:8px;text-align:center"></div>
+      <button class="btn-auth" onclick="forgotPwSave()" style="background:var(--amber);margin-bottom:8px">✓ Set New Password</button>
+    </div>
+    <a href="#" onclick="hideForgotPw();return false" style="font-size:11px;color:var(--text3);text-decoration:none;border-bottom:1px dashed var(--text3);margin-top:6px">← Back to login</a>
+  </div>
+</div>
+
+<!-- ═══ TIMEOUT WARNING ═══ -->
+<div class="timeout-warning no-print" id="timeoutWarning">
+  <h4>⏱ Session Expiring</h4>
+  <p style="font-size:12px;color:var(--text3);margin-bottom:4px">Auto-saving and logging out in:</p>
+  <div class="countdown" id="countdownNum">60</div>
+  <button class="btn-stay" onclick="resetTimer()">Stay Logged In</button>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app" style="display:none;height:100vh;display:none;flex-direction:column">
+
+  <!-- TOPBAR -->
+  <div class="topbar no-print">
+    <div class="topbar-logo">🏗 CPM</div>
+    <div class="topbar-ver" id="topbarVer">v1.0</div>
+    <div class="project-selector-wrap">
+      <label>Project</label>
+      <select id="projectSelect" onchange="switchProject(this.value)"></select>
+      <button class="btn-new-project" onclick="openNewProjectModal()">+ New</button>
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-actions">
+      <span><span class="timer-dot" id="timerDot"></span><span id="timerDisplay" style="font-size:11px;font-family:var(--mono);color:var(--text3)">10:00</span></span>
+      <button class="btn-topbar" onclick="triggerDriveSave()">☁ Save</button>
+      <button class="btn-topbar" onclick="openPrintModal()">🖨 Print</button>
+      <button class="btn-topbar" onclick="showTab('settings')">⚙ Settings</button>
+      <button class="btn-topbar" onclick="cpmLogout()">⎋ Lock</button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs no-print">
+    <button class="tab-btn active" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
+    <button class="tab-btn" data-tab="phases" onclick="showTab('phases')">Phases &amp; Tasks</button>
+    <button class="tab-btn" data-tab="ledger" onclick="showTab('ledger')">Bank Ledger</button>
+    <button class="tab-btn" data-tab="investors" onclick="showTab('investors')">Investors</button>
+    <button class="tab-btn" data-tab="finance" onclick="showTab('finance')">Finance</button>
+    <button class="tab-btn" data-tab="reports" onclick="showTab('reports')">Reports</button>
+    <button class="tab-btn" data-tab="settings" onclick="showTab('settings')">Settings</button>
+  </div>
+
+  <!-- DRIVE CONNECT BANNER -->
+  <div id="drive-banner" class="no-print" style="display:none;align-items:center;justify-content:space-between;padding:8px 20px;background:linear-gradient(90deg,rgba(251,146,60,.12),rgba(251,146,60,.06));border-bottom:1px solid rgba(251,146,60,.3);font-size:12px;color:var(--amber)">
+    <span>☁ Connect Google Drive to sync your data across devices and browsers.</span>
+    <button onclick="connectDrive()" style="background:var(--amber);color:var(--bg);border:none;padding:4px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:12px">Connect Drive</button>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="tab-pane active" id="tab-dashboard">
+    <div id="kpi-grid" class="kpi-grid"></div>
+    <div class="chart-grid">
+      <div class="chart-box"><h3>Capital Waterfall</h3><canvas id="chart-waterfall" style="max-height:220px"></canvas></div>
+      <div class="chart-box"><h3>Phase Spend vs Budget</h3><canvas id="chart-phases" style="max-height:220px"></canvas></div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-box"><h3>Task Completion by Phase</h3><canvas id="chart-tasks" style="max-height:220px"></canvas></div>
+      <div class="chart-box"><h3>Monthly Cash Flow</h3><canvas id="chart-cashflow" style="max-height:220px"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">⚠ Active Blockers</span></div>
+      <div class="card-body" id="blockers-list"></div>
+    </div>
+  </div>
+
+  <!-- ── PHASES & TASKS ── -->
+  <div class="tab-pane" id="tab-phases">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <div style="font-family:var(--cond);font-size:20px;font-weight:700;letter-spacing:.5px">Phases &amp; Tasks</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">Track construction progress — budgets auto-sync from bank ledger</div>
+      </div>
+      <button class="btn-primary" onclick="openAddPhaseModal()">+ Add Task</button>
+    </div>
+    <div id="phases-list"></div>
+  </div>
+
+  <!-- ── BANK LEDGER ── -->
+  <div class="tab-pane" id="tab-ledger">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div>
+        <div style="font-family:var(--cond);font-size:20px;font-weight:700;letter-spacing:.5px" id="ledger-title">Bank Ledger</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">Asgardian Holdings LLC — All transactions</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary" onclick="lockAllLedger()">🔒 Lock All</button>
+        <button class="btn-secondary" onclick="unlockAllLedger()">🔓 Unlock All</button>
+        <button class="btn-primary" onclick="openLedgerModal(null)">+ Add Entry</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div id="ledger-kpis" class="kpi-grid" style="padding:16px;margin-bottom:0;border-bottom:1px solid var(--border)"></div>
+      <div class="ledger-filters no-print">
+        <select id="filterType" onchange="renderLedger()"><option value="">All Types</option></select>
+        <select id="filterPhase" onchange="renderLedger()"><option value="">All Phases</option></select>
+        <select id="filterSort" onchange="renderLedger()">
+          <option value="date-asc">Date ↑</option>
+          <option value="date-desc">Date ↓</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="ledger-table" id="ledger-table"><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── INVESTORS ── -->
+  <div class="tab-pane" id="tab-investors">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Investor Details</span>
+        <button class="btn-secondary no-print" style="font-size:11px;padding:4px 10px" onclick="copyInvestorEmails()">📋 Copy Emails</button>
+        <button class="btn-secondary no-print" style="font-size:11px;padding:4px 10px;margin-left:4px" onclick="mailtoInvestors()">✉ Email All</button>
+        <button class="btn-primary no-print" style="font-size:11px;padding:5px 12px;margin-left:4px" onclick="addInvestorRow()">+ Add Investor</button>
+      </div>
+      <div id="investor-list" class="card-body" style="padding:0"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Investment Terms &amp; Agreements</span></div>
+      <div class="card-body">
+        <textarea class="form-input" id="investment-terms" style="width:100%;min-height:100px" placeholder="Document investment terms, buyout options, preferred return agreements..." oninput="updateProjectField('investmentTerms',this.value)"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FINANCE ── -->
+  <div class="tab-pane" id="tab-finance">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Project Financials</span></div>
+      <div class="card-body" id="finance-form"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Phase Budget Tracker</span><span class="card-sub">Drawn amounts auto-sync from bank ledger</span></div>
+      <div style="overflow-x:auto">
+        <table class="phase-budget-table" id="phase-budget-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REPORTS ── -->
+  <div class="tab-pane" id="tab-reports">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-family:var(--cond);font-size:20px;font-weight:700;letter-spacing:.5px" id="report-company"></div>
+        <div style="font-size:13px;color:var(--text3)" id="report-title"></div>
+      </div>
+      <button class="btn-primary no-print" onclick="openPrintModal()">🖨 Print / Export PDF</button>
+    </div>
+    <div id="report-content"></div>
+  </div>
+
+  <!-- ── SETTINGS ── -->
+  <div class="tab-pane" id="tab-settings">
+    <div style="max-width:640px">
+      <div class="settings-section">
+        <h3>Project</h3>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Project Name</label><input class="form-input" id="s-proj-name" oninput="updateProjectInfo('name',this.value)" placeholder="e.g. 3322 Landings South Drive"></div>
+          <div class="form-group"><label class="form-label">Company Name</label><input class="form-input" id="s-company" oninput="updateProjectInfo('company',this.value)" placeholder="e.g. Asgardian Holdings LLC"></div>
+          <div class="form-group"><label class="form-label">Property Address</label><input class="form-input" id="s-address" oninput="updateProjectInfo('address',this.value)"></div>
+          <div class="form-group"><label class="form-label">General Contractor</label><input class="form-input" id="s-gc" oninput="updateProjectInfo('gc',this.value)"></div>
+          <div class="form-group"><label class="form-label">Law Firm</label><input class="form-input" id="s-lawfirm" oninput="updateProjectInfo('lawFirm',this.value)"></div>
+          <div class="form-group"><label class="form-label">Start Date</label><input type="date" class="form-input" id="s-start" oninput="updateProjectInfo('startDate',this.value)"></div>
+          <div class="form-group"><label class="form-label">Est. Completion</label><input type="date" class="form-input" id="s-completion" oninput="updateProjectInfo('estCompletion',this.value)"></div>
+          <div class="form-group"><label class="form-label">Report Period</label><input class="form-input" id="s-period" oninput="updateProjectInfo('reportPeriod',this.value)" placeholder="e.g. Q1 2026"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label class="form-label">Google Sheet ID <span style="color:var(--text3);font-weight:400;text-transform:none">(for Sheets sync — coming soon)</span></label>
+          <input class="form-input" id="s-sheetid" placeholder="Paste Sheet ID from Google Sheets URL" oninput="updateProjectInfo('sheetId',this.value)">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">From your Sheet URL: docs.google.com/spreadsheets/d/<strong style="color:var(--amber)">[SHEET_ID]</strong>/edit</div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Drive</h3>
+        <div class="settings-row">
+          <div class="settings-row-info"><h4>Google Drive Sync</h4><p>All data saves to cpm_data.json in your Drive</p></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary" id="driveConnectBtn" onclick="connectDrive()">Connect Drive</button>
+            <button class="btn-secondary" onclick="triggerDriveSave()">Save Now</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-info"><h4>Export / Import JSON</h4><p>Manual backup of all project data</p></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary" onclick="exportJSON()">⬇ Export</button>
+            <button class="btn-secondary" onclick="document.getElementById('jsonImport').click()">⬆ Import</button>
+            <input type="file" id="jsonImport" accept=".json" style="display:none" onchange="importJSON(event)">
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Security</h3>
+        <div class="settings-row">
+          <div class="settings-row-info"><h4>Auto-Logout Timer</h4><p>Automatically locks after inactivity</p></div>
+          <select class="settings-select" id="timerSelect" onchange="updateTimer(this.value)">
+            <option value="300">5 minutes</option>
+            <option value="600" selected>10 minutes (default)</option>
+            <option value="900">15 minutes</option>
+            <option value="1800">30 minutes</option>
+            <option value="3600">1 hour</option>
+            <option value="14400">4 hours</option>
+            <option value="28800">8 hours</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-info"><h4>Change Password</h4><p>Update your CPM access password</p></div>
+          <button class="btn-secondary" onclick="openChangePwModal()">Change</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-info"><h4>Delete Project</h4><p>Permanently remove the current project</p></div>
+          <button class="btn-danger" onclick="deleteCurrentProject()">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- NEW PROJECT -->
+<div class="modal-overlay" id="modal-new-project">
+  <div class="modal">
+    <h2>🏗 New Project</h2>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="edit-label">Project Name</label>
+      <input type="text" id="new-proj-name" class="form-input" placeholder="e.g. 456 Oak Street">
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="edit-label">Company Name</label>
+      <input type="text" id="new-proj-company" class="form-input" placeholder="e.g. Asgardian Holdings LLC">
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="edit-label">Property Address</label>
+      <input type="text" id="new-proj-address" class="form-input" placeholder="Full property address">
+    </div>
+    <div style="font-size:12px;color:var(--text3);background:var(--bg2);border-radius:8px;padding:10px;margin-bottom:4px">
+      All phases and tasks will be pre-filled. Set budgets and phase details after creation.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-new-project')">Cancel</button>
+      <button class="btn-primary" onclick="createNewProject()">Create Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASK EDIT -->
+<div class="modal-overlay" id="modal-task">
+  <div class="modal">
+    <h2>✏ Edit Task</h2>
+    <div id="task-modal-phase" class="modal-context"></div>
+    <div class="form-grid" style="margin-bottom:14px">
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="edit-label">Task Name</label>
+        <input type="text" id="task-name" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="edit-label">Status</label>
+        <select id="task-status" class="form-input">
+          <option value="pending">Pending</option>
+          <option value="in-progress">In Progress</option>
+          <option value="blocked">Blocked</option>
+          <option value="complete">Complete</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="edit-label">Actual Cost ($)</label>
+        <input type="number" id="task-cost" class="form-input" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label class="edit-label">Start Date</label>
+        <input type="date" id="task-start" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="edit-label">End Date</label>
+        <input type="date" id="task-end" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="edit-label">Actual Complete</label>
+        <input type="date" id="task-actual" class="form-input">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="edit-label">Blocker / Note</label>
+        <input type="text" id="task-blocker" class="form-input" placeholder="e.g. Waiting for GA Power">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-danger" onclick="deleteTask()" style="margin-right:auto">Delete Task</button>
+      <button class="btn-secondary" onclick="closeModal('modal-task')">Cancel</button>
+      <button class="btn-primary" onclick="saveTask()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TASK -->
+<div class="modal-overlay" id="modal-add-task">
+  <div class="modal">
+    <h2>+ Add Task</h2>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="edit-label">Phase</label>
+      <select id="add-task-phase" class="form-input"></select>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="edit-label">Task Name</label>
+      <input type="text" id="add-task-name" class="form-input" placeholder="Task description">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-add-task')">Cancel</button>
+      <button class="btn-primary" onclick="saveNewTask()">Add Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEDGER ENTRY -->
+<div class="modal-overlay" id="modal-ledger">
+  <div class="modal wide">
+    <h2 id="ledger-modal-title">Add Ledger Entry</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="edit-label">Date</label>
+        <input type="date" id="le-date" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="edit-label">Type</label>
+        <select id="le-type" class="form-input">
+          <option value="Investor Funding">Investor Funding</option>
+          <option value="Wire Payment">Wire Payment</option>
+          <option value="Bill Pay">Bill Pay</option>
+          <option value="Bill Pay Return">Bill Pay Return</option>
+          <option value="Fees">Fees</option>
+          <option value="Deposit">Deposit</option>
+          <option value="Refund/Credit">Refund/Credit</option>
+          <option value="Non-Project Entry">Non-Project Entry</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="edit-label">Phase</label>
+        <select id="le-phase" class="form-input"></select>
+      </div>
+      <div class="form-group">
+        <label class="edit-label">Deposit ($)</label>
+        <input type="number" id="le-deposit" class="form-input" step="0.01" placeholder="0.00" min="0">
+      </div>
+      <div class="form-group">
+        <label class="edit-label">Withdrawal ($)</label>
+        <input type="number" id="le-withdrawal" class="form-input" step="0.01" placeholder="0.00" min="0">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="edit-label">Description</label>
+        <input type="text" id="le-desc" class="form-input" placeholder="Transaction description">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="edit-label">Memo (optional)</label>
+        <input type="text" id="le-memo" class="form-input" placeholder="Internal note">
+      </div>
+    </div>
+    <div style="display:flex;gap:16px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="le-reversed" style="accent-color:var(--amber)"> Reversed / Voided
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="le-lot" style="accent-color:var(--amber)"> Lot Purchase
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-ledger')">Cancel</button>
+      <button class="btn-primary" onclick="saveLedgerEntry()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVESTOR EDIT -->
+<div class="modal-overlay" id="modal-investor">
+  <div class="modal">
+    <h2>✏ Edit Investor</h2>
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="edit-label">Name</label>
+      <input type="text" id="inv-name" class="form-input">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group">
+        <label class="edit-label">Investment ($)</label>
+        <input type="number" id="inv-amount" class="edit-inp" step="0.01">
+      </div>
+      <div class="form-group">
+        <label class="edit-label">Equity %</label>
+        <input type="number" id="inv-equity" class="edit-inp" step="0.01" oninput="updateInvPayout()">
+      </div>
+      <div class="form-group">
+        <label class="edit-label">Pref. Return %</label>
+        <input type="number" id="inv-pref" class="edit-inp" step="0.01">
+      </div>
+      <div class="form-group">
+        <label class="edit-label">Email</label>
+        <input type="email" id="inv-email" class="form-input" style="font-size:13px">
+      </div>
+    </div>
+    <div style="background:var(--bg2);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-size:12px;color:var(--text2)">Projected Payout</span>
+      <span id="inv-payout-val" style="font-family:var(--mono);font-weight:700;color:var(--green)">—</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-investor')">Cancel</button>
+      <button class="btn-primary" onclick="saveInvestor()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE BUDGET EDIT -->
+<div class="modal-overlay" id="modal-phase-budget">
+  <div class="modal">
+    <h2>✏ Set Phase Budget</h2>
+    <div id="pb-context" class="modal-context"></div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="edit-label">Budget Amount ($)</label>
+      <input type="number" id="pb-amount" class="edit-inp" step="0.01" placeholder="0.00" onkeydown="if(event.key==='Enter')savePhaseBudget()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-phase-budget')">Cancel</button>
+      <button class="btn-primary" onclick="savePhaseBudget()">Save Budget</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD -->
+<div class="modal-overlay" id="modal-change-pw">
+  <div class="modal">
+    <h2>🔑 Change Password</h2>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="edit-label">Current Password</label>
+      <input type="password" id="cp-cur" class="form-input">
+    </div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="edit-label">New Password</label>
+      <input type="password" id="cp-new" class="form-input">
+    </div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="edit-label">Confirm New</label>
+      <input type="password" id="cp-con" class="form-input">
+    </div>
+    <div id="cp-msg" style="font-size:12px;min-height:16px;margin-bottom:8px"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-change-pw')">Cancel</button>
+      <button class="btn-primary" onclick="changePassword()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT -->
+<div class="modal-overlay" id="modal-print">
+  <div class="modal" style="max-width:480px">
+    <h2>🖨 Print / Export PDF</h2>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:14px">Select sections to include:</p>
+    <div id="print-options" style="display:flex;flex-direction:column;gap:4px"></div>
+    <div style="display:flex;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <button class="btn-secondary" style="font-size:11px" onclick="toggleAllPrint(true)">Select All</button>
+      <button class="btn-secondary" style="font-size:11px" onclick="toggleAllPrint(false)">Deselect All</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-print')">Cancel</button>
+      <button class="btn-primary" onclick="executePrint()">Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toastEl"></div>
+
+<!-- ═══ SCRIPTS ═══ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+/* ════════════════════════════════════════════════════
+   CONSTANTS
+════════════════════════════════════════════════════ */
+const APP_VERSION = 'v1.1';
+const APP_NAME = 'CPM';
+const LS_KEY = 'cpm_data';
+const PW_KEY = 'cpm_pass';
+const DRIVE_FILE = 'cpm_data.json';
+const CLIENT_ID = '305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
+
+const PHASES = [
+  {id:'land',  name:'Land Acquisition', color:'#a78bfa'},
+  {id:'phase1',name:'Phase 1',          color:'#60a5fa'},
+  {id:'phase2',name:'Phase 2',          color:'#34d399'},
+  {id:'phase3',name:'Phase 3',          color:'#fbbf24'},
+  {id:'phase4',name:'Phase 4',          color:'#f472b6'},
+  {id:'phase5',name:'Phase 5',          color:'#22d3ee'},
+  {id:'phase6',name:'Phase 6',          color:'#4ade80'},
+  {id:'mgmt',  name:'Mgmt Fee',         color:'#fb923c'}
+];
+
+// Ledger-only phases (not build phases — no budget tracking)
+const LEDGER_PHASES = [
+  ...PHASES,
+  {id:'capital',      name:'Capital',       color:'#60a5fa'},
+  {id:'general_admin',name:'General/Admin', color:'#94a3b8'}
+];
+
+const PHASE_LABELS = {
+  land:'Land Acquisition',
+  phase1:'Pre-Construction',
+  phase2:'Site Prep & Foundation',
+  phase3:'Framing & Rough-Ins',
+  phase4:'Interior & Exterior Finishes',
+  phase5:'Site Completion',
+  phase6:'Close Out',
+  mgmt:'GC Management Fee'
+};
+
+const DEFAULT_TASKS = [
+  {phaseId:'land',  name:'Land Closing / Acquisition'},
+  {phaseId:'phase1',name:'Survey & Soil Testing'},
+  {phaseId:'phase1',name:'Architectural Plans Finalized'},
+  {phaseId:'phase1',name:'Permits Approved'},
+  {phaseId:'phase2',name:'Permit Box Installation'},
+  {phaseId:'phase2',name:'Site Clearing & Grading'},
+  {phaseId:'phase2',name:'Silt Fence, Tree Fence, Construction Fence'},
+  {phaseId:'phase2',name:'Temporary Electrical Pole'},
+  {phaseId:'phase2',name:'Temp Pole Inspection'},
+  {phaseId:'phase2',name:'Foundation Boards'},
+  {phaseId:'phase2',name:'Slab Plumbing'},
+  {phaseId:'phase2',name:'Slab Plumbing Inspection'},
+  {phaseId:'phase2',name:'Box Check'},
+  {phaseId:'phase2',name:'Foundation Form & Compaction Inspection'},
+  {phaseId:'phase2',name:'Foundation Inspection from City'},
+  {phaseId:'phase2',name:'Foundation Poured'},
+  {phaseId:'phase2',name:'Order Water Meter with City'},
+  {phaseId:'phase3',name:'Framing Complete'},
+  {phaseId:'phase3',name:'Roof Installed'},
+  {phaseId:'phase3',name:'House Wrap, Windows & Doors Installed'},
+  {phaseId:'phase3',name:'Exterior Siding & Cornice'},
+  {phaseId:'phase3',name:'T-Ply Insulation'},
+  {phaseId:'phase3',name:'Fireplace Install'},
+  {phaseId:'phase3',name:'Plumbing Rough'},
+  {phaseId:'phase3',name:'Electrical Rough'},
+  {phaseId:'phase3',name:'HVAC Rough'},
+  {phaseId:'phase3',name:'Gas Lines Installed'},
+  {phaseId:'phase3',name:'Mechanical Inspections'},
+  {phaseId:'phase3',name:'Fire Foam & Caulk'},
+  {phaseId:'phase3',name:'Framing Inspection'},
+  {phaseId:'phase3',name:'Insulation Installed'},
+  {phaseId:'phase3',name:'Insulation Inspection'},
+  {phaseId:'phase4',name:'Drywall Hung & Paint Ready'},
+  {phaseId:'phase4',name:'Prime'},
+  {phaseId:'phase4',name:'Tile Prep & Install'},
+  {phaseId:'phase4',name:'Interior Trim & Doors'},
+  {phaseId:'phase4',name:'Cabinetry & Countertops'},
+  {phaseId:'phase4',name:'Flooring Installed'},
+  {phaseId:'phase4',name:'Interior Paint'},
+  {phaseId:'phase4',name:'Exterior Paint'},
+  {phaseId:'phase4',name:'Electrical Final'},
+  {phaseId:'phase4',name:'Plumbing Final'},
+  {phaseId:'phase4',name:'HVAC Final'},
+  {phaseId:'phase4',name:'Blown Insulation'},
+  {phaseId:'phase4',name:'Appliance Installation'},
+  {phaseId:'phase4',name:'Final Mechanical Inspections'},
+  {phaseId:'phase5',name:'Landscaping'},
+  {phaseId:'phase5',name:'Driveway, Walkway & Sidewalk'},
+  {phaseId:'phase5',name:'Mailbox'},
+  {phaseId:'phase5',name:'Garage'},
+  {phaseId:'phase5',name:'Carpet'},
+  {phaseId:'phase5',name:'Mirrors'},
+  {phaseId:'phase5',name:'Lock Out (Locks, Knobs, Shoe Mold)'},
+  {phaseId:'phase6',name:'Final Inspections'},
+  {phaseId:'phase6',name:'Certificate of Occupancy'},
+  {phaseId:'phase6',name:'Final Walkthrough'},
+  {phaseId:'phase6',name:'Closing / Sale'},
+  {phaseId:'mgmt', name:'GC Management Fee'}
+];
+
+const LEDGER_TYPES = ['Investor Funding','Wire Payment','Bill Pay','Bill Pay Return','Fees','Deposit','Refund/Credit','Non-Project Entry','Other'];
+
+/* ════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════ */
+let appData = {version:'1.1', activeProjectId:null, projects:[]};
+let currentProject = null;
+let PASS_HASH = localStorage.getItem(PW_KEY) || null;
+let accessToken = null;
+let driveFileId = localStorage.getItem('cpm_drive_id') || null;
+let driveConnected = false;
+let gapiReady = false;
+let gisReady = false;
+let tokenClient = null;
+let saveTimer = null;
+let charts = {};
+let _editTaskId = null;
+let _editInvIdx = null;
+let _editPhaseBudget = null;
+let _editLedgerId = null;
+
+/* ════════════════════════════════════════════════════
+   UTILS
+════════════════════════════════════════════════════ */
+function fmt$(v){if(isNaN(v)||v==null)return '$0.00';return '$'+parseFloat(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtDate(d){if(!d)return '—';const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'});}
+function fmtPct(v){return isNaN(v)?'0.0%':(v*100).toFixed(1)+'%';}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function toggleEye(id){const inp=document.getElementById(id);inp.type=inp.type==='password'?'text':'password';}
+function localDate(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+
+function toast(msg,type='success'){
+  const t=document.createElement('div');t.className=`toast ${type}`;
+  const icons={success:'✓',error:'✕',info:'ℹ',warning:'⚠'};
+  t.innerHTML=`<span>${icons[type]||'ℹ'}</span><span>${msg}</span>`;
+  document.getElementById('toastEl').appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+async function sha256(s){
+  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+/* ════════════════════════════════════════════════════
+   AUTH — OPTION B
+════════════════════════════════════════════════════ */
+async function init(){
+  if(!PASS_HASH){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('createPwScreen').style.display='flex';
+    return;
+  }
+  document.getElementById('loginVer').textContent=APP_VERSION;
+}
+
+async function cpmCreatePassword(){
+  const p1=document.getElementById('createPw1').value;
+  const p2=document.getElementById('createPw2').value;
+  const err=document.getElementById('createErr');
+  if(!p1||p1.length<4){err.textContent='Minimum 4 characters';return;}
+  if(p1!==p2){err.textContent='Passwords do not match';return;}
+  PASS_HASH=await sha256(p1);
+  localStorage.setItem(PW_KEY,PASS_HASH);
+  document.getElementById('createPwScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginErr').textContent='Password created — please log in';
+  document.getElementById('loginErr').style.color='var(--green)';
+  setTimeout(()=>{document.getElementById('loginErr').textContent='';document.getElementById('loginErr').style.color='';},3000);
+}
+
+async function cpmLogin(){
+  const pw=document.getElementById('pwInput').value;
+  if(!pw){document.getElementById('loginErr').textContent='Enter your password';return;}
+  const h=await sha256(pw);
+  if(h===PASS_HASH){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    const banner=document.getElementById('drive-banner');
+    if(banner)banner.style.display=driveConnected?'none':'flex';
+    const saved=localStorage.getItem('cpm_timer_setting');
+    if(saved){timeLeft=parseInt(saved);const sel=document.getElementById('timerSelect');if(sel)sel.value=saved;}
+    startTimer();
+    loadLocal();
+    initApp();
+  } else {
+    const e=document.getElementById('loginErr');
+    e.textContent='Incorrect password';
+    document.getElementById('pwInput').value='';
+    setTimeout(()=>e.textContent='',2000);
+  }
+}
+
+function cpmLogout(){
+  clearInterval(timerInterval);
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('pwInput').value='';
+  document.getElementById('timeoutWarning').style.display='none';
+}
+
+async function changePassword(){
+  const cur=document.getElementById('cp-cur').value;
+  const nw=document.getElementById('cp-new').value;
+  const con=document.getElementById('cp-con').value;
+  const msg=document.getElementById('cp-msg');
+  if(!cur||!nw||!con){msg.style.color='var(--red)';msg.textContent='Fill in all fields';return;}
+  if(nw!==con){msg.style.color='var(--red)';msg.textContent='Passwords do not match';return;}
+  if(nw.length<4){msg.style.color='var(--red)';msg.textContent='Minimum 4 characters';return;}
+  const ch=await sha256(cur);
+  if(ch!==PASS_HASH){msg.style.color='var(--red)';msg.textContent='Current password incorrect';return;}
+  PASS_HASH=await sha256(nw);
+  localStorage.setItem(PW_KEY,PASS_HASH);
+  msg.style.color='var(--green)';msg.textContent='✓ Password updated';
+  ['cp-cur','cp-new','cp-con'].forEach(id=>document.getElementById(id).value='');
+  setTimeout(()=>closeModal('modal-change-pw'),1500);
+}
+function openChangePwModal(){document.getElementById('cp-msg').textContent='';openModal('modal-change-pw');}
+
+/* ── FORGOT PASSWORD ── */
+function showForgotPw(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('forgotPwScreen').style.display='flex';
+  document.getElementById('forgotPwStep1').style.display='block';
+  document.getElementById('forgotPwStep2').style.display='none';
+  document.getElementById('forgotPwMsg').textContent='';
+  document.getElementById('forgotPwMsg').style.color='var(--text3)';
+  if(document.getElementById('fpNewPw1'))document.getElementById('fpNewPw1').value='';
+  if(document.getElementById('fpNewPw2'))document.getElementById('fpNewPw2').value='';
+}
+function hideForgotPw(){
+  document.getElementById('forgotPwScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+}
+function forgotPwConnectDrive(){
+  const msg=document.getElementById('forgotPwMsg');
+  msg.style.color='var(--text3)';
+  msg.textContent='Connecting to Google…';
+  const doConnect=()=>{
+    try{
+      const tc=google.accounts.oauth2.initTokenClient({
+        client_id:CLIENT_ID,scope:SCOPES,
+        callback:async r=>{
+          if(r.error){
+            msg.style.color='var(--red)';
+            msg.textContent='Google sign-in failed. Try again.';
+            return;
+          }
+          accessToken=r.access_token;driveConnected=true;updateDriveBtn();
+          msg.style.color='var(--green)';
+          msg.textContent='✓ Identity verified — set your new password below.';
+          document.getElementById('forgotPwStep2').style.display='block';
+          setTimeout(()=>document.getElementById('fpNewPw1').focus(),100);
+        }
+      });
+      tc.requestAccessToken({prompt:'consent'});
+    }catch(e){
+      msg.style.color='var(--red)';
+      msg.textContent='Drive unavailable. Use DevTools: localStorage.removeItem("cpm_pass")';
+    }
+  };
+  if(!gapiReady||!gisReady){
+    let attempts=0;
+    const poll=setInterval(()=>{
+      attempts++;
+      if(gapiReady&&gisReady){clearInterval(poll);doConnect();}
+      else if(attempts>30){clearInterval(poll);msg.style.color='var(--red)';msg.textContent='Drive timed out — reload the page and try again.';}
+    },400);
+  } else {
+    doConnect();
+  }
+}
+async function forgotPwSave(){
+  const p1=document.getElementById('fpNewPw1').value;
+  const p2=document.getElementById('fpNewPw2').value;
+  const err=document.getElementById('forgotPwErr');
+  if(!p1||p1.length<4){err.textContent='Minimum 4 characters';return;}
+  if(p1!==p2){err.textContent='Passwords do not match';return;}
+  PASS_HASH=await sha256(p1);
+  localStorage.setItem(PW_KEY,PASS_HASH);
+  err.style.color='var(--green)';err.textContent='';
+  document.getElementById('forgotPwScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginErr').style.color='var(--green)';
+  document.getElementById('loginErr').textContent='✓ Password reset — please log in with your new password';
+  setTimeout(()=>{
+    document.getElementById('loginErr').textContent='';
+    document.getElementById('loginErr').style.color='';
+  },4000);
+}
+
+/* ════════════════════════════════════════════════════
+   TIMER
+════════════════════════════════════════════════════ */
+let timeLeft=600,timerInterval;
+function startTimer(){
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    updateTimerDisplay();
+    if(timeLeft===60)document.getElementById('timeoutWarning').style.display='block';
+    if(timeLeft<=0){clearInterval(timerInterval);saveLocal();cpmLogout();}
+  },1000);
+}
+function resetTimer(){timeLeft=parseInt(localStorage.getItem('cpm_timer_setting')||'600');document.getElementById('timeoutWarning').style.display='none';}
+function updateTimerDisplay(){
+  const m=Math.floor(timeLeft/60),s=timeLeft%60;
+  const el=document.getElementById('timerDisplay');
+  if(el)el.textContent=m+':'+(s<10?'0':'')+s;
+  const dot=document.getElementById('timerDot');
+  if(dot)dot.style.background=timeLeft>120?'var(--green)':timeLeft>60?'var(--amber)':'var(--red)';
+  const cd=document.getElementById('countdownNum');
+  if(cd&&document.getElementById('timeoutWarning').style.display!=='none')cd.textContent=timeLeft;
+}
+function updateTimer(val){
+  timeLeft=parseInt(val);localStorage.setItem('cpm_timer_setting',val);
+  clearInterval(timerInterval);startTimer();
+  toast('Timer updated');
+}
+['mousemove','keydown','click','scroll'].forEach(e=>document.addEventListener(e,()=>{if(timerInterval&&document.getElementById('app').style.display!=='none')resetTimer();}));
+
+/* ════════════════════════════════════════════════════
+   DATA — LOCAL
+════════════════════════════════════════════════════ */
+function loadLocal(){
+  const saved=localStorage.getItem(LS_KEY);
+  if(saved){
+    try{
+      appData=JSON.parse(saved);
+      if(!appData.projects)appData.projects=[];
+    }catch(e){console.warn('Could not parse saved data');}
+  }
+  if(!appData.projects||appData.projects.length===0){
+    appData=buildSeedData();
+    saveLocal();
+  }
+  // Version migration: if stored data is v1.0 seed (proj_3322), upgrade to v1.1
+  const isOldSeed = appData.version==='1.0' &&
+    appData.projects.some(p=>p.id==='proj_3322' && (p.ledger||[]).length<=12);
+  if(isOldSeed){
+    appData=buildSeedData();
+    saveLocal();
+    setTimeout(()=>toast('✓ Data updated to v1.1 — 20 transactions loaded','success'),800);
+  }
+  // Ensure active project
+  if(!appData.activeProjectId&&appData.projects.length>0)appData.activeProjectId=appData.projects[0].id;
+  currentProject=appData.projects.find(p=>p.id===appData.activeProjectId)||appData.projects[0];
+}
+function saveLocal(){localStorage.setItem(LS_KEY,JSON.stringify(appData));}
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{saveLocal();if(driveConnected)triggerDriveSave();},1500);
+}
+
+/* ════════════════════════════════════════════════════
+   NEW PROJECT FACTORY
+════════════════════════════════════════════════════ */
+function newProject(name,company,address){
+  const id='proj_'+uid();
+  const tasks=DEFAULT_TASKS.map(t=>({
+    id:'task_'+uid(),phaseId:t.phaseId,name:t.name,
+    startDate:'',endDate:'',actualComplete:'',
+    status:'pending',cost:0,blocker:'',fromSheet:false
+  }));
+  const phases=PHASES.map(p=>({id:p.id,budget:0}));
+  return {
+    id,name:name||'New Project',
+    info:{company:company||'',address:address||'',gc:'',lawFirm:'',
+          startDate:'',estCompletion:'',reportPeriod:'',reportDate:''},
+    finance:{landCost:0,constructionBudget:0,builderMgmtFee:0,contingency:0,
+             estSalePrice:0,commissionPct:6,sellerConcessions:0,mgmtAdminFees:0},
+    phases,tasks,ledger:[],investors:[],risks:[
+      {id:uid(),risk:'',impact:'',likelihood:'',mitigation:''}
+    ],
+    sheetId:'',publishedAt:null,
+    executiveSummary:'',nextSteps:'',investmentTerms:'',
+    projectedCompletion:'',projectedCompletionLocked:false
+  };
+}
+
+/* ════════════════════════════════════════════════════
+   SEED DATA — 3322 LANDINGS SOUTH DRIVE
+════════════════════════════════════════════════════ */
+function buildSeedData(){
+  const proj=newProject('3322 Landings South Drive','Asgardian Holdings LLC','3322 Landings South Drive');
+  proj.id='proj_3322';
+  proj.info.gc='Asher Home';
+  proj.info.lawFirm='Marr Law Firm';
+  proj.info.startDate='2026-01-12';
+  proj.info.reportPeriod='Q1 2026';
+
+  // Phase budgets (from IR — verify against bank records)
+  proj.phases=[
+    {id:'land',  budget:0},
+    {id:'phase1',budget:92254},
+    {id:'phase2',budget:140000},
+    {id:'phase3',budget:61738},
+    {id:'phase4',budget:24695},
+    {id:'phase5',budget:14695},
+    {id:'phase6',budget:14695},
+    {id:'mgmt',  budget:35000}
+  ];
+
+  // Investors
+  proj.investors=[
+    {id:'inv1',name:'Ahmed Hussain',amount:176944.50,equityPct:51,prefReturn:0,email:'ahmed@asherbuilt.com'},
+    {id:'inv2',name:'Faisal Virjee', amount:70000,   equityPct:20.18,prefReturn:10,email:'faisal.virjee@gmail.com'},
+    {id:'inv3',name:'Derrick Rashidi',amount:50000,  equityPct:14.41,prefReturn:10,email:'drash2k@gmail.com'},
+    {id:'inv4',name:'Oscar Saenz',   amount:50000,   equityPct:14.41,prefReturn:10,email:'osdoesit@gmail.com'}
+  ];
+
+  // Finance
+  proj.finance={landCost:66879.46,constructionBudget:246950,builderMgmtFee:35000,contingency:0,
+                estSalePrice:449000,commissionPct:5.5,sellerConcessions:5000,mgmtAdminFees:7000};
+
+  // Tasks — set Phase 1 and Phase 2 statuses to reflect current state
+  proj.tasks=proj.tasks.map(t=>{
+    if(t.phaseId==='land'&&t.name==='Land Closing / Acquisition')
+      return {...t,status:'complete',actualComplete:'2026-01-20'};
+    if(t.phaseId==='phase1')
+      return {...t,status:'complete',actualComplete:'2026-01-31'};
+    if(t.phaseId==='phase2'){
+      const completed=['Permit Box Installation','Site Clearing & Grading',
+        'Silt Fence, Tree Fence, Construction Fence','Temporary Electrical Pole',
+        'Foundation Boards','Slab Plumbing','Slab Plumbing Inspection'];
+      const inProgress=['Box Check','Foundation Form & Compaction Inspection',
+        'Foundation Inspection from City','Foundation Poured','Order Water Meter with City'];
+      if(completed.includes(t.name))return {...t,status:'complete',actualComplete:'2026-03-30'};
+      if(t.name==='Temp Pole Inspection')return {...t,status:'blocked',blocker:'Waiting for GA Power'};
+      if(inProgress.includes(t.name))return {...t,status:'in-progress'};
+    }
+    return t;
+  });
+
+  // Ledger — investor capital (confirmed) + draws (approximate)
+  const L=(id,date,type,desc,phase,dep,wd,locked,reversed,nonProject,memo)=>
+    ({id,date,type,description:desc,phase,deposit:dep,withdrawal:wd,locked:!!locked,
+      reversed:!!reversed,nonProject:!!nonProject,lotPurchase:false,memo:memo||''});
+
+  proj.ledger=[
+    // ── Non-project entries (excluded from totals) ──
+    L('le01','2026-01-12','Non-Project Entry','Formation of LLC Bank Account — Initial Deposit by Faisal','capital',500,0,true,false,true,''),
+    L('le02','2026-01-23','Non-Project Entry','LLC Bank Account — Initial Deposit Refunded to Faisal','capital',0,500,true,false,true,''),
+    // ── Investor funding ──
+    L('le03','2026-01-20','Investor Funding','Oscar Saenz — Wired 1st half (50%) of investor capital','capital',25000,0,true,false,false,''),
+    L('le04','2026-01-21','Investor Funding','Faisal Virjee — Transferred 100% of investor capital','capital',70000,0,true,false,false,''),
+    L('le05','2026-01-21','Investor Funding','Oscar Saenz — Wired 2nd half (50%) of investor capital','capital',25000,0,true,false,false,''),
+    L('le06','2026-01-22','Investor Funding','Derrick Rashidi — Wired 100% of investor capital','capital',50000,0,true,false,false,''),
+    L('le07','2026-01-23','Investor Funding','Ahmed Hussain — Wired 100% of investor capital','capital',176944.50,0,true,false,false,''),
+    // ── Mgmt fee draw ──
+    L('le08','2026-01-26','Wire Payment','Asher Home — Management Fee: $25K','mgmt',0,25000,true,false,false,''),
+    L('le09','2026-01-26','Fees','Wire Transfer Fee','general_admin',0,25,true,false,false,''),
+    // ── Phase 1 draw: Mgmt Fee $5K + Build Cost $20K ──
+    L('le10','2026-01-27','Wire Payment','Asher Home — Management Fee $5K + Build Cost $20K','phase1',0,25000,true,false,false,''),
+    L('le11','2026-01-27','Fees','Wire Transfer Fee','general_admin',0,25,true,false,false,''),
+    // ── Phase 2 draws (two Bill Pay checks — lost/reversed, then replacement wire) ──
+    L('le12','2026-02-12','Bill Pay','Asher Homes — Building Materials (Concrete / Framing)','phase2',0,50000,true,false,false,''),
+    L('le13','2026-02-13','Bill Pay','Asher Homes — Building Materials (Concrete / Framing)','phase2',0,25000,true,false,false,''),
+    L('le14','2026-02-20','Wire Payment','Asher Homes — Building Materials Replacement Wire (Concrete / Framing)','phase2',0,65000,true,false,false,''),
+    L('le15','2026-02-20','Fees','Wire Transfer Fee','general_admin',0,25,true,false,false,''),
+    // ── Bill Pay Returns — reversed (lost checks recovered) ──
+    L('le16','2026-02-24','Bill Pay Return','BILL PAY RETURN: Asher Homes — Lost Check Stop Payment (Concrete / Framing)','phase2',50000,0,true,true,false,''),
+    L('le17','2026-02-24','Bill Pay Return','BILL PAY RETURN: Asher Homes — Lost Check Stop Payment (Concrete / Framing)','phase2',25000,0,true,true,false,''),
+    // ── Lot purchase ──
+    L('le18','2026-03-04','Wire Payment','Marr Law Firm — Lot Purchase','phase1',0,67066.70,true,false,false,''),
+    L('le19','2026-03-04','Fees','Wire Transfer Fee','general_admin',0,25,true,false,false,''),
+    // ── Lot purchase overage refund ──
+    L('le20','2026-03-09','Deposit','Marr Law Firm — Lot Purchase Overage Payment Refund','phase1',187.24,0,true,false,false,'')
+  ];
+  // Balance check: 346944.50 + 187.24 - 25000 - 25 - 25000 - 25 - 65000 - 25 - 67066.70 - 25 + (reversed: +75000 from bill pay returns already in balance) = 164965.04 ✓
+
+  proj.risks=[
+    {id:uid(),risk:'Foundation delay due to weather',impact:'Medium',likelihood:'Low',mitigation:'Monitor weather forecast; schedule inspections ahead'},
+    {id:uid(),risk:'Material cost escalation',impact:'High',likelihood:'Medium',mitigation:'Lock in lumber/material prices early per phase'},
+    {id:uid(),risk:'Subcontractor scheduling conflicts',impact:'Medium',likelihood:'Medium',mitigation:'Maintain backup subcontractor list; 2-week advance scheduling'},
+    {id:uid(),risk:'Utility connection delays (GA Power)',impact:'High',likelihood:'High',mitigation:'Filed application; follow up weekly with utility provider'}
+  ];
+
+  proj.executiveSummary='Construction of a single-family residence at 3322 Landings South Drive is progressing through Phase 2 (Site Prep & Foundation). Land acquisition and all pre-construction permitting are complete. Foundation work is underway with pour scheduled for week of April 7, 2026.';
+  proj.nextSteps='Complete foundation pour and inspection. Advance Phase 3 framing contract. Resolve GA Power temporary pole inspection timeline.';
+  proj.investmentTerms='Investors hold equity stakes as outlined. Returns are distributed upon project completion and sale. Management fees are subject to review and potential reduction in cases of significant schedule overrun.';
+
+  return {version:'1.1',activeProjectId:'proj_3322',projects:[proj]};
+}
+
+/* ════════════════════════════════════════════════════
+   GOOGLE DRIVE
+════════════════════════════════════════════════════ */
+function gapiLoaded(){
+  gapi.load('client',async()=>{
+    try{
+      await gapi.client.init({});
+      await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
+      gapiReady=true;
+    }catch(e){console.error('[Drive] GAPI failed:',e);}
+  });
+}
+function gisLoaded(){
+  try{
+    tokenClient=google.accounts.oauth2.initTokenClient({
+      client_id:CLIENT_ID,scope:SCOPES,
+      callback:async r=>{
+        if(r.error){console.error('[Drive] GIS error:',r.error);return;}
+        accessToken=r.access_token;driveConnected=true;
+        updateDriveBtn();
+        toast('✓ Drive connected','success');
+        await loadFromDrive();
+      }
+    });
+    gisReady=true;
+  }catch(e){console.error('[Drive] GIS failed:',e);}
+}
+function connectDrive(){
+  if(!gapiReady||!gisReady){
+    // Libraries still initialising — poll every 400ms up to 12 seconds then connect
+    const banner=document.getElementById('drive-banner');
+    if(banner){const btn=banner.querySelector('button');if(btn){btn.textContent='Connecting…';btn.disabled=true;}}
+    let attempts=0;
+    const poll=setInterval(()=>{
+      attempts++;
+      if(gapiReady&&gisReady){
+        clearInterval(poll);
+        const banner=document.getElementById('drive-banner');
+        if(banner){const btn=banner.querySelector('button');if(btn){btn.textContent='Connect Drive';btn.disabled=false;}}
+        tokenClient.requestAccessToken({prompt:''});
+      } else if(attempts>30){
+        clearInterval(poll);
+        const banner=document.getElementById('drive-banner');
+        if(banner){const btn=banner.querySelector('button');if(btn){btn.textContent='Connect Drive';btn.disabled=false;}}
+        toast('Drive unavailable — check your connection and reload','warning');
+      }
+    },400);
+    return;
+  }
+  tokenClient.requestAccessToken({prompt:''});
+}
+async function triggerDriveSave(){
+  saveLocal();
+  if(!driveConnected){toast('Connect Drive first','info');return;}
+  try{
+    const content=JSON.stringify(appData,null,2);
+    const blob=new Blob([content],{type:'application/json'});
+    if(!driveFileId){
+      const meta={name:DRIVE_FILE,parents:['appDataFolder']};
+      const form=new FormData();
+      form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+      form.append('file',blob);
+      const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+        {method:'POST',headers:{Authorization:'Bearer '+accessToken},body:form});
+      const j=await r.json();driveFileId=j.id;localStorage.setItem('cpm_drive_id',j.id);
+    } else {
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,
+        {method:'PATCH',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},body:content});
+    }
+    toast('✓ Saved to Drive','success');
+  }catch(e){console.error('[Drive] Save failed:',e);toast('Drive save failed','error');}
+}
+async function loadFromDrive(){
+  if(!driveConnected)return;
+  try{
+    const r=await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILE}'&fields=files(id)`,
+      {headers:{Authorization:'Bearer '+accessToken}});
+    const j=await r.json();
+    if(j.files&&j.files.length>0){
+      driveFileId=j.files[0].id;localStorage.setItem('cpm_drive_id',j.files[0].id);
+      const dr=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
+        {headers:{Authorization:'Bearer '+accessToken}});
+      const data=await dr.json();
+      if(data&&data.projects){
+        appData=data;
+        if(!appData.activeProjectId&&appData.projects.length)appData.activeProjectId=appData.projects[0].id;
+        currentProject=appData.projects.find(p=>p.id===appData.activeProjectId)||appData.projects[0];
+        saveLocal();renderAll();
+        toast('✓ Loaded from Drive','success');
+      }
+    }
+  }catch(e){console.error('[Drive] Load failed:',e);}
+}
+function updateDriveBtn(){
+  const btn=document.getElementById('driveConnectBtn');
+  if(btn)btn.textContent=driveConnected?'✓ Connected':'Connect Drive';
+  const banner=document.getElementById('drive-banner');
+  if(banner)banner.style.display=driveConnected?'none':'flex';
+}
+function exportJSON(){
+  const b=new Blob([JSON.stringify(appData,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='cpm_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+}
+function importJSON(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const parsed=JSON.parse(ev.target.result);
+      if(!parsed.projects){toast('Invalid CPM JSON','error');return;}
+      if(!confirm('This will overwrite all current data. Continue?'))return;
+      appData=parsed;currentProject=appData.projects.find(p=>p.id===appData.activeProjectId)||appData.projects[0];
+      saveLocal();initApp();toast('✓ Data imported','success');
+    }catch(err){toast('JSON parse error','error');}
+  };
+  r.readAsText(f);
+}
+
+/* ════════════════════════════════════════════════════
+   APP INIT & ROUTING
+════════════════════════════════════════════════════ */
+function initApp(){
+  document.getElementById('topbarVer').textContent=APP_VERSION;
+  document.getElementById('loginVer').textContent=APP_VERSION;
+  populateProjectSelect();
+  currentProject=appData.projects.find(p=>p.id===appData.activeProjectId)||appData.projects[0];
+  renderAll();
+}
+
+function renderAll(){
+  if(!currentProject)return;
+  populateProjectSelect();
+  renderDashboard();
+  renderPhases();
+  renderLedger();
+  renderInvestors();
+  renderFinance();
+  renderPhaseBudgetTable();
+  renderReports();
+  renderSettings();
+}
+
+function showTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  const btn=document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+  if(btn)btn.classList.add('active');
+  const pane=document.getElementById('tab-'+tab);
+  if(pane)pane.classList.add('active');
+  if(tab==='dashboard'||tab==='reports')setTimeout(renderCharts,50);
+}
+
+/* ════════════════════════════════════════════════════
+   PROJECT MANAGEMENT
+════════════════════════════════════════════════════ */
+function populateProjectSelect(){
+  const sel=document.getElementById('projectSelect');
+  const activeId=appData.activeProjectId;
+  sel.innerHTML=appData.projects.map(p=>`<option value="${p.id}"${p.id===activeId?' selected':''}>${p.name}</option>`).join('');
+  if(!activeId&&appData.projects.length){
+    const placeholder=document.createElement('option');
+    placeholder.value='';placeholder.textContent='— Select project —';placeholder.disabled=true;placeholder.selected=true;
+    sel.insertBefore(placeholder,sel.firstChild);
+  }
+}
+function switchProject(id){
+  appData.activeProjectId=id;
+  currentProject=appData.projects.find(p=>p.id===id);
+  saveLocal();renderAll();
+}
+function openNewProjectModal(){
+  document.getElementById('new-proj-name').value='';
+  document.getElementById('new-proj-company').value='';
+  document.getElementById('new-proj-address').value='';
+  openModal('modal-new-project');
+  setTimeout(()=>document.getElementById('new-proj-name').focus(),100);
+}
+function createNewProject(){
+  const name=document.getElementById('new-proj-name').value.trim();
+  if(!name){toast('Enter a project name','warning');return;}
+  const company=document.getElementById('new-proj-company').value.trim();
+  const address=document.getElementById('new-proj-address').value.trim();
+  const proj=newProject(name,company,address);
+  appData.projects.push(proj);
+  appData.activeProjectId=proj.id;
+  currentProject=proj;
+  closeModal('modal-new-project');
+  saveLocal();initApp();
+  toast('✓ Project created','success');
+}
+function deleteCurrentProject(){
+  if(appData.projects.length<=1){toast('Cannot delete the only project','warning');return;}
+  if(!confirm(`Delete "${currentProject.name}"? This cannot be undone.`))return;
+  appData.projects=appData.projects.filter(p=>p.id!==currentProject.id);
+  appData.activeProjectId=appData.projects[0].id;
+  currentProject=appData.projects[0];
+  saveLocal();initApp();toast('Project deleted','info');
+}
+function updateProjectInfo(field,val){
+  if(!currentProject.info)currentProject.info={};
+  currentProject.info[field]=val;
+  scheduleSave();
+}
+function updateProjectField(field,val){currentProject[field]=val;scheduleSave();}
+
+/* ════════════════════════════════════════════════════
+   CALC HELPERS
+════════════════════════════════════════════════════ */
+function calcPhaseDraw(phaseId){
+  if(!currentProject.ledger)return 0;
+  return currentProject.ledger
+    .filter(e=>e.phase===phaseId&&!e.reversed&&e.type!=='Non-Project Entry')
+    .reduce((s,e)=>s+(e.withdrawal||0)-(e.deposit&&e.type!=='Investor Funding'?e.deposit:0),0);
+}
+function calcPhaseDrawNet(phaseId){
+  if(!currentProject.ledger)return 0;
+  const out=currentProject.ledger.filter(e=>e.phase===phaseId&&!e.reversed&&e.type!=='Non-Project Entry').reduce((s,e)=>s+(e.withdrawal||0),0);
+  const inp=currentProject.ledger.filter(e=>e.phase===phaseId&&!e.reversed&&e.type!=='Non-Project Entry'&&e.type!=='Investor Funding').reduce((s,e)=>s+(e.deposit||0),0);
+  return out-inp;
+}
+// Gross withdrawals only — used in cash flow statement so refunds show as their own line
+function calcPhaseDrawGross(phaseId){
+  if(!currentProject.ledger)return 0;
+  return currentProject.ledger
+    .filter(e=>e.phase===phaseId&&!e.reversed&&e.type!=='Non-Project Entry')
+    .reduce((s,e)=>s+(e.withdrawal||0),0);
+}
+function calcBankBalance(){
+  // Bank balance includes ALL transactions except non-project entries
+  // (reversed entries like Bill Pay Returns still represent real money movement)
+  if(!currentProject.ledger)return 0;
+  const dep=currentProject.ledger.filter(e=>e.type!=='Non-Project Entry').reduce((s,e)=>s+(e.deposit||0),0);
+  const wd=currentProject.ledger.filter(e=>e.type!=='Non-Project Entry').reduce((s,e)=>s+(e.withdrawal||0),0);
+  return dep-wd;
+}
+function calcNetCapitalIn(){
+  if(!currentProject.ledger)return 0;
+  return currentProject.ledger.filter(e=>!e.reversed&&e.type!=='Non-Project Entry').reduce((s,e)=>s+(e.deposit||0),0);
+}
+function calcTotalOut(){
+  if(!currentProject.ledger)return 0;
+  return currentProject.ledger.filter(e=>!e.reversed&&e.type!=='Non-Project Entry').reduce((s,e)=>s+(e.withdrawal||0),0);
+}
+function calcInvestorCapital(){
+  if(!currentProject.investors)return 0;
+  return currentProject.investors.reduce((s,i)=>s+(i.amount||0),0);
+}
+function calcTaskPct(phaseId){
+  const tasks=currentProject.tasks.filter(t=>t.phaseId===phaseId);
+  if(!tasks.length)return 0;
+  const done=tasks.filter(t=>t.status==='complete').length;
+  return done/tasks.length;
+}
+function calcEstProfit(){
+  const f=currentProject.finance||{};
+  const totalBudget=(f.landCost||0)+(f.constructionBudget||0)+(f.builderMgmtFee||0)+(f.contingency||0);
+  const commission=(f.estSalePrice||0)*(f.commissionPct||6)/100;
+  return (f.estSalePrice||0)-totalBudget-commission-(f.sellerConcessions||0)-(f.mgmtAdminFees||0);
+}
+
+/* ════════════════════════════════════════════════════
+   DASHBOARD
+════════════════════════════════════════════════════ */
+function renderDashboard(){
+  const bal=calcBankBalance();
+  const netIn=calcNetCapitalIn();
+  const totalOut=calcTotalOut();
+  const invCap=calcInvestorCapital();
+  const totalTasks=currentProject.tasks.length;
+  const doneTasks=currentProject.tasks.filter(t=>t.status==='complete').length;
+  const blockedTasks=currentProject.tasks.filter(t=>t.status==='blocked').length;
+  const pctComplete=totalTasks>0?doneTasks/totalTasks:0;
+
+  const kpis=[
+    {label:'Bank Balance',val:fmt$(bal),cls:'green',sub:`As of ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`},
+    {label:'Net Capital In',val:fmt$(netIn),cls:'blue',sub:'excl. reversed & non-project'},
+    {label:'Total Out',val:fmt$(totalOut),cls:'red',sub:'excl. reversed & non-project'},
+    {label:'Investor Capital',val:fmt$(invCap),cls:'amber',sub:`${currentProject.investors?.length||0} investors`},
+    {label:'Tasks Complete',val:`${doneTasks}/${totalTasks}`,cls:'purple',sub:fmtPct(pctComplete)+' overall'},
+    {label:'Active Blockers',val:blockedTasks,cls:blockedTasks>0?'red':'green',sub:blockedTasks>0?'Needs attention':'All clear'}
+  ];
+
+  document.getElementById('kpi-grid').innerHTML=kpis.map(k=>
+    `<div class="kpi ${k.cls}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-val">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`
+  ).join('');
+
+  // Blockers
+  const blockers=currentProject.tasks.filter(t=>t.status==='blocked');
+  const bl=document.getElementById('blockers-list');
+  if(!blockers.length){
+    bl.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><p>No active blockers — all tasks are on track</p></div>';
+  } else {
+    bl.innerHTML=blockers.map(t=>{
+      const ph=PHASES.find(p=>p.id===t.phaseId);
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span style="width:10px;height:10px;border-radius:50%;background:${ph?.color||'#94a3b8'};flex-shrink:0"></span>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px">${t.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${ph?.name||''}</div>
+        </div>
+        <div style="font-size:12px;color:var(--red);max-width:300px">⚠ ${t.blocker||'Blocked'}</div>
+        <button class="btn-secondary" style="font-size:11px;padding:3px 10px" onclick="openTaskModal('${t.id}')">Edit</button>
+      </div>`;
+    }).join('');
+  }
+
+  setTimeout(renderCharts,100);
+}
+
+/* ════════════════════════════════════════════════════
+   CHARTS
+════════════════════════════════════════════════════ */
+function destroyChart(k){if(charts[k]){charts[k].destroy();delete charts[k];}}
+
+function renderCharts(){
+  if(!currentProject)return;
+  renderWaterfallChart();
+  renderPhasesChart();
+  renderTasksChart();
+  renderCashflowChart();
+  renderReportCharts();
+}
+
+function renderWaterfallChart(){
+  destroyChart('waterfall');
+  const c=document.getElementById('chart-waterfall');if(!c?.getContext)return;
+  const invCap=currentProject.ledger.filter(e=>e.type==='Investor Funding'&&!e.reversed&&e.type!=='Non-Project Entry').reduce((s,e)=>s+(e.deposit||0),0);
+  const refunds=currentProject.ledger.filter(e=>!e.reversed&&e.type!=='Non-Project Entry'&&e.type!=='Investor Funding'&&(e.deposit||0)>0).reduce((s,e)=>s+(e.deposit||0),0);
+  const draws=currentProject.ledger.filter(e=>!e.reversed&&e.type!=='Non-Project Entry'&&e.type!=='Fees').reduce((s,e)=>s+(e.withdrawal||0),0);
+  const fees=currentProject.ledger.filter(e=>e.type==='Fees'&&!e.reversed).reduce((s,e)=>s+(e.withdrawal||0),0);
+  const bal=calcBankBalance();
+  const wfData=[invCap,-draws,-fees,refunds,bal];
+  const wfLabels=['Capital','Draws','Fees','Refunds','Balance'];
+  const barColors=['#10b981','#ef4444','#ef4444','#10b981','#3b82f6'];
+  const lblColors=['#27500A','#791F1F','#791F1F','#27500A','#1e40af'];
+  const fmtL=v=>{const abs=Math.abs(v);const sign=v>=0?'+':'-';return abs>=1000?sign+'$'+(abs/1000).toFixed(1)+'k':sign+'$'+abs.toFixed(0);};
+  const labelsPlugin={id:'wfLabels',afterDatasetsDraw(chart){
+    const{ctx,data,scales:{x,y}}=chart;ctx.save();
+    data.datasets[0].data.forEach((val,i)=>{
+      const bar=chart.getDatasetMeta(0).data[i];
+      const label=fmtL(wfData[i]);
+      const isSmall=Math.abs(wfData[i])<5000;
+      ctx.font='600 11px Barlow,sans-serif';ctx.fillStyle=lblColors[i];ctx.textAlign='center';ctx.textBaseline='bottom';
+      const yPos=isSmall?bar.y-28:bar.y-6;
+      if(isSmall){ctx.save();ctx.strokeStyle=lblColors[i];ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(bar.x,bar.y-4);ctx.lineTo(bar.x,yPos+14);ctx.stroke();ctx.restore();}
+      ctx.fillText(label,bar.x,yPos);
+    });ctx.restore();
+  }};
+  charts['waterfall']=new Chart(c,{type:'bar',plugins:[labelsPlugin],
+    data:{labels:wfLabels,datasets:[{data:wfData.map(v=>Math.abs(v)),backgroundColor:barColors,borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:36}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const v=wfData[ctx.dataIndex];return' '+(v>=0?'+':'-')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2});}}},},
+      scales:{x:{grid:{display:false},ticks:{color:'#64748b',font:{size:11}}},y:{grid:{color:'rgba(100,116,139,0.15)'},ticks:{color:'#64748b',font:{size:11},callback:v=>'$'+(v/1000).toFixed(0)+'k'}}}}});
+}
+
+function renderPhasesChart(){
+  destroyChart('phases');
+  const c=document.getElementById('chart-phases');if(!c?.getContext)return;
+  const phs=PHASES.filter(p=>p.id!=='mgmt');
+  const budgets=phs.map(p=>{const ph=currentProject.phases.find(x=>x.id===p.id);return ph?.budget||0;});
+  const drawn=phs.map(p=>calcPhaseDrawNet(p.id));
+  charts['phases']=new Chart(c,{type:'bar',
+    data:{labels:phs.map(p=>p.name),datasets:[
+      {label:'Budget',data:budgets,backgroundColor:'rgba(59,130,246,.25)',borderColor:'#3b82f6',borderWidth:1,borderRadius:3},
+      {label:'Drawn',data:drawn,backgroundColor:phs.map(p=>p.color+'cc'),borderRadius:3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',boxWidth:12,font:{size:11}}}},
+      scales:{x:{ticks:{color:'#64748b',font:{size:10}}},y:{ticks:{color:'#64748b',font:{size:10},callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:'rgba(100,116,139,0.15)'}}}}});
+}
+
+function renderTasksChart(){
+  destroyChart('tasks');
+  const c=document.getElementById('chart-tasks');if(!c?.getContext)return;
+  const phs=PHASES;
+  const data=phs.map(p=>{
+    const tasks=currentProject.tasks.filter(t=>t.phaseId===p.id);
+    if(!tasks.length)return 0;
+    return Math.round(tasks.filter(t=>t.status==='complete').length/tasks.length*100);
+  });
+  charts['tasks']=new Chart(c,{type:'bar',
+    data:{labels:phs.map(p=>p.name),datasets:[{data,backgroundColor:phs.map(p=>p.color+'cc'),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#64748b',font:{size:10}}},
+        y:{min:0,max:100,ticks:{color:'#64748b',font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(100,116,139,0.15)'}}}}});
+}
+
+function renderCashflowChart(){
+  destroyChart('cashflow');
+  const c=document.getElementById('chart-cashflow');if(!c?.getContext)return;
+  const monthly={};
+  currentProject.ledger.forEach(e=>{
+    if(!e.date||e.reversed||e.type==='Non-Project Entry')return;
+    const k=e.date.slice(0,7);
+    if(!monthly[k])monthly[k]={dep:0,wd:0};
+    monthly[k].dep+=(e.deposit||0);
+    monthly[k].wd+=(e.withdrawal||0);
+  });
+  const months=Object.keys(monthly).sort();
+  let cum=0;
+  const cumData=months.map(m=>{cum+=(monthly[m].dep-monthly[m].wd);return cum;});
+  charts['cashflow']=new Chart(c,{type:'bar',
+    data:{labels:months.map(m=>new Date(m+'-15').toLocaleDateString('en-US',{month:'short',year:'2-digit'})),
+      datasets:[
+        {type:'bar',label:'Net Flow',data:months.map(m=>monthly[m].dep-monthly[m].wd),backgroundColor:months.map(m=>(monthly[m].dep-monthly[m].wd)>=0?'rgba(16,185,129,.7)':'rgba(239,68,68,.7)'),borderRadius:3,order:2},
+        {type:'line',label:'Balance',data:cumData,borderColor:'#60a5fa',backgroundColor:'rgba(59,130,246,.08)',fill:true,tension:.3,pointRadius:3,order:1}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',boxWidth:12,font:{size:11}}}},
+      scales:{x:{ticks:{color:'#64748b',font:{size:10}}},y:{ticks:{color:'#64748b',font:{size:10},callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:'rgba(100,116,139,0.15)'}}}}});
+}
+
+/* ════════════════════════════════════════════════════
+   PHASES & TASKS
+════════════════════════════════════════════════════ */
+function renderPhases(){
+  const container=document.getElementById('phases-list');
+  if(!container)return;
+  let html='';
+  PHASES.forEach(ph=>{
+    const phaseCfg=currentProject.phases.find(p=>p.id===ph.id)||{id:ph.id,budget:0};
+    const tasks=currentProject.tasks.filter(t=>t.phaseId===ph.id);
+    const budget=phaseCfg.budget||0;
+    const drawn=calcPhaseDrawNet(ph.id);
+    const taskPct=calcTaskPct(ph.id);
+    const doneTasks=tasks.filter(t=>t.status==='complete').length;
+    const blockedCount=tasks.filter(t=>t.status==='blocked').length;
+    const fillColor=taskPct>=1?'var(--green)':taskPct>0.5?'var(--amber)':'var(--blue)';
+    const phaseBudgetStatus=budget===0?'':(drawn>budget?'<span style="color:var(--red);font-size:11px;margin-left:6px">OVER</span>':drawn/budget>0.9?'<span style="color:var(--amber);font-size:11px;margin-left:6px">WARNING</span>':'');
+
+    html+=`<div class="phase-card" id="phase-card-${ph.id}">
+      <div class="phase-header" onclick="togglePhase('${ph.id}')">
+        <span class="phase-dot" style="background:${ph.color}"></span>
+        <span class="phase-name" style="color:${ph.color}">${ph.name}</span>
+        <span class="phase-label">${PHASE_LABELS[ph.id]||''}</span>
+        <div class="phase-meta">
+          <span class="phase-budget">${fmt$(budget)}<button class="btn-icon" style="font-size:11px;margin-left:4px;color:var(--text3)" onclick="openPhaseBudgetModal('${ph.id}',event)" title="Edit budget">✏</button>${phaseBudgetStatus}</span>
+          <span class="phase-drawn" style="color:${drawn>0?'var(--red)':'var(--text3)'}">${drawn>0?'-'+fmt$(drawn):'—'}</span>
+          <div>
+            <div class="phase-progress"><div class="phase-progress-fill" style="width:${Math.min(taskPct*100,100)}%;background:${fillColor}"></div></div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px;text-align:center">${doneTasks}/${tasks.length}</div>
+          </div>
+          ${blockedCount>0?`<span style="background:var(--red-dim);color:var(--red);font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px">⚠ ${blockedCount} blocked</span>`:''}
+          <span class="phase-task-count">${tasks.length} tasks</span>
+        </div>
+        <span class="phase-chevron">▶</span>
+      </div>
+      <div class="phase-tasks">
+        <table class="task-table">
+          <thead><tr>
+            <th style="width:30%">Task</th>
+            <th style="width:100px">Status</th>
+            <th>Start</th><th>End</th><th>Completed</th>
+            <th style="text-align:right">Cost</th>
+            <th>Blocker</th>
+            <th style="width:40px"></th>
+          </tr></thead>
+          <tbody>
+            ${tasks.map(t=>`
+            <tr>
+              <td class="task-name">${t.name}</td>
+              <td><span class="status-badge status-${t.status}">${t.status.replace('-',' ')}</span></td>
+              <td style="font-size:12px;color:var(--text2);white-space:nowrap">${fmtDate(t.startDate)}</td>
+              <td style="font-size:12px;color:var(--text2);white-space:nowrap">${fmtDate(t.endDate)}</td>
+              <td style="font-size:12px;color:${t.actualComplete?'var(--green)':'var(--text3)'};white-space:nowrap">${fmtDate(t.actualComplete)}</td>
+              <td style="text-align:right" class="task-cost">${t.cost>0?fmt$(t.cost):'—'}</td>
+              <td>${t.blocker?`<span class="task-blocker" title="${t.blocker}">⚠ ${t.blocker}</span>`:'—'}</td>
+              <td><button class="btn-task-edit" onclick="openTaskModal('${t.id}')" title="Edit task">✏</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        <div class="phase-task-add">
+          <button class="btn-add-task" onclick="openAddTaskModal('${ph.id}')">+ Add Task to ${ph.name}</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  container.innerHTML=html||'<div class="empty-state"><p>No phases configured</p></div>';
+}
+
+function togglePhase(id){
+  const card=document.getElementById('phase-card-'+id);
+  if(card)card.classList.toggle('open');
+}
+
+/* ── TASK MODALS ── */
+function openTaskModal(taskId){
+  const task=currentProject.tasks.find(t=>t.id===taskId);
+  if(!task)return;
+  _editTaskId=taskId;
+  const ph=PHASES.find(p=>p.id===task.phaseId);
+  document.getElementById('task-modal-phase').innerHTML=`<strong style="color:${ph?.color}">${ph?.name} — ${PHASE_LABELS[ph?.id]||''}</strong>`;
+  document.getElementById('task-name').value=task.name;
+  document.getElementById('task-status').value=task.status;
+  document.getElementById('task-cost').value=task.cost||0;
+  document.getElementById('task-start').value=task.startDate||'';
+  document.getElementById('task-end').value=task.endDate||'';
+  document.getElementById('task-actual').value=task.actualComplete||'';
+  document.getElementById('task-blocker').value=task.blocker||'';
+  openModal('modal-task');
+}
+function saveTask(){
+  const task=currentProject.tasks.find(t=>t.id===_editTaskId);
+  if(!task)return;
+  task.name=document.getElementById('task-name').value.trim()||task.name;
+  task.status=document.getElementById('task-status').value;
+  task.cost=parseFloat(document.getElementById('task-cost').value)||0;
+  task.startDate=document.getElementById('task-start').value;
+  task.endDate=document.getElementById('task-end').value;
+  task.actualComplete=document.getElementById('task-actual').value;
+  task.blocker=document.getElementById('task-blocker').value.trim();
+  if(task.status==='complete'&&!task.actualComplete)task.actualComplete=localDate();
+  closeModal('modal-task');
+  scheduleSave();renderPhases();renderDashboard();
+  toast('Task saved','success');
+}
+function deleteTask(){
+  if(!confirm('Delete this task?'))return;
+  currentProject.tasks=currentProject.tasks.filter(t=>t.id!==_editTaskId);
+  closeModal('modal-task');scheduleSave();renderPhases();renderDashboard();
+  toast('Task deleted','info');
+}
+function openAddPhaseModal(){
+  const sel=document.getElementById('add-task-phase');
+  sel.innerHTML=PHASES.map(p=>`<option value="${p.id}">${p.name} — ${PHASE_LABELS[p.id]}</option>`).join('');
+  document.getElementById('add-task-name').value='';
+  openModal('modal-add-task');
+  setTimeout(()=>document.getElementById('add-task-name').focus(),100);
+}
+function openAddTaskModal(phaseId){
+  const sel=document.getElementById('add-task-phase');
+  sel.innerHTML=PHASES.map(p=>`<option value="${p.id}"${p.id===phaseId?' selected':''}>${p.name} — ${PHASE_LABELS[p.id]}</option>`).join('');
+  document.getElementById('add-task-name').value='';
+  openModal('modal-add-task');
+  setTimeout(()=>document.getElementById('add-task-name').focus(),100);
+}
+function saveNewTask(){
+  const name=document.getElementById('add-task-name').value.trim();
+  if(!name){toast('Enter a task name','warning');return;}
+  const phaseId=document.getElementById('add-task-phase').value;
+  currentProject.tasks.push({id:'task_'+uid(),phaseId,name,startDate:'',endDate:'',actualComplete:'',status:'pending',cost:0,blocker:'',fromSheet:false});
+  closeModal('modal-add-task');scheduleSave();renderPhases();
+  toast('Task added','success');
+}
+
+/* ── PHASE BUDGET MODAL ── */
+function openPhaseBudgetModal(phaseId,e){
+  if(e){e.stopPropagation();}
+  _editPhaseBudget=phaseId;
+  const ph=PHASES.find(p=>p.id===phaseId);
+  const cfg=currentProject.phases.find(p=>p.id===phaseId)||{budget:0};
+  const drawn=calcPhaseDrawNet(phaseId);
+  document.getElementById('pb-context').innerHTML=`<strong style="color:${ph?.color}">${ph?.name} — ${PHASE_LABELS[phaseId]||''}</strong>Drawn from ledger: <span style="color:var(--red);font-family:var(--mono)">${drawn>0?'-'+fmt$(drawn):'—'}</span>`;
+  document.getElementById('pb-amount').value=cfg.budget||0;
+  openModal('modal-phase-budget');
+  setTimeout(()=>{const inp=document.getElementById('pb-amount');inp.focus();inp.select();},100);
+}
+function savePhaseBudget(){
+  const val=parseFloat(document.getElementById('pb-amount').value)||0;
+  const idx=currentProject.phases.findIndex(p=>p.id===_editPhaseBudget);
+  if(idx>=0)currentProject.phases[idx].budget=val;
+  closeModal('modal-phase-budget');
+  scheduleSave();renderPhases();renderFinance();renderPhaseBudgetTable();renderCharts();
+  toast('Budget updated','success');
+}
+
+/* ════════════════════════════════════════════════════
+   BANK LEDGER
+════════════════════════════════════════════════════ */
+const ledgerFilter={type:'',phase:'',sort:'date-asc'};
+
+function renderLedger(){
+  if(!currentProject)return;
+  // Populate filter dropdowns
+  const tf=document.getElementById('filterType');
+  if(tf){tf.innerHTML='<option value="">All Types</option>'+LEDGER_TYPES.map(t=>`<option value="${t}"${ledgerFilter.type===t?' selected':''}>${t}</option>`).join('');}
+  const pf=document.getElementById('filterPhase');
+  if(pf){pf.innerHTML='<option value="">All Phases</option>'+LEDGER_PHASES.map(p=>`<option value="${p.id}"${ledgerFilter.phase===p.id?' selected':''}>${p.name}</option>`).join('');}
+  const sf=document.getElementById('filterSort');
+  if(sf)sf.value=ledgerFilter.sort;
+
+  // Filter and sort
+  let rows=[...(currentProject.ledger||[])];
+  if(ledgerFilter.type)rows=rows.filter(e=>e.type===ledgerFilter.type);
+  if(ledgerFilter.phase)rows=rows.filter(e=>e.phase===ledgerFilter.phase);
+  rows.sort((a,b)=>ledgerFilter.sort==='date-desc'?b.date.localeCompare(a.date):a.date.localeCompare(b.date));
+
+  // Running balance
+  const allSorted=[...(currentProject.ledger||[])].sort((a,b)=>a.date.localeCompare(b.date));
+  const runMap={};let run=0;
+  allSorted.forEach(e=>{run+=(e.deposit||0)-(e.withdrawal||0);runMap[e.id]=run;});
+
+  // KPI strip
+  const ledgerKpis=document.getElementById('ledger-kpis');
+  if(ledgerKpis){
+    const bal=calcBankBalance();
+    const netIn=calcNetCapitalIn();
+    const totalOut=calcTotalOut();
+    const invCap=currentProject.ledger.filter(e=>e.type==='Investor Funding'&&!e.reversed&&e.type!=='Non-Project Entry').reduce((s,e)=>s+(e.deposit||0),0);
+    const wireFees=currentProject.ledger.filter(e=>e.type==='Fees'&&!e.reversed).reduce((s,e)=>s+(e.withdrawal||0),0);
+    ledgerKpis.innerHTML=[
+      {label:'Bank Balance',val:fmt$(bal),cls:'green'},
+      {label:'Net Capital In',val:fmt$(netIn),cls:'blue',sub:'excl. reversed'},
+      {label:'Total Out',val:fmt$(totalOut),cls:'red',sub:'excl. reversed'},
+      {label:'Investor Capital',val:fmt$(invCap),cls:'amber'},
+      {label:'Wire Fees Lost',val:fmt$(wireFees),cls:'purple'}
+    ].map(k=>`<div class="kpi ${k.cls}" style="padding:12px"><div class="kpi-label">${k.label}</div><div class="kpi-val" style="font-size:18px">${k.val}</div>${k.sub?`<div class="kpi-sub">${k.sub}</div>`:''}</div>`).join('');
+  }
+
+  // Table
+  const tbody=document.getElementById('ledger-table')?.querySelector('tbody')||document.getElementById('ledger-table');
+  if(!tbody)return;
+  let html='<thead><tr><th style="white-space:nowrap">Date</th><th>Type</th><th>Description</th><th>Phase</th><th style="text-align:right">Deposit</th><th style="text-align:right">Withdrawal</th><th style="text-align:right">Balance</th><th style="text-align:center;width:40px"></th></tr></thead><tbody>';
+
+  if(!rows.length){html+='<tr><td colspan="8" class="empty-state">No transactions — <a href="#" onclick="ledgerFilter.type=\'\';ledgerFilter.phase=\'\';renderLedger();return false">clear filters</a></td></tr>';}
+
+  rows.forEach(r=>{
+    const ph=LEDGER_PHASES.find(p=>p.id===r.phase);
+    const bal=runMap[r.id]!==undefined?runMap[r.id]:0;
+    const dep=r.deposit>0?`<span class="ledger-dep">+${fmt$(r.deposit)}</span>`:'<span style="color:var(--text3)">—</span>';
+    const wd=r.withdrawal>0?`<span class="ledger-wd">-${fmt$(r.withdrawal)}</span>`:'<span style="color:var(--text3)">—</span>';
+    const revBadge=r.reversed?'<span class="rev-badge">REVERSED</span>':'';
+    const npBadge=r.type==='Non-Project Entry'?'<span class="np-badge" title="Excluded from project accounting">⊘ EXCLUDED</span>':'';
+    const rowBg=r.reversed?'opacity:.5':r.type==='Non-Project Entry'?'opacity:.5':'';
+    const lockBtn=r.locked
+      ?`<button class="lock-btn" onclick="toggleLock('${r.id}')" title="Unlock">🔒</button>`
+      :`<div style="display:flex;gap:3px"><button class="edit-btn" onclick="openLedgerModal('${r.id}')" title="Edit">✏</button><button class="lock-btn" onclick="toggleLock('${r.id}')" title="Lock">🔓</button></div>`;
+    html+=`<tr style="${rowBg}">
+      <td style="font-family:var(--mono);font-size:12px;white-space:nowrap">${fmtDate(r.date)}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.type}</td>
+      <td style="font-size:12px">${r.description||''}${revBadge}${npBadge}${r.memo?`<div style="font-size:11px;color:var(--text3);font-style:italic">${r.memo}</div>`:''}</td>
+      <td>${ph?`<span class="phase-pill" style="background:${ph.color}22;color:${ph.color};border:1px solid ${ph.color}44">${ph.name}</span>`:'—'}</td>
+      <td style="text-align:right">${dep}</td>
+      <td style="text-align:right">${wd}</td>
+      <td style="text-align:right"><span class="ledger-bal" style="color:${bal>=0?'var(--text)':'var(--red)'}">${fmt$(bal)}</span></td>
+      <td style="text-align:center">${lockBtn}</td>
+    </tr>`;
+  });
+
+  // Totals row
+  const tDep=rows.filter(e=>!e.reversed&&e.type!=='Non-Project Entry').reduce((s,e)=>s+(e.deposit||0),0);
+  const tWd=rows.filter(e=>!e.reversed&&e.type!=='Non-Project Entry').reduce((s,e)=>s+(e.withdrawal||0),0);
+  const npCount=rows.filter(e=>e.type==='Non-Project Entry').length;
+  const revCount=rows.filter(e=>e.reversed).length;
+  html+=`</tbody><tfoot><tr class="ledger-total">
+    <td colspan="4" style="font-size:12px;color:var(--text2)">All Totals (${rows.length} transaction${rows.length!==1?'s':''}${revCount?' · '+revCount+' reversed excl.':''}${npCount?' · '+npCount+' non-project excl.':''})</td>
+    <td style="text-align:right;color:var(--green);font-family:var(--mono)">${tDep>0?'+'+fmt$(tDep):'—'}</td>
+    <td style="text-align:right;color:var(--red);font-family:var(--mono)">${tWd>0?'-'+fmt$(tWd):'—'}</td>
+    <td colspan="2"></td>
+  </tr></tfoot>`;
+
+  const tbl=document.getElementById('ledger-table');
+  if(tbl)tbl.innerHTML=html;
+}
+
+// Wire filter selects
+document.addEventListener('DOMContentLoaded',()=>{
+  ['filterType','filterPhase','filterSort'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('change',()=>{
+      if(id==='filterType')ledgerFilter.type=el.value;
+      else if(id==='filterPhase')ledgerFilter.phase=el.value;
+      else ledgerFilter.sort=el.value;
+      renderLedger();
+    });
+  });
+});
+
+function openLedgerModal(id){
+  const today=localDate();
+  if(!id){
+    _editLedgerId=null;
+    document.getElementById('ledger-modal-title').textContent='Add Ledger Entry';
+    document.getElementById('le-date').value=today;
+    document.getElementById('le-type').value='Wire Payment';
+    document.getElementById('le-phase').innerHTML=LEDGER_PHASES.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    document.getElementById('le-deposit').value='';
+    document.getElementById('le-withdrawal').value='';
+    document.getElementById('le-desc').value='';
+    document.getElementById('le-memo').value='';
+    document.getElementById('le-reversed').checked=false;
+    document.getElementById('le-lot').checked=false;
+  } else {
+    const e=currentProject.ledger.find(x=>x.id===id);
+    if(!e||e.locked){toast('Entry is locked','warning');return;}
+    _editLedgerId=id;
+    document.getElementById('ledger-modal-title').textContent='Edit Ledger Entry';
+    document.getElementById('le-date').value=e.date;
+    document.getElementById('le-type').value=e.type;
+    document.getElementById('le-phase').innerHTML=LEDGER_PHASES.map(p=>`<option value="${p.id}"${p.id===e.phase?' selected':''}>${p.name}</option>`).join('');
+    document.getElementById('le-deposit').value=e.deposit||'';
+    document.getElementById('le-withdrawal').value=e.withdrawal||'';
+    document.getElementById('le-desc').value=e.description||'';
+    document.getElementById('le-memo').value=e.memo||'';
+    document.getElementById('le-reversed').checked=!!e.reversed;
+    document.getElementById('le-lot').checked=!!e.lotPurchase;
+  }
+  openModal('modal-ledger');
+}
+
+function saveLedgerEntry(){
+  const date=document.getElementById('le-date').value;
+  const type=document.getElementById('le-type').value;
+  if(!date){toast('Select a date','warning');return;}
+  const entry={
+    id:_editLedgerId||'le_'+uid(),
+    date,type,
+    phase:document.getElementById('le-phase').value,
+    deposit:parseFloat(document.getElementById('le-deposit').value)||0,
+    withdrawal:parseFloat(document.getElementById('le-withdrawal').value)||0,
+    description:document.getElementById('le-desc').value.trim(),
+    memo:document.getElementById('le-memo').value.trim(),
+    reversed:document.getElementById('le-reversed').checked,
+    lotPurchase:document.getElementById('le-lot').checked,
+    nonProject:type==='Non-Project Entry',
+    locked:false
+  };
+  if(_editLedgerId){
+    const idx=currentProject.ledger.findIndex(e=>e.id===_editLedgerId);
+    if(idx>=0)currentProject.ledger[idx]=entry;
+  } else {
+    if(!currentProject.ledger)currentProject.ledger=[];
+    currentProject.ledger.push(entry);
+  }
+  currentProject.ledger.sort((a,b)=>a.date.localeCompare(b.date));
+  closeModal('modal-ledger');scheduleSave();renderLedger();renderDashboard();renderPhaseBudgetTable();renderCharts();
+  toast('Entry saved','success');
+}
+
+function toggleLock(id){
+  const e=currentProject.ledger.find(x=>x.id===id);
+  if(!e)return;e.locked=!e.locked;
+  scheduleSave();renderLedger();
+  toast(e.locked?'🔒 Locked':'🔓 Unlocked',e.locked?'info':'success');
+}
+function lockAllLedger(){if(!confirm('Lock all entries?'))return;currentProject.ledger.forEach(e=>e.locked=true);scheduleSave();renderLedger();toast('All entries locked','info');}
+function unlockAllLedger(){currentProject.ledger.forEach(e=>e.locked=false);scheduleSave();renderLedger();toast('All entries unlocked','success');}
+
+/* ════════════════════════════════════════════════════
+   INVESTORS
+════════════════════════════════════════════════════ */
+function renderInvestors(){
+  const inv=currentProject.investors||[];
+  const ep=calcEstProfit();
+  const it=document.getElementById('investment-terms');
+  if(it)it.value=currentProject.investmentTerms||'';
+
+  if(!inv.length){
+    document.getElementById('investor-list').innerHTML='<div class="empty-state"><div class="empty-icon">👥</div><p>No investors added yet</p></div>';
+    return;
+  }
+
+  let totalAmt=0,totalEq=0,totalPayout=0;
+  let html=`<div class="investor-header-row">
+    <div>Name</div><div>Amount</div><div>Equity %</div><div>Pref. Return</div><div>Proj. Payout</div><div>Email</div><div></div>
+  </div>`;
+
+  inv.forEach((r,i)=>{
+    const payout=(r.equityPct||0)/100*ep;
+    const noSalePrice=!(currentProject.finance?.estSalePrice||0);
+    const payoutDisplay=noSalePrice?'—':fmt$(payout);
+    const payoutColor=noSalePrice?'var(--text3)':payout>=0?'var(--green)':'var(--red)';
+    totalAmt+=r.amount||0;totalEq+=r.equityPct||0;if(!noSalePrice)totalPayout+=payout;
+    html+=`<div class="investor-row">
+      <div style="font-weight:600">${r.name||'—'}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-family:var(--mono);font-weight:700">${fmt$(r.amount||0)}</span>
+        <button class="btn-edit-inv" onclick="openInvestorModal(${i})" title="Edit investor">✏</button>
+      </div>
+      <div style="text-align:center;font-family:var(--mono)">${(r.equityPct||0).toFixed(2)}</div>
+      <div style="text-align:center;font-family:var(--mono)">${(r.prefReturn||0).toFixed(0)}</div>
+      <div style="font-family:var(--mono);font-weight:700;color:${payoutColor}">${payoutDisplay}</div>
+      <div style="font-size:12px;color:var(--text2)">${r.email||'—'}</div>
+      <div><button class="btn-icon" onclick="removeInvestor(${i})">×</button></div>
+    </div>`;
+  });
+
+  const eqOk=Math.abs(totalEq-100)<0.1;
+  const noSalePrice=!(currentProject.finance?.estSalePrice||0);
+  const totalPayoutDisplay=noSalePrice?'—':fmt$(totalPayout);
+  const totalPayoutColor=noSalePrice?'var(--text3)':ep>=0?'var(--green)':'var(--red)';
+  html+=`<div class="investor-totals">
+    <div style="font-weight:700">TOTALS</div>
+    <div style="font-family:var(--mono)">${fmt$(totalAmt)}</div>
+    <div style="text-align:center;font-family:var(--mono);color:${eqOk?'var(--green)':'var(--red)'}">${totalEq.toFixed(2)}%</div>
+    <div></div>
+    <div style="font-family:var(--mono);font-weight:700;color:${totalPayoutColor}">${totalPayoutDisplay}</div>
+    <div></div><div></div>
+  </div>`;
+
+  if(!eqOk)html+=`<div style="padding:8px 12px;font-size:12px;color:var(--amber)">⚠ Equity totals ${totalEq.toFixed(2)}% — ${totalEq<100?(100-totalEq).toFixed(2)+'% unallocated':Math.abs(totalEq-100).toFixed(2)+'% over-allocated'}</div>`;
+
+  document.getElementById('investor-list').innerHTML=html;
+}
+
+function openInvestorModal(idx){
+  _editInvIdx=idx;
+  const r=currentProject.investors[idx];
+  const ep=calcEstProfit();
+  document.getElementById('inv-name').value=r.name||'';
+  document.getElementById('inv-amount').value=r.amount||0;
+  document.getElementById('inv-equity').value=r.equityPct||0;
+  document.getElementById('inv-pref').value=r.prefReturn||0;
+  document.getElementById('inv-email').value=r.email||'';
+  const pv=document.getElementById('inv-payout-val');
+  pv.textContent=fmt$((r.equityPct||0)/100*ep);
+  pv.style.color=(r.equityPct||0)/100*ep>=0?'var(--green)':'var(--red)';
+  document.getElementById('inv-equity').oninput=function(){
+    const p=(parseFloat(this.value)||0)/100*ep;
+    pv.textContent=fmt$(p);pv.style.color=p>=0?'var(--green)':'var(--red)';
+  };
+  openModal('modal-investor');
+  setTimeout(()=>document.getElementById('inv-name').focus(),100);
+}
+function updateInvPayout(){
+  const ep=calcEstProfit();
+  const eq=parseFloat(document.getElementById('inv-equity').value)||0;
+  const pv=document.getElementById('inv-payout-val');
+  const p=eq/100*ep;pv.textContent=fmt$(p);pv.style.color=p>=0?'var(--green)':'var(--red)';
+}
+function saveInvestor(){
+  if(_editInvIdx===null)return;
+  const r=currentProject.investors[_editInvIdx];
+  r.name=document.getElementById('inv-name').value.trim();
+  r.amount=parseFloat(document.getElementById('inv-amount').value)||0;
+  r.equityPct=parseFloat(document.getElementById('inv-equity').value)||0;
+  r.prefReturn=parseFloat(document.getElementById('inv-pref').value)||0;
+  r.email=document.getElementById('inv-email').value.trim();
+  closeModal('modal-investor');
+  scheduleSave();renderInvestors();renderFinance();
+  toast('Investor saved','success');
+}
+function addInvestorRow(){
+  if(!currentProject.investors)currentProject.investors=[];
+  currentProject.investors.push({id:'inv_'+uid(),name:'',amount:0,equityPct:0,prefReturn:0,email:''});
+  renderInvestors();scheduleSave();
+}
+function removeInvestor(i){
+  currentProject.investors.splice(i,1);renderInvestors();renderFinance();scheduleSave();
+}
+function copyInvestorEmails(){
+  const emails=(currentProject.investors||[]).filter(i=>i.email).map(i=>i.email).join(', ');
+  if(!emails){toast('No emails to copy','warning');return;}
+  navigator.clipboard.writeText(emails).then(()=>toast('✓ Emails copied')).catch(()=>prompt('Copy:',emails));
+}
+function mailtoInvestors(){
+  const emails=(currentProject.investors||[]).filter(i=>i.email).map(i=>i.email).join(',');
+  if(!emails){toast('No emails found','warning');return;}
+  window.open('mailto:'+emails+'?subject='+encodeURIComponent((currentProject.info?.company||'')+(currentProject.name?' — ':'')+currentProject.name+' Investor Update'),'_blank');
+}
+
+/* ════════════════════════════════════════════════════
+   FINANCE
+════════════════════════════════════════════════════ */
+function renderFinance(){
+  const f=currentProject.finance||{};
+  const tic=calcInvestorCapital();
+  const tb=(f.landCost||0)+(f.constructionBudget||0)+(f.builderMgmtFee||0)+(f.contingency||0);
+  const commission=(f.estSalePrice||0)*(f.commissionPct||6)/100;
+  const totalClosing=commission+(f.sellerConcessions||0);
+  const ep=(f.estSalePrice||0)-tb-totalClosing-(f.mgmtAdminFees||0);
+  const roi=tb>0?ep/tb:0;
+  const pColor=ep>=0?'var(--green)':'var(--red)';
+
+  const mInp=(key,label,val)=>`
+    <div class="form-group">
+      <label class="form-label">${label}</label>
+      <div class="money-display">
+        <input class="form-input" type="number" step="0.01" value="${val}"
+          onfocus="this.nextElementSibling.style.display='none'" 
+          onblur="this.nextElementSibling.style.display='';updateFinance('${key}',this.value)"
+          style="font-family:var(--mono)">
+        <div class="money-overlay">${fmt$(val)}</div>
+      </div>
+    </div>`;
+  const mCalc=(label,val,style)=>`
+    <div class="form-group">
+      <label class="form-label">${label}</label>
+      <div class="form-input" style="font-family:var(--mono);font-weight:700;${style}">${fmt$(val)}</div>
+    </div>`;
+
+  document.getElementById('finance-form').innerHTML=`
+    <div class="finance-section-title">Project Costs</div>
+    <div class="form-grid">
+      ${mInp('landCost','Land Acquisition Cost',f.landCost||0)}
+      ${mInp('constructionBudget','Construction Budget',f.constructionBudget||0)}
+      ${mInp('builderMgmtFee','Builder / Management Fee',f.builderMgmtFee||0)}
+      ${mInp('contingency','Contingency',f.contingency||0)}
+      ${mCalc('Total Project Budget',tb,'background:var(--blue-dim);border-left:3px solid var(--blue);border-radius:0 7px 7px 0')}
+      <div class="form-group">
+        <label class="form-label">Total Investor Capital <span style="font-size:10px;color:var(--text3);text-transform:none">← Investors tab</span></label>
+        <div class="form-input" style="font-family:var(--mono);font-weight:700;background:var(--blue-dim);border-left:3px solid var(--blue);border-radius:0 7px 7px 0">${fmt$(tic)}</div>
+      </div>
+    </div>
+    <div class="finance-section-title">Sale & Returns</div>
+    <div class="form-grid">
+      ${mInp('estSalePrice','Estimated Sale Price',f.estSalePrice||0)}
+      <div class="form-group">
+        <label class="form-label">Commission Rate (%)</label>
+        <input class="form-input" type="number" step="0.1" value="${f.commissionPct||6}" 
+          onfocus="this.value=this.value" 
+          onblur="updateFinance('commissionPct',this.value);renderFinance()">
+      </div>
+      ${mInp('sellerConcessions','Seller Concessions',f.sellerConcessions||0)}
+      ${mCalc('Commission + Closing',totalClosing,'background:var(--card2)')}
+      ${mInp('mgmtAdminFees','Management / Admin Fees',f.mgmtAdminFees||0)}
+    </div>
+    <div class="form-grid">
+      ${mCalc('Estimated Profit',ep,`background:${ep>=0?'var(--green-dim)':'var(--red-dim)'};border-left:3px solid ${pColor};border-radius:0 7px 7px 0;color:${pColor};font-size:16px`)}
+      <div class="form-group">
+        <label class="form-label">Estimated ROI</label>
+        <div class="form-input" style="font-weight:700;font-size:16px;background:${ep>=0?'var(--green-dim)':'var(--red-dim)'};border-left:3px solid ${pColor};border-radius:0 7px 7px 0;color:${pColor}">${(roi*100).toFixed(1)}%</div>
+      </div>
+    </div>`;
+
+  renderPhaseBudgetTable();
+}
+
+function updateFinance(key,val){
+  if(!currentProject.finance)currentProject.finance={};
+  currentProject.finance[key]=parseFloat(val)||0;
+  scheduleSave();renderFinance();
+}
+
+function renderPhaseBudgetTable(){
+  const tbl=document.getElementById('phase-budget-table');
+  if(!tbl||!currentProject)return;
+  let tBudget=0,tDrawn=0;
+  let html=`<thead><tr>
+    <th style="text-align:left">Phase</th>
+    <th>Budget</th>
+    <th>Drawn from Ledger</th>
+    <th>Remaining</th>
+    <th>% Drawn</th>
+    <th style="text-align:center;width:120px">Progress</th>
+    <th style="text-align:center">Status</th>
+  </tr></thead><tbody>`;
+
+  PHASES.forEach(ph=>{
+    const cfg=currentProject.phases.find(p=>p.id===ph.id)||{budget:0};
+    const budget=cfg.budget||0;
+    const drawn=calcPhaseDrawNet(ph.id);
+    const rem=budget-drawn;
+    const pct=budget>0?drawn/budget:0;
+    const st=pct>1?'over':pct>0.9?'warn':'ok';
+    tBudget+=budget;tDrawn+=drawn;
+    html+=`<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:10px;height:10px;border-radius:50%;background:${ph.color};flex-shrink:0"></span>
+          <div>
+            <div style="font-weight:600;font-size:13px">${ph.name}</div>
+            <div style="font-size:11px;color:var(--text3)">${PHASE_LABELS[ph.id]||''}</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:right">
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+          <span style="font-family:var(--mono);font-weight:600">${fmt$(budget)}</span>
+          <button style="background:transparent;border:1px solid transparent;border-radius:5px;color:var(--text3);font-size:13px;padding:2px 5px;opacity:.3;cursor:pointer;transition:.15s" 
+            onmouseenter="this.style.opacity=1;this.style.borderColor='var(--border2)';this.style.color='var(--amber)'"
+            onmouseleave="this.style.opacity=.3;this.style.borderColor='transparent';this.style.color='var(--text3)'"
+            onclick="openPhaseBudgetModal('${ph.id}',event)" title="Edit budget">✏</button>
+        </div>
+      </td>
+      <td style="text-align:right;font-family:var(--mono);color:${drawn>0?'var(--red)':'var(--text3)'}">${drawn>0?'-'+fmt$(drawn):'—'}</td>
+      <td style="text-align:right;font-family:var(--mono);color:${budget===0?'var(--text3)':rem<0?'var(--red)':'var(--text)'}">${budget===0?'—':fmt$(rem)}</td>
+      <td style="text-align:right;font-family:var(--mono);font-size:12px">${budget===0?'—':fmtPct(pct)}</td>
+      <td>
+        <div class="progress-bar"><div class="progress-fill ${st==='over'?'fill-red':st==='warn'?'fill-amber':'fill-blue'}" style="width:${Math.min(pct*100,100)}%"></div></div>
+      </td>
+      <td style="text-align:center">
+        ${budget===0?`<span style="color:var(--text3);font-size:11px">No budget set</span>`:
+          st==='over'?`<span class="status-badge status-blocked">OVER</span>`:
+          st==='warn'?`<span class="status-badge status-in-progress">WARNING</span>`:
+          `<span class="status-badge status-complete">ON TRACK</span>`}
+      </td>
+    </tr>`;
+  });
+
+  const tRem=tBudget-tDrawn;
+  html+=`</tbody><tfoot><tr class="phase-budget-table" style="background:var(--card2)">
+    <td style="font-weight:700;padding:10px 14px">TOTAL</td>
+    <td style="text-align:right;font-family:var(--mono);font-weight:700;padding:10px 14px">${fmt$(tBudget)}</td>
+    <td style="text-align:right;font-family:var(--mono);color:${tDrawn>0?'var(--red)':'var(--text3)'};padding:10px 14px">${tDrawn>0?'-'+fmt$(tDrawn):'—'}</td>
+    <td style="text-align:right;font-family:var(--mono);padding:10px 14px">${tBudget===0?'—':fmt$(tRem)}</td>
+    <td style="text-align:right;font-family:var(--mono);padding:10px 14px">${tBudget===0?'—':fmtPct(tBudget>0?tDrawn/tBudget:0)}</td>
+    <td colspan="2"></td>
+  </tr></tfoot>`;
+  tbl.innerHTML=html;
+}
+
+/* ════════════════════════════════════════════════════
+   REPORTS
+════════════════════════════════════════════════════ */
+function renderReports(){
+  if(!currentProject)return;
+  const co=document.getElementById('report-company');
+  const rt=document.getElementById('report-title');
+  if(co)co.textContent=currentProject.info?.company||'';
+  if(rt)rt.textContent=currentProject.name+' — Investor Report'+(currentProject.info?.reportPeriod?' | '+currentProject.info.reportPeriod:'');
+
+  const ep=calcEstProfit();
+  const bal=calcBankBalance();
+  const invCap=calcInvestorCapital();
+  const totalTasks=currentProject.tasks.length;
+  const doneTasks=currentProject.tasks.filter(t=>t.status==='complete').length;
+  const totalBudget=currentProject.phases.reduce((s,p)=>s+(p.budget||0),0);
+  const totalDrawn=PHASES.reduce((s,ph)=>s+calcPhaseDrawNet(ph.id),0);
+  const pctBudget=totalBudget>0?totalDrawn/totalBudget:0;
+
+  const rc=document.getElementById('report-content');
+  if(!rc)return;
+
+  rc.innerHTML=`
+    <div class="report-section" id="report-exec">
+      <div class="report-section-header">Executive Summary</div>
+      <div class="report-section-body">
+        <textarea class="form-input" style="width:100%;min-height:100px" placeholder="Enter executive summary..." 
+          oninput="currentProject.executiveSummary=this.value;scheduleSave()">${currentProject.executiveSummary||''}</textarea>
+      </div>
+    </div>
+    <div class="report-section" id="report-health">
+      <div class="report-section-header">Project Health</div>
+      <div class="report-section-body">
+        <div class="kpi-grid">
+          <div class="kpi green"><div class="kpi-label">Bank Balance</div><div class="kpi-val">${fmt$(bal)}</div></div>
+          <div class="kpi amber"><div class="kpi-label">Investor Capital</div><div class="kpi-val">${fmt$(invCap)}</div></div>
+          <div class="kpi blue"><div class="kpi-label">Budget Used</div><div class="kpi-val">${fmtPct(pctBudget)}</div><div class="kpi-sub">${fmt$(totalDrawn)} of ${fmt$(totalBudget)}</div></div>
+          <div class="kpi purple"><div class="kpi-label">Task Completion</div><div class="kpi-val">${doneTasks}/${totalTasks}</div><div class="kpi-sub">${fmtPct(totalTasks>0?doneTasks/totalTasks:0)}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="report-section" id="report-cashflow">
+      <div class="report-section-header">Cash Flow Statement</div>
+      <div class="report-section-body" id="report-cashflow-body"></div>
+    </div>
+    <div class="report-section" id="report-charts">
+      <div class="report-section-header">Charts &amp; Analysis</div>
+      <div class="report-section-body">
+        <div class="chart-grid">
+          <div class="chart-box"><h3>Capital Waterfall</h3><canvas id="report-chart-waterfall" style="max-height:220px"></canvas></div>
+          <div class="chart-box"><h3>Phase Spend vs Budget</h3><canvas id="report-chart-phases" style="max-height:220px"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="report-section" id="report-risks">
+      <div class="report-section-header">Risks &amp; Mitigation</div>
+      <div class="report-section-body">
+        <table class="risk-table" id="risks-table"></table>
+      </div>
+    </div>
+    <div class="report-section" id="report-next">
+      <div class="report-section-header">Next Steps</div>
+      <div class="report-section-body">
+        <textarea class="form-input" style="width:100%;min-height:80px" placeholder="Key next steps and priorities..."
+          oninput="currentProject.nextSteps=this.value;scheduleSave()">${currentProject.nextSteps||''}</textarea>
+      </div>
+    </div>`;
+
+  renderCashFlowStatement();
+  renderRisksTable();
+  setTimeout(renderReportCharts,100);
+}
+
+function renderCashFlowStatement(){
+  const el=document.getElementById('report-cashflow-body');
+  if(!el||!currentProject)return;
+  const ledger=currentProject.ledger||[];
+  const invCap=ledger.filter(e=>e.type==='Investor Funding'&&!e.reversed&&e.type!=='Non-Project Entry').reduce((s,e)=>s+(e.deposit||0),0);
+  // Refunds: non-reversed, non-non-project, non-investor-funding deposits — shown as their own line (NOT netted from phase draws)
+  const refunds=ledger.filter(e=>!e.reversed&&e.type!=='Non-Project Entry'&&e.type!=='Investor Funding'&&(e.deposit||0)>0).reduce((s,e)=>s+(e.deposit||0),0);
+  // Wire fees: Fees type only
+  const wireF=ledger.filter(e=>e.type==='Fees'&&!e.reversed).reduce((s,e)=>s+(e.withdrawal||0),0);
+  const bal=calcBankBalance();
+  const ep=calcEstProfit();
+
+  const row=(label,val,color,muted)=>`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)${muted?';opacity:.65':''}">
+    <span style="color:var(--text2);font-size:13px">${label}</span>
+    <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:${color}">${val}</span>
+  </div>`;
+
+  let html=row('Investor capital raised','+'+fmt$(invCap),'var(--green)');
+  if(refunds>0)html+=row('Refunds / credits received','+'+fmt$(refunds),'var(--green)');
+  // Reversed deposits (e.g. Bill Pay Returns) — real money that came back, included in bank balance
+  const reversedReturns=ledger.filter(e=>e.reversed&&e.type!=='Non-Project Entry'&&(e.deposit||0)>0).reduce((s,e)=>s+(e.deposit||0),0);
+  if(reversedReturns>0)html+=row('Reversed / returned funds (see ledger)','+'+fmt$(reversedReturns),'var(--green)');
+
+  // Build phases only (land through phase6) — gross withdrawals
+  const buildPhases=PHASES.filter(p=>p.id!=='mgmt');
+  buildPhases.forEach(ph=>{
+    const drawn=calcPhaseDrawGross(ph.id);
+    if(drawn>0)html+=row(`${ph.name} draws — ${PHASE_LABELS[ph.id]||''}`,'-'+fmt$(drawn),'var(--red)');
+  });
+
+  // Mgmt fee separately
+  const mgmtDrawn=calcPhaseDrawGross('mgmt');
+  if(mgmtDrawn>0)html+=row('GC management fees','-'+fmt$(mgmtDrawn),'var(--red)');
+
+  // Wire fees
+  if(wireF>0)html+=row('Wire transfer fees','-'+fmt$(wireF),'var(--red)');
+
+  html+=`<div style="display:flex;justify-content:space-between;padding:12px 0;margin-top:4px;border-top:2px solid var(--border2)">
+    <span style="font-weight:700;font-size:14px">Current bank balance</span>
+    <span style="font-family:var(--mono);font-size:14px;font-weight:700;color:${bal>=0?'var(--green)':'var(--red)'}">${fmt$(bal)}</span>
+  </div>`;
+  const epLabel=ep===0||!(currentProject.finance?.estSalePrice||0)
+    ?'Set sale price in Finance tab'
+    :(ep>=0?'+':'')+fmt$(ep);
+  const epColor=!(currentProject.finance?.estSalePrice||0)?'var(--text3)':ep>=0?'var(--green)':'var(--red)';
+  html+=`<div style="display:flex;justify-content:space-between;padding:6px 0">
+    <span style="color:var(--text3);font-size:12px;font-style:italic">Projected surplus / (deficit) at completion</span>
+    <span style="font-family:var(--mono);font-size:12px;color:${epColor}">${epLabel}</span>
+  </div>`;
+  el.innerHTML=html;
+}
+
+function renderRisksTable(){
+  const tbl=document.getElementById('risks-table');
+  if(!tbl||!currentProject)return;
+  const risks=currentProject.risks||[];
+  let html='<thead><tr><th>Risk</th><th>Impact</th><th>Likelihood</th><th>Mitigation</th><th class="no-print" style="width:40px"></th></tr></thead><tbody>';
+  risks.forEach((r,i)=>{
+    html+=`<tr>
+      <td><input type="text" value="${r.risk||''}" oninput="currentProject.risks[${i}].risk=this.value;scheduleSave()" style="width:100%"></td>
+      <td><select onchange="currentProject.risks[${i}].impact=this.value;scheduleSave()" style="background:var(--card)">
+        <option value="">—</option>
+        ${['High','Medium','Low'].map(v=>`<option${r.impact===v?' selected':''}>${v}</option>`).join('')}
+      </select></td>
+      <td><select onchange="currentProject.risks[${i}].likelihood=this.value;scheduleSave()" style="background:var(--card)">
+        <option value="">—</option>
+        ${['High','Medium','Low'].map(v=>`<option${r.likelihood===v?' selected':''}>${v}</option>`).join('')}
+      </select></td>
+      <td><input type="text" value="${r.mitigation||''}" oninput="currentProject.risks[${i}].mitigation=this.value;scheduleSave()" style="width:100%"></td>
+      <td class="no-print"><button class="btn-icon" onclick="removeRisk(${i})">×</button></td>
+    </tr>`;
+  });
+  html+=`<tr><td colspan="5" style="text-align:center;padding:8px">
+    <button class="btn-add-task" onclick="addRisk()">+ Add Risk</button>
+  </td></tr></tbody>`;
+  tbl.innerHTML=html;
+}
+function addRisk(){if(!currentProject.risks)currentProject.risks=[];currentProject.risks.push({id:uid(),risk:'',impact:'',likelihood:'',mitigation:''});renderRisksTable();scheduleSave();}
+function removeRisk(i){currentProject.risks.splice(i,1);renderRisksTable();scheduleSave();}
+
+function renderReportCharts(){
+  destroyChart('r-waterfall');destroyChart('r-phases');
+  const c1=document.getElementById('report-chart-waterfall');
+  const c2=document.getElementById('report-chart-phases');
+  if(c1?.getContext){
+    const invCap=currentProject.ledger.filter(e=>e.type==='Investor Funding'&&!e.reversed&&e.type!=='Non-Project Entry').reduce((s,e)=>s+(e.deposit||0),0);
+    const refunds=currentProject.ledger.filter(e=>!e.reversed&&e.type!=='Non-Project Entry'&&e.type!=='Investor Funding'&&(e.deposit||0)>0).reduce((s,e)=>s+(e.deposit||0),0);
+    const draws=currentProject.ledger.filter(e=>!e.reversed&&e.type!=='Non-Project Entry'&&e.type!=='Fees').reduce((s,e)=>s+(e.withdrawal||0),0);
+    const fees=currentProject.ledger.filter(e=>e.type==='Fees'&&!e.reversed).reduce((s,e)=>s+(e.withdrawal||0),0);
+    const bal=calcBankBalance();
+    const wfData=[invCap,-draws,-fees,refunds,bal];
+    const wfLabels=['Capital','Draws','Fees','Refunds','Balance'];
+    const barColors=['#10b981','#ef4444','#ef4444','#10b981','#3b82f6'];
+    const lblColors=['#27500A','#791F1F','#791F1F','#27500A','#1e40af'];
+    const fmtL=v=>{const abs=Math.abs(v);const sign=v>=0?'+':'-';return abs>=1000?sign+'$'+(abs/1000).toFixed(1)+'k':sign+'$'+abs.toFixed(0);};
+    const labPlugin={id:'rWfLabels',afterDatasetsDraw(chart){
+      const{ctx,data}=chart;ctx.save();
+      data.datasets[0].data.forEach((val,i)=>{
+        const bar=chart.getDatasetMeta(0).data[i];
+        const label=fmtL(wfData[i]);const isSmall=Math.abs(wfData[i])<5000;
+        ctx.font='600 11px Barlow,sans-serif';ctx.fillStyle=lblColors[i];ctx.textAlign='center';ctx.textBaseline='bottom';
+        const yPos=isSmall?bar.y-26:bar.y-5;
+        if(isSmall){ctx.save();ctx.strokeStyle=lblColors[i];ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(bar.x,bar.y-3);ctx.lineTo(bar.x,yPos+13);ctx.stroke();ctx.restore();}
+        ctx.fillText(label,bar.x,yPos);
+      });ctx.restore();
+    }};
+    charts['r-waterfall']=new Chart(c1,{type:'bar',plugins:[labPlugin],
+      data:{labels:wfLabels,datasets:[{data:wfData.map(v=>Math.abs(v)),backgroundColor:barColors,borderRadius:4,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:34}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const v=wfData[ctx.dataIndex];return' '+(v>=0?'+':'-')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2});}}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k',font:{size:10}}}}}});
+  }
+  if(c2?.getContext){
+    const phs=PHASES.filter(p=>p.id!=='mgmt');
+    const budgets=phs.map(p=>{const ph=currentProject.phases.find(x=>x.id===p.id);return ph?.budget||0;});
+    const drawn=phs.map(p=>calcPhaseDrawNet(p.id));
+    charts['r-phases']=new Chart(c2,{type:'bar',
+      data:{labels:phs.map(p=>p.name),datasets:[
+        {label:'Budget',data:budgets,backgroundColor:'rgba(59,130,246,.25)',borderColor:'#3b82f6',borderWidth:1,borderRadius:3},
+        {label:'Drawn',data:drawn,backgroundColor:phs.map(p=>p.color+'cc'),borderRadius:3}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},scales:{x:{ticks:{font:{size:10}}},y:{ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k',font:{size:10}}}}}});
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   SETTINGS POPULATE
+════════════════════════════════════════════════════ */
+function renderSettings(){
+  if(!currentProject)return;
+  const info=currentProject.info||{};
+  const setVal=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+  setVal('s-proj-name',currentProject.name);
+  setVal('s-company',info.company);
+  setVal('s-address',info.address);
+  setVal('s-gc',info.gc);
+  setVal('s-lawfirm',info.lawFirm);
+  setVal('s-start',info.startDate);
+  setVal('s-completion',info.estCompletion);
+  setVal('s-period',info.reportPeriod);
+  setVal('s-sheetid',currentProject.sheetId||'');
+  const saved=localStorage.getItem('cpm_timer_setting');
+  if(saved){const sel=document.getElementById('timerSelect');if(sel)sel.value=saved;}
+  updateDriveBtn();
+}
+
+/* ════════════════════════════════════════════════════
+   PRINT
+════════════════════════════════════════════════════ */
+const PRINT_SECTIONS=[
+  {id:'tab-reports',label:'Investor Report',desc:'KPIs, cash flow, charts, risks',checked:true},
+  {id:'tab-dashboard',label:'Dashboard',desc:'KPI tiles and charts',checked:true},
+  {id:'tab-finance',label:'Finance',desc:'Project financials & phase budgets',checked:false},
+  {id:'tab-phases',label:'Phases & Tasks',desc:'All phase task lists',checked:false},
+  {id:'tab-investors',label:'Investors',desc:'Investor details and terms',checked:false},
+  {id:'tab-ledger',label:'Bank Ledger',desc:'Full transaction history',checked:false}
+];
+
+function openPrintModal(){
+  const container=document.getElementById('print-options');
+  container.innerHTML=PRINT_SECTIONS.map(s=>`
+    <label class="print-check">
+      <input type="checkbox" value="${s.id}"${s.checked?' checked':''} style="accent-color:var(--amber)">
+      <span>
+        <span class="print-check-label">${s.label}</span>
+        <span class="print-check-desc">${s.desc}</span>
+      </span>
+    </label>`).join('');
+  openModal('modal-print');
+}
+function toggleAllPrint(v){document.querySelectorAll('#print-options input').forEach(cb=>cb.checked=v);}
+function executePrint(){
+  const sel=[];
+  document.querySelectorAll('#print-options input:checked').forEach(cb=>sel.push(cb.value));
+  if(!sel.length){toast('Select at least one section','warning');return;}
+  closeModal('modal-print');
+  // Remove any previous print classes
+  document.querySelectorAll('.tab-pane').forEach(el=>el.classList.remove('print-include'));
+  // Add print-include only to selected sections
+  sel.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.classList.add('print-include');
+  });
+  // Render report charts if report is included
+  if(sel.includes('tab-reports'))renderReportCharts();
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{
+      document.querySelectorAll('.tab-pane').forEach(el=>el.classList.remove('print-include'));
+      showTab('dashboard');
+    },500);
+  },700);
+}
+
+/* ════════════════════════════════════════════════════
+   STARTUP
+════════════════════════════════════════════════════ */
+init();
+</script>
+<!-- Google Drive scripts loaded AFTER main script so gapiLoaded/gisLoaded are defined -->
+<script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</body>
+</html>
