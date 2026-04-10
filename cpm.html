@@ -707,19 +707,14 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
             </label>
           </div>
         </div>
-        <div class="form-group" style="margin-bottom:20px">
-          <label class="form-label">Google Sheet URL or ID</label>
-          <input class="form-input" id="s-sheetid" placeholder="Paste the full Google Sheet URL or just the Sheet ID" oninput="updateSheetId(this.value)">
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">Paste the full URL <span style="color:var(--amber)">or</span> just the Sheet ID — we'll extract it automatically</div>
-          <div id="sheet-create-status" style="display:none;font-size:12px;color:var(--green);margin-top:6px"></div>
-        </div>
-
-        <!-- Google Sheets Integration — 3 primary buttons -->
-        <div style="background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px">
-          <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--amber);margin-bottom:12px">Google Sheets Integration</div>
+        <!-- Google Sheets Integration — status + 3 primary buttons -->
+        <div style="background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--amber);margin-bottom:10px">Google Sheets Integration</div>
+          <!-- Compact sheet link status -->
+          <div id="sheet-link-status" style="padding:8px 10px;background:var(--bg2);border-radius:6px;margin-bottom:12px;font-size:12px"></div>
           <div style="display:flex;flex-direction:column;gap:10px">
             <div class="settings-row" style="padding:0;border:none">
-              <div class="settings-row-info"><h4>Create Field Ops Sheet</h4><p>Creates a formatted, pre-populated Google Sheet in your Drive folder with all tasks. Auto-fills Sheet ID above. Share the resulting sheet with Ahmed.</p></div>
+              <div class="settings-row-info"><h4>Create Field Ops Sheet</h4><p>Creates a formatted, pre-populated Google Sheet in your Drive folder with all tasks. Auto-fills Sheet ID. Share the sheet with Ahmed when done.</p></div>
               <button class="btn-primary" id="btn-create-sheet" onclick="createFieldOpsSheet()" style="white-space:nowrap">📊 Create Sheet</button>
             </div>
             <div style="border-top:1px solid var(--border);margin:0 -2px"></div>
@@ -741,8 +736,14 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
             <span style="font-size:12px;font-weight:600;color:var(--text3)">⬇ Manual / Offline Fallback</span>
             <span id="manual-fallback-chevron" style="color:var(--text3);font-size:12px;transition:.2s">▶</span>
           </div>
-          <div id="manual-fallback-body" style="display:none;padding:12px 16px;border-top:1px solid var(--border);background:var(--bg2)">
-            <p style="font-size:12px;color:var(--text3);margin-bottom:10px">Use this if Drive is unavailable or you need a CSV without creating a Sheet.</p>
+          <div id="manual-fallback-body" style="display:none;padding:14px 16px;border-top:1px solid var(--border);background:var(--bg2)">
+            <p style="font-size:12px;color:var(--text3);margin-bottom:12px">Use this if Drive is unavailable, or to manually link an existing Sheet.</p>
+            <div class="form-group" style="margin-bottom:12px">
+              <label class="form-label">Google Sheet URL or ID</label>
+              <input class="form-input" id="s-sheetid" placeholder="Paste the full Google Sheet URL or just the Sheet ID" oninput="updateSheetId(this.value)">
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">Paste the full URL <span style="color:var(--amber)">or</span> just the Sheet ID — extracted automatically</div>
+            </div>
+            <div id="sheet-create-status" style="display:none;font-size:12px;color:var(--green);margin-bottom:10px"></div>
             <div class="settings-row" style="padding:0;border:none">
               <div class="settings-row-info"><h4>Download CSV Template</h4><p>11-column task tracker CSV — pre-populated. Upload to Drive → convert to Sheet → share with Ahmed manually.</p></div>
               <button class="btn-secondary" onclick="downloadFieldOpsCSV()">⬇ Download CSV</button>
@@ -1457,7 +1458,7 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION = 'v2.1.2';
+const APP_VERSION = 'v2.1.3';
 const APP_NAME = 'CPM';
 const LS_KEY = 'cpm_data';
 const PW_KEY = 'cpm_pass';
@@ -3771,6 +3772,35 @@ function renderSettings(){
   updateDriveBtn();
   renderCompanyLogos();
   renderPublishSettings();
+  renderSheetStatus();
+}
+
+function renderSheetStatus(){
+  const el=document.getElementById('sheet-link-status');
+  if(!el)return;
+  const sid=currentProject?.sheetId||'';
+  if(sid){
+    const short=sid.length>24?sid.substring(0,10)+'…'+sid.slice(-6):sid;
+    const url=`https://docs.google.com/spreadsheets/d/${sid}/edit`;
+    el.innerHTML=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="background:var(--green-dim);color:var(--green);font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;border:1px solid rgba(16,185,129,.3)">✓ LINKED</span>
+      <a href="${url}" target="_blank" style="font-family:var(--mono);font-size:11px;color:var(--text2);text-decoration:none">${short}</a>
+      <button onclick="unlinkSheet()" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;text-decoration:underline;padding:0;margin-left:auto">Unlink</button>
+    </div>`;
+  }else{
+    el.innerHTML=`<span style="font-size:12px;color:var(--text3)">No sheet linked — click <strong style="color:var(--text2)">📊 Create Sheet</strong> or paste a Sheet URL in Manual Setup below</span>`;
+  }
+}
+
+function unlinkSheet(){
+  if(!currentProject)return;
+  if(!confirm('Unlink this sheet from the project?\n\nThe Google Sheet stays in your Drive — only the link in CPM is removed.'))return;
+  currentProject.sheetId='';
+  const inp=document.getElementById('s-sheetid');
+  if(inp)inp.value='';
+  scheduleSave();
+  renderSheetStatus();
+  toast('Sheet unlinked','info');
 }
 
 /* ════════════════════════════════════════════════════
@@ -4258,33 +4288,24 @@ async function createFieldOpsSheet(){
     const projName=currentProject.name.replace(/[^a-zA-Z0-9\s]/g,' ').trim();
     const sheetTitle=`${projName} — Field Ops Tasks`;
 
-    // Step 1 — Create spreadsheet
-    const createResp=await fetch('https://sheets.googleapis.com/v4/spreadsheets',{
+    // Step 1 — Create via Drive Files API with parent folder specified upfront
+    // This places the file directly in the correct folder — no move needed
+    const folderId=(getPublishSettings().folderId||SHARED_FOLDER_ID).trim();
+    const driveBody={name:sheetTitle,mimeType:'application/vnd.google-apps.spreadsheet'};
+    if(folderId)driveBody.parents=[folderId];
+    const createResp=await fetch('https://www.googleapis.com/drive/v3/files',{
       method:'POST',
       headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-      body:JSON.stringify({
-        properties:{title:sheetTitle},
-        sheets:[{properties:{sheetId:0,title:'Tasks',gridProperties:{frozenRowCount:0,frozenColumnCount:0}}}]
-      })
+      body:JSON.stringify(driveBody)
     });
     if(!createResp.ok){
       const err=await createResp.json().catch(()=>({}));
       throw new Error(err.error?.message||'Failed to create spreadsheet');
     }
     const created=await createResp.json();
-    const newSheetId=created.spreadsheetId;
+    const newSheetId=created.id; // Drive Files API returns 'id', not 'spreadsheetId'
 
-    // Step 2 — Move to shared Drive folder (if configured)
-    const folderId=(getPublishSettings().folderId||'').trim();
-    if(folderId&&folderId!==SHARED_FOLDER_ID){
-      await fetch(`https://www.googleapis.com/drive/v3/files/${newSheetId}?addParents=${encodeURIComponent(folderId)}`,{
-        method:'PATCH',
-        headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-        body:JSON.stringify({})
-      }).catch(e=>console.warn('[CreateSheet] Move to folder failed (non-fatal):',e));
-    }
-
-    // Step 3 — Build and write all rows
+    // Step 2 — Build and write all rows
     const metaRows=[
       [`# ${currentProject.name} — Field Operations Task Tracker`],
       [`# Generated by CPM v${APP_VERSION} on ${new Date().toLocaleDateString()}`],
@@ -4319,7 +4340,7 @@ async function createFieldOpsSheet(){
     const hdrRow=metaRows.length;           // 0-indexed row of the column header
     const dataEnd=hdrRow+1+taskRows.length; // exclusive end row for borders
 
-    // Step 4 — batchUpdate: freeze, colors, widths, borders, protect A:B
+    // Step 3 — batchUpdate: freeze, colors, widths, borders, protect A:B
     const requests=[];
 
     // Freeze header row + columns A-B
@@ -4328,10 +4349,10 @@ async function createFieldOpsSheet(){
       fields:'gridProperties.frozenRowCount,gridProperties.frozenColumnCount'
     }});
 
-    // Dark background on all meta + header rows
+    // Dark background on all meta + header rows — white text so it's readable
     requests.push({repeatCell:{
       range:{sheetId:0,startRowIndex:0,endRowIndex:hdrRow+1},
-      cell:{userEnteredFormat:{backgroundColor:{red:0.039,green:0.063,blue:0.118},textFormat:{bold:true}}},
+      cell:{userEnteredFormat:{backgroundColor:{red:0.039,green:0.063,blue:0.118},textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1}}}},
       fields:'userEnteredFormat(backgroundColor,textFormat)'
     }});
 
@@ -4362,8 +4383,8 @@ async function createFieldOpsSheet(){
       fields:'userEnteredFormat(textFormat)'
     }});
 
-    // Column widths A-K
-    [130,220,100,100,100,100,90,110,90,160,200].forEach((px,i)=>{
+    // Column widths A-K: Phase|TaskName|PlanStart|PlanEnd|ActStart|ActEnd|Pct|Status|Cost|Vendor|Blocker
+    [140,260,110,110,110,110,90,110,100,160,220].forEach((px,i)=>{
       requests.push({updateDimensionProperties:{
         range:{sheetId:0,dimension:'COLUMNS',startIndex:i,endIndex:i+1},
         properties:{pixelSize:px},fields:'pixelSize'
@@ -4393,11 +4414,12 @@ async function createFieldOpsSheet(){
     );
     if(!fmtResp.ok)toast('Sheet created but formatting failed — sheet is still usable','warning');
 
-    // Step 5 — Auto-populate Sheet ID in project + Settings input
+    // Step 4 — Auto-populate Sheet ID in project and update status display
     currentProject.sheetId=newSheetId;
     const inp=document.getElementById('s-sheetid');
     if(inp)inp.value=newSheetId;
     scheduleSave();
+    renderSheetStatus();
 
     // Success — show link
     const sheetUrl=`https://docs.google.com/spreadsheets/d/${newSheetId}/edit`;
@@ -4527,13 +4549,13 @@ function updateSheetId(val){
   if(!currentProject)return;
   const id=extractSheetId(val);
   currentProject.sheetId=id;
-  // Sync the input to show the clean ID if they pasted a full URL
+  // Briefly show the extracted ID if they pasted a full URL
   const inp=document.getElementById('s-sheetid');
   if(inp&&val!==id&&id){
-    // Briefly show the extracted ID — only replace if they pasted a full URL
     setTimeout(()=>{if(inp===document.activeElement)return;inp.value=id;},600);
   }
   scheduleSave();
+  renderSheetStatus();
 }
 
 async function syncFromSheet(){
