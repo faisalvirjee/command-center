@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CPM Viewer — Construction Project Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+<style>
+:root{
+  --bg:#0f0f0f;--surface:#1a1a1a;--card2:#222;--border:#2e2e2e;--border2:#3a3a3a;
+  --amber:#f59e0b;--amber2:#c9a227;--green:#4ade80;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;
+  --text:#f1f1f1;--text2:#c4c4c4;--text3:#737373;--text4:#4a4a4a;
+  --radius:10px;--radius2:8px;--mono:'IBM Plex Mono',monospace;--cond:'Barlow Condensed',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh}
+
+/* ── LOGIN ── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px 40px;max-width:420px;width:100%;text-align:center}
+.login-logo{font-family:var(--cond);font-size:30px;font-weight:700;letter-spacing:1px;color:var(--amber);margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--text3);margin-bottom:28px;letter-spacing:.3px}
+.login-label{display:block;text-align:left;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+.login-input{width:100%;padding:12px 14px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:0;transition:border .2s}
+.login-input:focus{border-color:var(--amber)}
+.pw-wrap{position:relative;margin-bottom:16px}
+.pw-wrap .login-input{padding-right:44px}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:4px;line-height:1}
+.pw-toggle:hover{color:var(--amber)}
+.login-btn{width:100%;padding:13px;background:var(--amber);color:#1a1a1a;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-family:var(--cond);letter-spacing:.5px;font-size:15px;transition:opacity .2s}
+.login-btn:hover{opacity:.9}
+.login-err{font-size:12px;color:var(--red);min-height:18px;margin-bottom:10px}
+.login-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:20px;padding:4px 14px;font-size:11px;color:var(--amber);margin-bottom:28px;letter-spacing:.3px;font-weight:600}
+
+/* ── APP SHELL ── */
+#app-screen{display:none}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-brand{font-family:var(--cond);font-size:16px;font-weight:700;letter-spacing:.5px;color:var(--amber)}
+.topbar-meta{font-size:11px;color:var(--text3)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.ro-badge{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--amber)}
+.lock-btn{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;color:var(--text3);cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
+.lock-btn:hover{color:var(--text);border-color:var(--border2)}
+
+/* ── PROJECT DROPDOWN ── */
+.proj-selector-bar{padding:10px 24px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:12px}
+.proj-dropdown-wrap{position:relative}
+.proj-dropdown-btn{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;min-width:240px;max-width:400px;transition:border-color .2s}
+.proj-dropdown-btn:hover{border-color:var(--amber)}
+.proj-dropdown-label{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proj-dropdown-arrow{color:var(--text3);font-size:11px;flex-shrink:0;transition:transform .2s}
+.proj-dropdown-btn.open .proj-dropdown-arrow{transform:rotate(180deg)}
+.proj-dropdown-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:340px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;z-index:100;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.proj-dropdown-menu.open{display:block}
+.proj-dropdown-item{display:flex;align-items:center;padding:12px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border);gap:10px}
+.proj-dropdown-item:last-child{border-bottom:none}
+.proj-dropdown-item:hover{background:var(--card2)}
+.proj-dropdown-item.active{background:rgba(245,158,11,.08)}
+.proj-item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.proj-item-dot.active{background:var(--green)}
+.proj-item-dot.on_hold{background:var(--amber)}
+.proj-item-dot.completed{background:var(--blue)}
+.proj-item-name{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.proj-item-company{font-size:11px;color:var(--text3)}
+.proj-item-report{padding:4px 10px;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.3);border-radius:12px;color:var(--amber2);font-size:11px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.proj-item-report:hover{background:rgba(201,162,39,.2)}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;padding:0 24px;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto}
+.tab-btn{padding:12px 16px;font-size:11px;font-weight:700;font-family:var(--cond);letter-spacing:.6px;text-transform:uppercase;color:var(--text3);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.tab-btn.active{color:var(--amber);border-bottom-color:var(--amber)}
+.tab-btn:hover:not(.active){color:var(--text2)}
+.tab-pane{display:none;padding:20px 24px;overflow-y:auto;max-height:calc(100vh - 155px)}
+.tab-pane.active{display:block}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;border-left:3px solid var(--border)}
+.kpi.green{border-left-color:var(--green)}.kpi.amber{border-left-color:var(--amber)}
+.kpi.blue{border-left-color:var(--blue)}.kpi.purple{border-left-color:var(--purple)}
+.kpi.red{border-left-color:var(--red)}
+.kpi-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+.kpi-val{font-size:20px;font-weight:700;color:var(--text);font-family:var(--mono);line-height:1.2}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px}
+.card-title{font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--amber2);margin-bottom:12px}
+
+/* ── PHASE PROGRESS ── */
+.phase-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.phase-name{font-size:12px;font-weight:600;color:var(--text2);width:200px;flex-shrink:0;line-height:1.3}
+.phase-bar-wrap{flex:1;background:var(--card2);border-radius:4px;height:7px;overflow:hidden;min-width:60px}
+.phase-bar{height:100%;border-radius:4px;transition:width .5s}
+.phase-bar.complete{background:var(--green)}
+.phase-bar.partial{background:var(--amber)}
+.phase-bar.empty{background:var(--border2)}
+.phase-pct{font-size:11px;font-family:var(--mono);color:var(--text3);width:36px;text-align:right;flex-shrink:0}
+
+/* ── STATUS BADGES ── */
+.status-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.3px}
+.status-badge.complete{background:rgba(74,222,128,.12);color:var(--green)}
+.status-badge.in-progress{background:rgba(245,158,11,.12);color:var(--amber)}
+.status-badge.pending{background:rgba(115,115,115,.1);color:var(--text3)}
+.status-badge.blocked{background:rgba(248,113,113,.12);color:var(--red)}
+
+/* ── PHASE SECTION HEADERS (Phases tab) ── */
+.phase-section{margin-bottom:20px}
+.phase-section-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:linear-gradient(90deg,rgba(201,162,39,.1),rgba(201,162,39,.03));border-left:3px solid var(--amber2);border-radius:0 6px 6px 0;margin-bottom:10px}
+.phase-section-title{font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--amber2)}
+.phase-section-meta{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.phase-progress-mini{height:4px;background:var(--card2);border-radius:2px;overflow:hidden;margin-top:6px}
+.phase-progress-mini-fill{height:100%;border-radius:2px}
+
+/* ── TABLES ── */
+.data-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.data-table th{background:rgba(255,255,255,.03);color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;font-size:10px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border2)}
+.data-table td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(255,255,255,.018)}
+.pos{color:var(--green)}.neg{color:var(--red)}
+
+/* ── LEDGER ── */
+.ledger-debit{color:var(--red)}.ledger-credit{color:var(--green)}
+.ledger-phase-tag{display:inline-block;padding:2px 7px;border-radius:6px;font-size:10px;background:rgba(245,158,11,.1);color:var(--amber2);font-weight:600;white-space:nowrap}
+
+/* ── INVESTORS ── */
+.inv-row{display:grid;grid-template-columns:1fr 120px 80px 80px;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)}
+.inv-row:last-child{border-bottom:none}
+.inv-name{font-size:13px;font-weight:600;color:var(--text)}
+.inv-amt{font-family:var(--mono);font-size:12px;color:var(--text2)}
+.inv-pct{font-family:var(--mono);font-size:12px;color:var(--amber)}
+
+/* ── REPORT MODAL ── */
+.report-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:200}
+.report-modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:420px;max-width:94vw;padding:28px 28px 24px}
+.report-modal h3{font-family:var(--cond);font-size:18px;font-weight:700;color:var(--text);letter-spacing:.3px;margin-bottom:6px}
+.report-modal-meta{font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.6}
+.report-modal-actions{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.report-action-btn{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card2);cursor:pointer;transition:all .2s;text-align:left;font-family:'Barlow',sans-serif}
+.report-action-btn:hover{border-color:var(--amber);background:rgba(201,162,39,.06)}
+.report-action-icon{font-size:22px;width:32px;text-align:center;flex-shrink:0}
+.report-action-label{font-size:14px;font-weight:600;color:var(--text)}
+.report-action-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.report-modal-cancel{width:100%;padding:9px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text3);font-size:13px;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
+.report-modal-cancel:hover{border-color:var(--text3);color:var(--text)}
+.report-loading{text-align:center;padding:20px 0;font-size:13px;color:var(--text3)}
+
+/* ── FOOTER ── */
+.viewer-footer{padding:14px 24px;border-top:1px solid var(--border);text-align:center;font-size:11px;color:var(--text4)}
+
+/* ── RESPONSIVE — iPad + Phone ── */
+@media(max-width:900px){
+  .proj-dropdown-btn{min-width:220px}
+  .inv-row{grid-template-columns:1fr 100px 70px 70px}
+}
+@media(max-width:640px){
+  .topbar{padding:0 14px}
+  .topbar-meta{display:none}
+  .proj-selector-bar{padding:8px 14px}
+  .proj-dropdown-btn{min-width:180px;font-size:12px}
+  .proj-dropdown-menu{min-width:260px}
+  .tabs{padding:0 14px}
+  .tab-btn{padding:10px 10px;font-size:10px;letter-spacing:.3px}
+  .tab-pane{padding:14px}
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi-val{font-size:17px}
+  .phase-name{width:130px;font-size:11px}
+  .inv-row{grid-template-columns:1fr 90px 60px}
+  .inv-row > *:last-child{display:none}
+  .data-table{font-size:11px}
+  .data-table td,.data-table th{padding:7px 8px}
+}
+@media(max-width:400px){
+  .login-card{padding:32px 20px}
+  .kpi-grid{grid-template-columns:1fr}
+  .phase-name{width:100px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">⚒ CPM VIEWER</div>
+    <div class="login-sub">Project Dashboard</div>
+    <div class="login-badge">🔒 Read-Only Access</div>
+    <label class="login-label">Viewer Password</label>
+    <div class="pw-wrap">
+      <input type="password" id="login-pw" class="login-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="pw-toggle" onclick="togglePwVisibility()" title="Show/hide password" tabindex="-1">👁</button>
+    </div>
+    <div id="login-err" class="login-err"></div>
+    <button class="login-btn" onclick="doLogin()">View Projects →</button>
+    <div style="margin-top:20px;font-size:11px;color:var(--text3)">Data is encrypted. Contact Faisal for password.</div>
+    <div style="margin-top:8px;font-size:10px;color:var(--border)" id="login-ver"></div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app-screen">
+  <div class="topbar">
+    <div class="topbar-brand">⚒ CPM VIEWER</div>
+    <div class="topbar-right">
+      <span id="topbar-ts" class="topbar-meta"></span>
+      <span class="ro-badge">READ ONLY</span>
+      <button class="lock-btn" onclick="doLock()">🔒 Lock</button>
+    </div>
+  </div>
+
+  <div class="proj-selector-bar" id="proj-selector">
+    <div class="proj-dropdown-wrap">
+      <button class="proj-dropdown-btn" id="proj-dropdown-btn" onclick="toggleProjDropdown()">
+        <span id="proj-dropdown-label">Select project…</span>
+        <span class="proj-dropdown-arrow">▾</span>
+      </button>
+      <div class="proj-dropdown-menu" id="proj-dropdown-menu"></div>
+    </div>
+    <div id="proj-report-btn-wrap"></div>
+  </div>
+
+  <div class="tabs" id="main-tabs">
+    <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab-btn" data-tab="phases" onclick="switchTab('phases')">Phases & Tasks</button>
+    <button class="tab-btn" data-tab="ledger" onclick="switchTab('ledger')">Bank Ledger</button>
+    <button class="tab-btn" data-tab="investors" onclick="switchTab('investors')">Investors</button>
+    <button class="tab-btn" data-tab="finance" onclick="switchTab('finance')">Finance</button>
+  </div>
+
+  <div class="tab-pane active" id="tab-dashboard"></div>
+  <div class="tab-pane" id="tab-phases"></div>
+  <div class="tab-pane" id="tab-ledger"></div>
+  <div class="tab-pane" id="tab-investors"></div>
+  <div class="tab-pane" id="tab-finance"></div>
+
+  <div class="viewer-footer">
+    <span id="footer-credit"></span>
+  </div>
+  <!-- Report options modal -->
+  <div id="report-modal-container"></div>
+</div>
+
+<script>
+// ── CONFIG ──
+const VIEWER_VERSION    = 'v2.0.1';
+// If accessing via URL param (?folder=ID), that overrides the default
+const DEFAULT_FOLDER_ID = '1zaQBENpzmLk1YSEvP2mR5iwIFyMUL3Z-';
+const SHARED_FILE_NAME  = 'cpm_shared.json';
+
+// ── STATE ──
+let viewerData = null;
+let currentProj = null;
+let currentTab  = 'dashboard';
+
+// ── HELPERS ──
+function fmt$(n){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n||0);}
+function fmtPct(n){return (n*100).toFixed(1)+'%';}
+function fmtDate(s){if(!s)return '—';const d=new Date(s+'T12:00:00');return isNaN(d)?s:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+
+function getFolderId(){
+  const p=new URLSearchParams(window.location.search);
+  return p.get('folder')||DEFAULT_FOLDER_ID;
+}
+
+// ── PASSWORD TOGGLE ──
+function togglePwVisibility(){
+  const inp = document.getElementById('login-pw');
+  const btn = document.querySelector('.pw-toggle');
+  if(inp.type === 'password'){
+    inp.type = 'text';
+    btn.textContent = '🙈';
+    btn.title = 'Hide password';
+  } else {
+    inp.type = 'password';
+    btn.textContent = '👁';
+    btn.title = 'Show password';
+  }
+}
+
+// ── FETCH JSON from public Drive folder (API key auth) ──
+const DRIVE_API_KEY = 'AIzaSyAl_KKsplXM59JuD9tRx2uup9nz7Uuozd8';
+
+async function fetchSharedData(password){
+  const folderId = getFolderId();
+  try{
+    // Step 1: List files in the shared folder using the API key
+    const listResp = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${SHARED_FILE_NAME}'+and+'${folderId}'+in+parents+and+trashed=false&fields=files(id)&key=${DRIVE_API_KEY}`
+    );
+    if(!listResp.ok) throw new Error(`Drive API error: ${listResp.status}`);
+    const listJson = await listResp.json();
+
+    let fileId = null;
+    if(listJson.files && listJson.files.length > 0){
+      fileId = listJson.files[0].id;
+    } else {
+      // Fallback: try ?file=ID in URL (useful if folder listing fails)
+      const p = new URLSearchParams(window.location.search);
+      fileId = p.get('file') || null;
+    }
+    if(!fileId) throw new Error('File not found in shared folder.');
+
+    // Step 2: Download the file content using the API key
+    const fileResp = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${DRIVE_API_KEY}`
+    );
+    if(!fileResp.ok) throw new Error(`Download failed: ${fileResp.status}`);
+    const wrapper = await fileResp.json();
+
+    if(!wrapper.enc) throw new Error('Invalid data format — missing encryption payload.');
+
+    // Step 3: Decrypt with CryptoJS AES
+    const decrypted = CryptoJS.AES.decrypt(wrapper.enc, password);
+    const plaintext = decrypted.toString(CryptoJS.enc.Utf8);
+    if(!plaintext) throw new Error('Wrong password or corrupted data.');
+
+    const data = JSON.parse(plaintext);
+    return {data, exportedAt: wrapper.exportedAt};
+
+  } catch(e){
+    throw e;
+  }
+}
+
+// ── LOGIN ──
+async function doLogin(){
+  const pw = document.getElementById('login-pw').value;
+  const err = document.getElementById('login-err');
+  err.textContent = '';
+  if(!pw){err.textContent='Enter the viewer password.';return;}
+
+  const btn = document.querySelector('.login-btn');
+  btn.textContent = 'Loading…';
+  btn.disabled = true;
+
+  try{
+    const {data, exportedAt} = await fetchSharedData(pw);
+    viewerData = data;
+
+    // Show app
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+
+    // Timestamp
+    const ts = exportedAt ? new Date(exportedAt).toLocaleString() : 'Unknown';
+    document.getElementById('topbar-ts').textContent = `Last updated: ${ts}`;
+    document.getElementById('footer-credit').textContent =
+      `CPM Viewer ${VIEWER_VERSION} — Snapshot: ${ts} · Read-only`;
+
+    buildProjectSelector();
+    if(viewerData.projects && viewerData.projects.length > 0){
+      selectProject(viewerData.projects[0].id);
+    }
+
+  } catch(e){
+    err.textContent = e.message.includes('Wrong password') ? 'Incorrect password. Try again.' :
+                      `Error: ${e.message}`;
+    btn.textContent = 'View Projects →';
+    btn.disabled = false;
+  }
+}
+
+function doLock(){
+  viewerData = null; currentProj = null;
+  document.getElementById('login-pw').value = '';
+  document.getElementById('login-err').textContent = '';
+  document.querySelector('.login-btn').textContent = 'View Projects →';
+  document.querySelector('.login-btn').disabled = false;
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ── PROJECT SELECTOR ──
+function buildProjectSelector(){
+  const menu = document.getElementById('proj-dropdown-menu');
+  if(!menu) return;
+  menu.innerHTML = viewerData.projects.map(p => {
+    const pdfMeta = viewerData.publishedPdfs?.[p.id];
+    const status = p.status || 'active';
+    const reportBtn = pdfMeta
+      ? `<button class="proj-item-report" onclick="event.stopPropagation();openReportModal('${p.id}')">📄 Report</button>`
+      : '';
+    return `<div class="proj-dropdown-item" data-id="${p.id}" onclick="selectProject('${p.id}');closeProjDropdown()">
+      <span class="proj-item-dot ${status}"></span>
+      <span class="proj-item-name">${p.name}</span>
+      <span class="proj-item-company">${p.info?.company||''}</span>
+      ${reportBtn}
+    </div>`;
+  }).join('');
+}
+
+function toggleProjDropdown(){
+  const btn = document.getElementById('proj-dropdown-btn');
+  const menu = document.getElementById('proj-dropdown-menu');
+  if(!btn||!menu) return;
+  const isOpen = menu.classList.contains('open');
+  if(isOpen){ closeProjDropdown(); }
+  else {
+    menu.classList.add('open');
+    btn.classList.add('open');
+    // Close on outside click
+    setTimeout(()=>document.addEventListener('click', _closeProjOnOutside, {once:true}), 0);
+  }
+}
+
+function _closeProjOnOutside(e){
+  const wrap = document.querySelector('.proj-dropdown-wrap');
+  if(wrap && !wrap.contains(e.target)) closeProjDropdown();
+}
+
+function closeProjDropdown(){
+  document.getElementById('proj-dropdown-menu')?.classList.remove('open');
+  document.getElementById('proj-dropdown-btn')?.classList.remove('open');
+}
+
+function selectProject(id){
+  currentProj = viewerData.projects.find(p => p.id === id);
+  if(!currentProj) return;
+  // Update dropdown button label
+  const label = document.getElementById('proj-dropdown-label');
+  if(label) label.textContent = currentProj.name;
+  // Highlight active item in menu
+  document.querySelectorAll('.proj-dropdown-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === id);
+  });
+  renderAll();
+}
+
+function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('tab-'+tab).classList.add('active');
+  renderTab(tab);
+}
+
+function renderAll(){
+  ['dashboard','phases','ledger','investors','finance'].forEach(t => {
+    if(document.getElementById('tab-'+t).classList.contains('active') || t === 'dashboard') renderTab(t);
+  });
+}
+
+function renderTab(tab){
+  switch(tab){
+    case 'dashboard':   renderDashboard(); break;
+    case 'phases':      renderPhases(); break;
+    case 'ledger':      renderLedger(); break;
+    case 'investors':   renderInvestors(); break;
+    case 'finance':     renderFinance(); break;
+  }
+}
+
+// ── PHASES LABELS ──
+const PHASE_LABELS = {
+  land:'Land Acquisition', phase1:'Phase 1 — Site Prep & Foundation',
+  phase2:'Phase 2 — Framing & MEP', phase3:'Phase 3 — Rough-In & Insulation',
+  phase4:'Phase 4 — Drywall & Finishes', phase5:'Phase 5 — Exterior & Landscaping',
+  phase6:'Phase 6 — Final Inspections & Closing', mgmt:'Management Fee'
+};
+
+const STATUS_ORDER = ['complete','in-progress','in_progress','pending','blocked'];
+
+// ── CALC HELPERS ──
+function calcLedger(proj){
+  // Balance includes ALL entries (reversed bill pay returns are real money back)
+  // Display totals exclude reversed entries to avoid inflating the KPI cards
+  const all = (proj.ledger||[]).filter(e=>e.type!=='Non-Project Entry');
+  let balance=0, totalIn=0, totalOut=0;
+  all.forEach(e=>{
+    const dep = parseFloat(e.deposit)||0;
+    const wd  = parseFloat(e.withdrawal)||0;
+    balance += dep - wd;               // balance: include all
+    if(!e.reversed){
+      totalIn  += dep;                 // display totals: exclude reversed
+      totalOut += wd;
+    }
+  });
+  return {balance, totalIn, totalOut};
+}
+
+function calcTasks(proj){
+  const tasks = proj.tasks || [];
+  const done = tasks.filter(t => t.status === 'complete').length;
+  return {done, total: tasks.length, pct: tasks.length ? done/tasks.length : 0};
+}
+
+function calcPhaseProgress(proj, phaseId){
+  const tasks = (proj.tasks||[]).filter(t => t.phaseId === phaseId);
+  if(!tasks.length) return {done:0,total:0,pct:0};
+  const done = tasks.filter(t => t.status === 'complete').length;
+  return {done, total:tasks.length, pct:done/tasks.length};
+}
+
+// ── DASHBOARD ──
+function renderDashboard(){
+  const p = currentProj; if(!p) return;
+  const el = document.getElementById('tab-dashboard');
+  const f = p.finance || {};
+  const {balance, totalOut} = calcLedger(p);
+  const {done, total, pct} = calcTasks(p);
+  // Match CPM exactly: totalBudget includes contingency
+  const totalBudget = (f.landCost||0)+(f.constructionBudget||0)+(f.builderMgmtFee||0)+(f.contingency||0);
+  const pctBudget = totalBudget > 0 ? totalOut/totalBudget : 0;
+  const invCap = (p.investors||[]).reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
+  const salePrice = f.estSalePrice||0;
+  const noSale = !salePrice;
+  const commission = salePrice*(f.commissionPct||6)/100;
+  const grossProfit = salePrice - totalBudget - commission - (f.sellerConcessions||0) - (f.mgmtAdminFees||0);
+  const roi = totalBudget > 0 ? grossProfit/totalBudget : 0;
+
+  // Phase progress summary
+  const phaseKeys = Object.keys(PHASE_LABELS);
+  const phaseRows = phaseKeys.map(pid => {
+    const {done:pd, total:pt, pct:pp} = calcPhaseProgress(p, pid);
+    if(!pt) return '';
+    const pct = (pp*100).toFixed(0);
+    const barClass = pp >= 1 ? 'complete' : pp > 0 ? 'partial' : 'empty';
+    return `<div class="phase-row">
+      <div class="phase-name">${PHASE_LABELS[pid]}</div>
+      <div class="phase-bar-wrap"><div class="phase-bar ${barClass}" style="width:${(pp*100).toFixed(1)}%"></div></div>
+      <div class="phase-pct">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi amber"><div class="kpi-label">Bank Balance</div><div class="kpi-val">${fmt$(balance)}</div><div class="kpi-sub">Available cash</div></div>
+      <div class="kpi blue"><div class="kpi-label">Investor Capital</div><div class="kpi-val">${fmt$(invCap)}</div><div class="kpi-sub">${(p.investors||[]).length} investors</div></div>
+      <div class="kpi ${pctBudget>1?'red':'green'}"><div class="kpi-label">Budget Used</div><div class="kpi-val">${fmtPct(pctBudget)}</div><div class="kpi-sub">${fmt$(totalOut)} of ${fmt$(totalBudget)}</div></div>
+      <div class="kpi purple"><div class="kpi-label">Task Completion</div><div class="kpi-val">${done}/${total}</div><div class="kpi-sub">${fmtPct(pct)} overall</div></div>
+      <div class="kpi ${noSale?'amber':grossProfit>=0?'green':'red'}"><div class="kpi-label">Est. Profit</div><div class="kpi-val" style="color:${noSale?'var(--text3)':grossProfit>=0?'var(--green)':'var(--red)'}">${noSale?'TBD':fmt$(grossProfit)}</div><div class="kpi-sub">After all fees</div></div>
+      <div class="kpi ${noSale?'amber':roi>=0?'green':'red'}"><div class="kpi-label">Est. ROI</div><div class="kpi-val" style="color:${noSale?'var(--text3)':roi>=0?'var(--green)':'var(--red)'}">${noSale?'—':fmtPct(roi)}</div><div class="kpi-sub">Return on investment</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Phase Progress</div>
+      ${phaseRows||'<div style="color:var(--text3);font-size:13px">No tasks defined yet.</div>'}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <div class="card-title">Project Info</div>
+        <table class="data-table">
+          <tr><td style="color:var(--text3);width:120px">GC</td><td>${p.info?.gc||'—'}</td></tr>
+          <tr><td style="color:var(--text3)">Start Date</td><td>${fmtDate(p.info?.startDate)}</td></tr>
+          <tr><td style="color:var(--text3)">Est. Complete</td><td>${fmtDate(p.info?.estCompletion)}</td></tr>
+          <tr><td style="color:var(--text3)">Address</td><td>${p.info?.address||'—'}</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">Active Blockers</div>
+        ${(p.tasks||[]).filter(t=>t.status==='blocked'&&t.blocker).length
+          ? (p.tasks||[]).filter(t=>t.status==='blocked'&&t.blocker).map(t=>
+              `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+                <div style="font-size:13px;font-weight:600;color:var(--text)">${t.name}</div>
+                <div style="font-size:12px;color:var(--red);margin-top:3px">⚠ ${t.blocker}</div>
+              </div>`).join('')
+          : '<div style="font-size:13px;color:var(--text3)">No active blockers 🎉</div>'}
+      </div>
+    </div>`;
+}
+
+// ── PHASES & TASKS ──
+// Shared colgroup for all phase tables — ensures STATUS column aligns across all phases
+const PHASE_TABLE_COLS = `<colgroup>
+  <col style="width:35%">
+  <col style="width:12%">
+  <col style="width:10%">
+  <col style="width:11%">
+  <col style="width:13%">
+  <col style="width:19%">
+</colgroup>`;
+
+function renderPhases(){
+  const p = currentProj; if(!p) return;
+  const el = document.getElementById('tab-phases');
+  const phaseKeys = Object.keys(PHASE_LABELS);
+  el.innerHTML = phaseKeys.map(pid => {
+    const tasks = (p.tasks||[]).filter(t => t.phaseId === pid);
+    if(!tasks.length) return '';
+    const done = tasks.filter(t=>t.status==='complete').length;
+    const pct = (done/tasks.length*100).toFixed(0);
+    const rows = tasks.map(t => {
+      const st = t.status||'pending';
+      const badge = `<span class="status-badge ${st==='in-progress'||st==='in_progress'?'in-progress':st}">${st.replace('_','-')}</span>`;
+      return `<tr>
+        <td>${t.name}</td>
+        <td>${badge}</td>
+        <td>${t.cost>0?fmt$(t.cost):'—'}</td>
+        <td>${fmtDate(t.startDate)}</td>
+        <td>${fmtDate(t.actualComplete)}</td>
+        <td style="color:var(--red)">${t.blocker||''}</td>
+      </tr>`;
+    }).join('');
+    const barClass = parseInt(pct) >= 100 ? 'complete' : parseInt(pct) > 0 ? 'partial' : 'empty';
+    return `<div class="phase-section">
+      <div class="phase-section-header">
+        <span class="phase-section-title">${PHASE_LABELS[pid]}</span>
+        <span class="phase-section-meta">${done}/${tasks.length} · ${pct}%</span>
+      </div>
+      <div class="phase-progress-mini" style="margin-bottom:12px">
+        <div class="phase-progress-mini-fill ${barClass}" style="width:${pct}%;background:${parseInt(pct)>=100?'var(--green)':parseInt(pct)>0?'var(--amber)':'var(--border2)'}"></div>
+      </div>
+      <table class="data-table" style="table-layout:fixed">
+        ${PHASE_TABLE_COLS}
+        <thead><tr><th>Task</th><th>Status</th><th>Cost</th><th>Start</th><th>Completed</th><th>Blocker</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+// ── LEDGER ──
+function renderLedger(){
+  const p = currentProj; if(!p) return;
+  const el = document.getElementById('tab-ledger');
+  // Sort oldest → newest (natural construction timeline order)
+  const allEntries = [...(p.ledger||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const {balance, totalIn, totalOut} = calcLedger(p);
+  if(!allEntries.length){el.innerHTML='<div style="color:var(--text3);padding:20px">No transactions yet.</div>';return;}
+
+  // Build running balance oldest→newest
+  let running = 0;
+  const rows = allEntries.map(e=>{
+    const dep = parseFloat(e.deposit)||0;
+    const wd  = parseFloat(e.withdrawal)||0;
+    const isDeposit = dep > 0;
+    const amt = isDeposit ? dep : wd;
+    const reversed = !!e.reversed;
+    running += dep - wd;
+    const phaseLabel = PHASE_LABELS[e.phase] || e.phase || '—';
+    const rowStyle = reversed ? 'opacity:0.45;text-decoration:line-through' : '';
+    return `<tr style="${rowStyle}">
+      <td style="white-space:nowrap">${fmtDate(e.date)}</td>
+      <td>${e.description||'—'}${reversed?' <span style="color:var(--red);font-size:10px">[REVERSED]</span>':''}</td>
+      <td><span class="ledger-phase-tag">${phaseLabel}</span></td>
+      <td class="${isDeposit?'ledger-credit':'ledger-debit'}">${isDeposit?'+':'-'}${fmt$(amt)}</td>
+      <td style="font-family:var(--mono);font-size:11px">${fmt$(running)}</td>
+      <td style="color:var(--text3);font-size:11px">${e.memo||''}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="kpi-grid" style="margin-bottom:20px;grid-template-columns:repeat(3,1fr)">
+      <div class="kpi green"><div class="kpi-label">Current Balance</div><div class="kpi-val">${fmt$(balance)}</div></div>
+      <div class="kpi blue"><div class="kpi-label">Total Deposits</div><div class="kpi-val">${fmt$(totalIn)}</div></div>
+      <div class="kpi red"><div class="kpi-label">Total Withdrawals</div><div class="kpi-val">${fmt$(totalOut)}</div></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="data-table">
+        <thead><tr><th>Date</th><th>Description</th><th>Phase</th><th>Amount</th><th>Running Balance</th><th>Memo</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+
+}
+
+// ── INVESTORS ──
+function renderInvestors(){
+  const p = currentProj; if(!p) return;
+  const el = document.getElementById('tab-investors');
+  const inv = p.investors||[];
+  const totalCap = inv.reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
+  const f = p.finance||{};
+  const salePrice = f.estSalePrice||0;
+  const commission = salePrice*(f.commissionPct||6)/100;
+  const totalBudget = (f.landCost||0)+(f.constructionBudget||0)+(f.builderMgmtFee||0)+(f.contingency||0);
+  const grossProfit = salePrice - totalBudget - commission - (f.sellerConcessions||0) - (f.mgmtAdminFees||0);
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-title">Investor Summary</div>
+      <div class="inv-row" style="border-bottom:2px solid var(--border);padding-bottom:10px;margin-bottom:4px">
+        <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Investor</span>
+        <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Invested</span>
+        <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Equity</span>
+        <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Est. Return</span>
+      </div>
+      ${inv.map(i=>{
+        const share = salePrice>0 ? grossProfit*(i.equityPct/100) : null;
+        return `<div class="inv-row">
+          <div class="inv-name">${i.name}</div>
+          <div class="inv-amt">${fmt$(i.amount)}</div>
+          <div class="inv-pct">${i.equityPct}%</div>
+          <div class="inv-amt ${share===null?'':share>=0?'pos':'neg'}">${share===null?'—':fmt$(share)}</div>
+        </div>`;
+      }).join('')}
+      <div class="inv-row" style="border-top:2px solid var(--border);margin-top:4px;padding-top:10px">
+        <div style="font-weight:700;color:var(--text)">TOTAL</div>
+        <div style="font-family:var(--mono);font-weight:700">${fmt$(totalCap)}</div>
+        <div style="font-family:var(--mono);color:var(--amber)">100%</div>
+        <div style="font-family:var(--mono);color:${grossProfit>=0?'var(--green)':'var(--red)'};font-weight:700">${salePrice>0?fmt$(grossProfit):'—'}</div>
+      </div>
+    </div>
+    ${p.investmentTerms?`<div class="card"><div class="card-title">Investment Terms</div><div style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${p.investmentTerms}</div></div>`:''}`;
+}
+
+// ── FINANCE ──
+function renderFinance(){
+  const p = currentProj; if(!p) return;
+  const el = document.getElementById('tab-finance');
+  const f = p.finance||{};
+  const salePrice = f.estSalePrice||0;
+  const commission = salePrice*(f.commissionPct||6)/100;
+  const totalBudget = (f.landCost||0)+(f.constructionBudget||0)+(f.builderMgmtFee||0)+(f.contingency||0);
+  const totalClosing = commission+(f.sellerConcessions||0);
+  const grossProfit = salePrice - totalBudget - totalClosing - (f.mgmtAdminFees||0);
+  const totalCost = totalBudget + totalClosing + (f.mgmtAdminFees||0);
+  const roi = totalBudget > 0 ? grossProfit/totalBudget : 0;
+
+  const row=(label,val,cls='')=>`<tr><td style="color:var(--text3);padding:10px 12px">${label}</td><td class="${cls}" style="font-family:var(--mono);text-align:right;padding:10px 12px">${val}</td></tr>`;
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <div class="card-title">Project Costs</div>
+        <table class="data-table">
+          ${row('Land Cost',fmt$(f.landCost))}
+          ${row('Construction Budget',fmt$(f.constructionBudget))}
+          ${row('Builder / Mgmt Fee',fmt$(f.builderMgmtFee))}
+          ${row('Contingency',fmt$(f.contingency))}
+          ${row('Commission ('+fmtPct((f.commissionPct||6)/100)+')',fmt$(commission))}
+          ${row('Seller Concessions',fmt$(f.sellerConcessions))}
+          ${row('Mgmt & Admin Fees',fmt$(f.mgmtAdminFees))}
+          <tr style="border-top:2px solid var(--border)"><td style="font-weight:700;padding:10px 12px">Total Cost</td><td style="font-family:var(--mono);font-weight:700;text-align:right;padding:10px 12px">${fmt$(totalCost)}</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">Projected Returns</div>
+        <table class="data-table">
+          ${row('Est. Sale Price',fmt$(salePrice))}
+          ${row('Total Cost',fmt$(totalCost))}
+          <tr style="border-top:2px solid var(--border)">
+            <td style="font-weight:700;padding:10px 12px">Est. Gross Profit</td>
+            <td style="font-family:var(--mono);font-weight:700;text-align:right;padding:10px 12px;color:${grossProfit>=0?'var(--green)':'var(--red)'}">${fmt$(grossProfit)}</td>
+          </tr>
+          <tr><td style="font-weight:700;padding:10px 12px">Est. ROI</td>
+            <td style="font-family:var(--mono);font-weight:700;text-align:right;padding:10px 12px;color:${roi>=0?'var(--green)':'var(--red)'}">${fmtPct(roi)}</td>
+          </tr>
+        </table>
+        <div style="margin-top:14px;padding:12px;background:var(--card2);border-radius:8px">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Phase Budgets</div>
+          ${(p.phases||[]).map(ph=>`
+            <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text2)">${PHASE_LABELS[ph.id]||ph.id}</span>
+              <span style="font-family:var(--mono);color:var(--amber)">${fmt$(ph.budget)}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+// Enter key on password
+document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+// Stamp version
+document.getElementById('login-ver').textContent = 'CPM Viewer ' + VIEWER_VERSION;
+document.getElementById('footer-credit').textContent = 'CPM Viewer ' + VIEWER_VERSION + ' — Data encrypted at rest';
+
+// ── REPORT MODAL ──
+function openReportModal(projectId) {
+  const pdfMeta = viewerData.publishedPdfs?.[projectId];
+  if (!pdfMeta) { alert('No report PDF available for this project.'); return; }
+
+  const proj = viewerData.projects.find(p => p.id === projectId);
+  const projName = proj?.name || 'Project';
+  const pubDate = pdfMeta.publishedAt ? new Date(pdfMeta.publishedAt).toLocaleString() : 'Unknown';
+  const filename = pdfMeta.filename || `${projName}_report.pdf`;
+
+  // Show loading state
+  document.getElementById('report-modal-container').innerHTML = `
+    <div class="report-modal-overlay" id="report-overlay" onclick="if(event.target===this)closeReportModal()">
+      <div class="report-modal">
+        <h3>📄 Investor Report</h3>
+        <div class="report-modal-meta">
+          <strong style="color:var(--text)">${projName}</strong><br>
+          File: <span style="color:var(--amber);font-family:var(--mono);font-size:11px">${filename}</span><br>
+          Published: ${pubDate}
+        </div>
+        <div class="report-loading" id="report-loading">⏳ Loading PDF…</div>
+        <div id="report-actions" style="display:none">
+          <div class="report-modal-actions">
+            <button class="report-action-btn" id="btn-open-tab">
+              <span class="report-action-icon">🔗</span>
+              <div>
+                <div class="report-action-label">Open in Browser</div>
+                <div class="report-action-sub">View the PDF in a new tab</div>
+              </div>
+            </button>
+            <button class="report-action-btn" id="btn-download">
+              <span class="report-action-icon">⬇</span>
+              <div>
+                <div class="report-action-label">Download PDF</div>
+                <div class="report-action-sub">Save to your device — ${filename}</div>
+              </div>
+            </button>
+          </div>
+        </div>
+        <div id="report-error" style="display:none;color:var(--red);font-size:12px;margin-bottom:16px;padding:10px;background:rgba(248,113,113,.08);border-radius:8px;border:1px solid rgba(248,113,113,.2)"></div>
+        <button class="report-modal-cancel" onclick="closeReportModal()">Cancel</button>
+      </div>
+    </div>`;
+
+  // Fetch PDF from Drive using API key
+  const fileId = pdfMeta.fileId;
+  const fetchUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${DRIVE_API_KEY}`;
+
+  fetch(fetchUrl)
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status} — file may not be publicly accessible`);
+      return res.blob();
+    })
+    .then(blob => {
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Hide loading, show actions
+      document.getElementById('report-loading').style.display = 'none';
+      document.getElementById('report-actions').style.display = 'block';
+
+      // Wire up buttons
+      document.getElementById('btn-open-tab').onclick = () => {
+        window.open(blobUrl, '_blank');
+      };
+      document.getElementById('btn-download').onclick = () => {
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        a.click();
+      };
+    })
+    .catch(err => {
+      console.error('[ReportModal]', err);
+      document.getElementById('report-loading').style.display = 'none';
+      const errEl = document.getElementById('report-error');
+      errEl.style.display = 'block';
+      errEl.textContent = `⚠ Could not load PDF: ${err.message}. The file may need to be re-published.`;
+    });
+}
+
+function closeReportModal() {
+  document.getElementById('report-modal-container').innerHTML = '';
+}
+</script>
+</body>
+</html>
