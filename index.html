@@ -1,0 +1,962 @@
+<!-- Command Center Portal | v1.8 | 2026-04-13 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Command Center</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Syne:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #080b12;
+    --bg2: #0d1220;
+    --card: #111827;
+    --card-hover: #161f32;
+    --border: #1e2d47;
+    --border-bright: #2a3f5f;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --gold: #f59e0b;
+    --gold2: #fcd34d;
+    --green: #10b981;
+    --purple: #8b5cf6;
+    --pink: #ec4899;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #3d5273;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    min-height: 100vh;
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 20%, rgba(59,130,246,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 80%, rgba(245,158,11,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse 40% 60% at 50% 50%, rgba(139,92,246,0.04) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* GRID LINES */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ===== LOGIN ===== */
+  #loginScreen {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .login-container {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 420px;
+    padding: 20px;
+  }
+
+  .login-card {
+    background: var(--card);
+    border: 1px solid var(--border-bright);
+    border-radius: 24px;
+    padding: 48px 40px;
+    box-shadow:
+      0 0 0 1px rgba(59,130,246,0.08),
+      0 24px 64px rgba(0,0,0,0.6),
+      inset 0 1px 0 rgba(255,255,255,0.04);
+    animation: fadeUp 0.5s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(20px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  .login-emblem {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .emblem-ring {
+    width: 72px; height: 72px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(245,158,11,0.2));
+    border: 1px solid rgba(59,130,246,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+    box-shadow: 0 0 32px rgba(59,130,246,0.2);
+    position: relative;
+  }
+
+  .emblem-ring::before {
+    content: '';
+    position: absolute; inset: -4px;
+    border-radius: 50%;
+    border: 1px solid rgba(59,130,246,0.15);
+  }
+
+  .login-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+  }
+
+  .login-subtitle {
+    font-size: 13px; color: var(--text2);
+    margin-top: 6px; letter-spacing: 0.3px;
+  }
+
+  .login-field {
+    margin-bottom: 20px;
+  }
+
+  .login-field label {
+    display: block;
+    font-size: 11px; font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 1.2px; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .login-field input {
+    width: 100%;
+    padding: 14px 18px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'Syne', sans-serif;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .login-field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+  }
+
+  .login-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border: none; border-radius: 12px;
+    color: #fff; font-size: 14px; font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+  }
+
+  .login-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(37,99,235,0.5);
+  }
+
+  .login-btn:active { transform: translateY(0); }
+
+  .login-error {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 13px;
+    color: #f87171;
+    display: none;
+  }
+
+  /* ===== MAIN APP ===== */
+  #app {
+    display: none;
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    padding: 48px 24px 60px;
+  }
+
+  /* HEADER */
+  .portal-header {
+    text-align: center;
+    margin-bottom: 56px;
+    animation: fadeUp 0.5s ease 0.1s both;
+  }
+
+  .portal-eyebrow {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+
+  .portal-eyebrow::before,
+  .portal-eyebrow::after {
+    content: '';
+    width: 32px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent2));
+  }
+  .portal-eyebrow::after {
+    background: linear-gradient(90deg, var(--accent2), transparent);
+  }
+
+  .portal-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(36px, 6vw, 56px);
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+  }
+
+  .portal-title span {
+    background: linear-gradient(135deg, var(--accent2), var(--gold2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .portal-sub {
+    font-size: 14px; color: var(--text2);
+    margin-top: 12px; letter-spacing: 0.2px;
+  }
+
+  /* LOGOUT */
+  .portal-topbar {
+    position: fixed; top: 16px; right: 20px;
+    z-index: 50;
+    display: none;
+  }
+
+  .btn-portal-logout {
+    padding: 8px 18px;
+    background: rgba(17,24,39,0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-bright);
+    border-radius: 20px;
+    color: var(--text2);
+    font-size: 12px; font-weight: 600;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-portal-logout:hover {
+    border-color: #f87171; color: #f87171;
+  }
+
+  /* APP GRID */
+  .apps-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    max-width: 1200px;
+    margin: 0 auto 40px;
+  }
+
+  /* APP CARD */
+  .app-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px 22px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative; overflow: hidden;
+    text-decoration: none; color: inherit;
+    display: block;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .app-card:nth-child(1) { animation-delay: 0.15s; }
+  .app-card:nth-child(2) { animation-delay: 0.22s; }
+  .app-card:nth-child(3) { animation-delay: 0.29s; }
+  .app-card:nth-child(4) { animation-delay: 0.36s; }
+  .app-card:nth-child(5) { animation-delay: 0.43s; }
+
+  .app-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: 20px;
+  }
+
+  .app-card:hover {
+    transform: translateY(-6px) scale(1.01);
+    border-color: var(--border-bright);
+    box-shadow: 0 20px 48px rgba(0,0,0,0.4);
+  }
+
+  .app-card:hover::before { opacity: 1; }
+
+  /* COLOR VARIANTS */
+  .app-card.blue::before { background: radial-gradient(ellipse at top left, rgba(59,130,246,0.08), transparent 60%); }
+  .app-card.gold::before { background: radial-gradient(ellipse at top left, rgba(245,158,11,0.08), transparent 60%); }
+  .app-card.green::before { background: radial-gradient(ellipse at top left, rgba(16,185,129,0.08), transparent 60%); }
+  .app-card.purple::before { background: radial-gradient(ellipse at top left, rgba(139,92,246,0.08), transparent 60%); }
+  .app-card.pink::before { background: radial-gradient(ellipse at top left, rgba(56,189,248,0.08), transparent 60%); }
+
+  .app-card.blue:hover { border-color: rgba(59,130,246,0.4); box-shadow: 0 20px 48px rgba(59,130,246,0.12); }
+  .app-card.gold:hover { border-color: rgba(245,158,11,0.4); box-shadow: 0 20px 48px rgba(245,158,11,0.12); }
+  .app-card.green:hover { border-color: rgba(16,185,129,0.4); box-shadow: 0 20px 48px rgba(16,185,129,0.12); }
+  .app-card.purple:hover { border-color: rgba(139,92,246,0.4); box-shadow: 0 20px 48px rgba(139,92,246,0.12); }
+  .app-card.pink:hover { border-color: rgba(236,72,153,0.4); box-shadow: 0 20px 48px rgba(236,72,153,0.12); }
+  .app-card.teal:hover { border-color: rgba(56,189,248,0.4); box-shadow: 0 20px 48px rgba(56,189,248,0.12); }
+
+  /* CARD ICON */
+  .card-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    margin-bottom: 14px;
+    position: relative; z-index: 1;
+  }
+
+  .card-icon.blue { background: rgba(59,130,246,0.15); box-shadow: 0 4px 16px rgba(59,130,246,0.2); }
+  .card-icon.gold { background: rgba(245,158,11,0.15); box-shadow: 0 4px 16px rgba(245,158,11,0.2); }
+  .card-icon.green { background: rgba(16,185,129,0.15); box-shadow: 0 4px 16px rgba(16,185,129,0.2); }
+  .card-icon.purple { background: rgba(139,92,246,0.15); box-shadow: 0 4px 16px rgba(139,92,246,0.2); }
+  .card-icon.pink { background: rgba(56,189,248,0.08); box-shadow: 0 4px 16px rgba(236,72,153,0.2); }
+
+  .card-tag {
+    position: absolute; top: 18px; right: 18px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 20px;
+  }
+
+  .card-tag.mobile { background: rgba(56,189,248,0.1); color: #7dd3fc; border: 1px solid rgba(56,189,248,0.2); }
+  .card-tag.new { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.2); }
+
+  .card-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    position: relative; z-index: 1;
+    line-height: 1.2;
+  }
+
+  .card-desc {
+    font-size: 12px; color: var(--text2);
+    line-height: 1.5;
+    position: relative; z-index: 1;
+    margin-bottom: 18px;
+  }
+
+  .card-launch {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.8px; text-transform: uppercase;
+    position: relative; z-index: 1;
+    transition: gap 0.2s;
+  }
+
+  .app-card.blue .card-launch { color: var(--accent2); }
+  .app-card.gold .card-launch { color: var(--gold2); }
+  .app-card.green .card-launch { color: #6ee7b7; }
+  .app-card.purple .card-launch { color: #c4b5fd; }
+  .app-card.pink .card-launch { color: #f9a8d4; }
+  .app-card.teal .card-launch { color: #7dd3fc; }
+
+  .app-card:hover .card-launch { gap: 12px; }
+
+  .card-arrow {
+    font-size: 16px;
+    transition: transform 0.2s;
+  }
+
+  .app-card:hover .card-arrow { transform: translateX(4px); }
+
+  /* MOBILE HIGHLIGHT */
+  .app-card.mobile-highlight {
+    border-style: dashed;
+    border-color: rgba(56,189,248,0.3);
+  }
+
+  /* DIVIDER */
+  .section-divider {
+    max-width: 1100px; margin: 0 auto 24px;
+    display: flex; align-items: center; gap: 16px;
+    animation: fadeUp 0.5s ease 0.4s both;
+  }
+
+  .divider-label {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text3); white-space: nowrap;
+  }
+
+  .divider-line {
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* FOOTER */
+  .portal-footer {
+    text-align: center;
+    font-size: 12px; color: var(--text3);
+    margin-top: 48px;
+    animation: fadeUp 0.5s ease 0.5s both;
+  }
+
+  /* MOBILE */
+  @media (max-width: 600px) {
+    #app { padding: 32px 16px 48px; }
+    .portal-header { margin-bottom: 40px; }
+    .apps-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .apps-grid.main-grid { grid-template-columns: 1fr 1fr; }
+    .app-card { padding: 26px 22px; }
+    .login-card { padding: 36px 28px; }
+    .portal-topbar { top: 12px; right: 14px; }
+  }
+  .pw-wrap { position: relative; }
+  .pw-wrap input { padding-right: 44px; }
+  .pw-eye {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    font-size: 16px; padding: 4px; opacity: 0.4; transition: opacity 0.2s;
+  }
+  .pw-eye:hover { opacity: 0.8; }
+
+  .btn-portal-settings {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: rgba(255,255,255,0.5);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .btn-portal-settings:hover {
+    border-color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.85);
+  }
+  .settings-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .settings-overlay.open { display: flex; }
+  .settings-modal {
+    background: #0f1624;
+    border: 1px solid rgba(99,143,194,0.25);
+    border-radius: 16px;
+    padding: 28px;
+    width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .settings-modal h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: #e2e8f0;
+    margin-bottom: 6px;
+  }
+  .settings-modal p {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 20px;
+  }
+  .settings-field { margin-bottom: 14px; }
+  .settings-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin-bottom: 6px;
+  }
+  .settings-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: #111827;
+    border: 1px solid rgba(99,143,194,0.2);
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .settings-input:focus { border-color: rgba(59,130,246,0.5); }
+  .settings-msg { font-size: 12px; margin-top: 10px; text-align: center; min-height: 18px; }
+  .settings-btns { display: flex; gap: 10px; margin-top: 18px; }
+  .btn-settings-save {
+    flex: 1; padding: 11px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border: none; border-radius: 8px;
+    color: #fff; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+  .btn-settings-cancel {
+    flex: 1; padding: 11px;
+    background: transparent;
+    border: 1px solid rgba(99,143,194,0.2);
+    border-radius: 8px;
+    color: #64748b; font-size: 13px;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="createPwScreen" style="display:none;position:fixed;inset:0;z-index:9999;background:#0f172a;align-items:center;justify-content:center;flex-direction:column;gap:12px">
+  <div style="text-align:center;color:#f8fafc;font-size:24px;font-weight:700;margin-bottom:4px">🏠 Command Center</div>
+  <div style="color:#94a3b8;font-size:14px;margin-bottom:12px">First time setup — create your portal password</div>
+  <input type="password" id="createPortalPw1" placeholder="Create password" onkeydown="if(event.key==='Enter')document.getElementById('createPortalPw2').focus()"
+    style="width:280px;padding:10px 14px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#f8fafc;font-size:14px">
+  <input type="password" id="createPortalPw2" placeholder="Confirm password" onkeydown="if(event.key==='Enter')portalCreatePassword()"
+    style="width:280px;padding:10px 14px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#f8fafc;font-size:14px">
+  <div id="createPortalMsg" style="font-size:12px;min-height:16px"></div>
+  <button onclick="portalCreatePassword()"
+    style="background:#3b82f6;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer">Create Password</button>
+</div>
+<div id="loginScreen">
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-emblem">
+        <div class="emblem-ring">⚡</div>
+        <div class="login-title">Command<br>Center</div>
+        <div class="login-subtitle">Personal App Portal</div>
+      </div>
+      <div class="login-field">
+        <label>Access Code</label>
+        <div class="pw-wrap">
+          <input type="password" id="portalPw" placeholder="Enter password" onkeydown="if(event.key==='Enter')portalLogin()">
+          <button class="pw-eye" onclick="toggleEye()" tabindex="-1"><span id="portalEyeIcon">👁</span></button>
+        </div>
+      </div>
+      <button class="login-btn" onclick="portalLogin()">Enter Portal</button>
+      <div class="login-error" id="portalError">Incorrect password. Try again.</div>
+      <div style="margin-top:14px;text-align:center;">
+        <a href="#" onclick="showForgotPw();return false" style="font-size:11px;color:var(--text3);text-decoration:none;border-bottom:1px dashed var(--text3);padding-bottom:1px;letter-spacing:0.3px;">Forgot password?</a>
+      </div>
+      <div style="margin-top:20px;text-align:center;font-size:11px;color:var(--text3);letter-spacing:0.5px;" id="loginVersion"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD SCREEN -->
+<div id="forgotPwScreen" style="display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;z-index:200;padding:24px;">
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-emblem">
+        <div class="emblem-ring">🔑</div>
+        <div class="login-title">Reset<br>Password</div>
+        <div class="login-subtitle">Verify identity via Google Drive</div>
+      </div>
+      <div id="fpStep1">
+        <button class="login-btn" onclick="forgotPwConnectDrive()" style="margin-bottom:10px;">🔗 Verify with Google Drive</button>
+        <div id="fpMsg" style="font-size:12px;min-height:18px;text-align:center;color:var(--text3);margin-bottom:4px;"></div>
+      </div>
+      <div id="fpStep2" style="display:none;">
+        <div class="login-field">
+          <label>New Password</label>
+          <input type="password" id="fpNewPw1" class="login-field input" placeholder="New password"
+            onkeydown="if(event.key==='Enter')document.getElementById('fpNewPw2').focus()"
+            style="width:100%;padding:14px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-family:'Syne',sans-serif;outline:none;">
+        </div>
+        <div class="login-field">
+          <label>Confirm Password</label>
+          <input type="password" id="fpNewPw2" placeholder="Confirm password"
+            onkeydown="if(event.key==='Enter')forgotPwSave()"
+            style="width:100%;padding:14px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-family:'Syne',sans-serif;outline:none;">
+        </div>
+        <div id="fpErr" style="font-size:12px;color:#f87171;min-height:16px;margin-bottom:10px;text-align:center;"></div>
+        <button class="login-btn" onclick="forgotPwSave()">✓ Set New Password</button>
+      </div>
+      <div style="margin-top:16px;text-align:center;">
+        <a href="#" onclick="hideForgotPw();return false" style="font-size:11px;color:var(--text3);text-decoration:none;border-bottom:1px dashed var(--text3);padding-bottom:1px;letter-spacing:0.3px;">← Back to login</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="portal-topbar" id="portalTopbar">
+  <button class="btn-portal-settings" onclick="openSettings()">⚙ Settings</button>
+  <button class="btn-portal-logout" onclick="portalLogout()">⎋ Lock Portal</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="portal-header">
+    <div class="portal-eyebrow">Personal Command Center</div>
+    <h1 class="portal-title">App <span>Portal</span></h1>
+    <p class="portal-sub">All your tools, one place.</p>
+  </div>
+
+  <!-- BUSINESS SECTION -->
+  <div class="section-divider" style="animation-delay:0.15s;">
+    <span class="divider-label">Business</span>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="apps-grid" style="margin-bottom:0;">
+
+    <a class="app-card gold" href="propiq.html">
+      <div class="card-icon gold">🏠</div>
+      <div class="card-name">PropIQ</div>
+      <div class="card-desc">Real estate investment analysis with STR/LTR comparison, seasonal modeling, lease cycle & scenario tools.</div>
+      <div class="card-launch">Launch App <span class="card-arrow">→</span></div>
+    </a>
+
+    <a class="app-card gold" href="cpm.html">
+      <div class="card-icon gold">🏗</div>
+      <div class="card-name">Construction PM</div>
+      <div class="card-desc">Multi-project construction tracking, phase budgets &amp; investor reporting.</div>
+      <div class="card-launch">Launch App <span class="card-arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <!-- PERSONAL SECTION -->
+  <div class="section-divider" style="margin-top:36px;animation-delay:0.25s;">
+    <span class="divider-label">Personal</span>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="apps-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0;">
+
+    <a class="app-card blue" href="lpl-tracker.html">
+      <div class="card-icon blue">📈</div>
+      <div class="card-name">LPL Financial Tracker</div>
+      <div class="card-desc">Portfolio performance, contributions, Backdoor Roth tracking & fee history for Faisal & Heena.</div>
+      <div class="card-launch">Launch App <span class="card-arrow">→</span></div>
+    </a>
+
+    <a class="app-card green" href="comic-tracker.html">
+      <div class="card-icon green">📚</div>
+      <div class="card-name">Blades of Chaos</div>
+      <div class="card-desc">Comic book inventory, buy/sell tracking, pricing & collection management.</div>
+      <div class="card-launch">Launch App <span class="card-arrow">→</span></div>
+    </a>
+
+    <a class="app-card gold" href="cs-tracker.html">
+      <div class="card-icon gold">📈</div>
+      <div class="card-name">Capital Stacks Tracker</div>
+      <div class="card-desc">Multi-broker portfolio tracker — Schwab ETFs, stocks & options income, Fidelity DCA positions, YTD income dashboard & research tools.</div>
+      <div class="card-launch">Launch App <span class="card-arrow">→</span></div>
+    </a>
+
+    <a class="app-card pink" href="health-tracker.html">
+      <div class="card-icon pink">❤</div>
+      <div class="card-name">Health Tracker</div>
+      <div class="card-desc">Lab results, weight, blood pressure & medication tracking with 13-year trend history and clinical panel analysis.</div>
+      <div class="card-launch">Launch App <span class="card-arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <!-- UTILITIES SECTION -->
+  <div class="section-divider" style="margin-top:36px;animation-delay:0.35s;">
+    <span class="divider-label">Utilities</span>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="apps-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,340px));justify-content:center;margin-bottom:0;">
+
+    <a class="app-card purple" href="drive-vault.html">
+      <div class="card-icon purple">🔐</div>
+      <div class="card-name">Drive Vault</div>
+      <div class="card-desc">Inspect, backup and clean up all Command Center data files stored in Google Drive — appDataFolder and shared folders.</div>
+      <div class="card-launch">Launch App <span class="card-arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <!-- MOBILE SECTION -->
+  <div class="section-divider" style="margin-top:48px;">
+    <span class="divider-label">Mobile Shortcut</span>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="apps-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 340px)); justify-content: center;">
+    <a class="app-card teal mobile-highlight" href="comic-tracker-mobile.html">
+      <span class="card-tag mobile">📱 Mobile</span>
+      <div class="card-icon teal">⚡</div>
+      <div class="card-name">Comics — Quick Launch</div>
+      <div class="card-desc">Optimized shortcut for updating your comic inventory on the go from your phone.</div>
+      <div class="card-launch">Open on Mobile <span class="card-arrow">→</span></div>
+    </a>
+    <a class="app-card teal mobile-highlight" href="propiq-mobile.html">
+      <span class="card-tag mobile">📱 Mobile</span>
+      <div class="card-icon gold">🏡</div>
+      <div class="card-name">PropIQ — Quick Launch</div>
+      <div class="card-desc">Quick property analysis, saved property reference & compare on the go. Syncs with desktop PropIQ.</div>
+      <div class="card-launch">Open on Mobile <span class="card-arrow">→</span></div>
+    </a>
+  </div>
+
+  <div class="portal-footer">
+    Command Center &nbsp;·&nbsp; Private &nbsp;·&nbsp; Personal Portal &nbsp;·&nbsp; <span id="footerVersion" style="color:var(--text3);"></span>
+  </div>
+</div>
+
+<script>
+const PORTAL_VERSION = 'v1.8';
+
+// ── DRIVE AUTH (Forgot Password only) ────────────────────────────────────────
+const PORTAL_CLIENT_ID = '305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com';
+const PORTAL_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+
+function showForgotPw() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('forgotPwScreen').style.display = 'flex';
+  document.getElementById('fpStep1').style.display = 'block';
+  document.getElementById('fpStep2').style.display = 'none';
+  document.getElementById('fpMsg').textContent = '';
+  document.getElementById('fpErr').textContent = '';
+  const p1 = document.getElementById('fpNewPw1'); if(p1) p1.value = '';
+  const p2 = document.getElementById('fpNewPw2'); if(p2) p2.value = '';
+}
+
+function hideForgotPw() {
+  document.getElementById('forgotPwScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+function forgotPwConnectDrive() {
+  const msg = document.getElementById('fpMsg');
+  msg.style.color = 'var(--text3)'; msg.textContent = 'Connecting to Google…';
+  if(!window.google?.accounts?.oauth2) {
+    msg.style.color = '#f87171'; msg.textContent = 'Auth library not ready — reload and try again.'; return;
+  }
+  try {
+    google.accounts.oauth2.initTokenClient({
+      client_id: PORTAL_CLIENT_ID,
+      scope: PORTAL_DRIVE_SCOPE,
+      callback: async r => {
+        if(r.error) { msg.style.color='#f87171'; msg.textContent='Google sign-in failed. Try again.'; return; }
+        msg.style.color = '#4ade80'; msg.textContent = '✓ Identity verified — set your new password below.';
+        document.getElementById('fpStep2').style.display = 'block';
+        setTimeout(() => document.getElementById('fpNewPw1').focus(), 100);
+      }
+    }).requestAccessToken({ prompt: 'consent' });
+  } catch(e) { msg.style.color='#f87171'; msg.textContent='Drive unavailable — reload and try again.'; }
+}
+
+async function forgotPwSave() {
+  const p1 = document.getElementById('fpNewPw1').value;
+  const p2 = document.getElementById('fpNewPw2').value;
+  const err = document.getElementById('fpErr');
+  if(!p1 || p1.length < 4) { err.textContent = 'Minimum 4 characters'; return; }
+  if(p1 !== p2) { err.textContent = 'Passwords do not match'; return; }
+  PORTAL_HASH = await sha256(p1);
+  localStorage.setItem('fv_portal_pass', PORTAL_HASH);
+  document.getElementById('forgotPwScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  const pe = document.getElementById('portalError');
+  pe.style.color = '#4ade80'; pe.textContent = '✓ Password reset — please log in'; pe.style.display = 'block';
+  setTimeout(() => { pe.style.display = 'none'; pe.style.color = '#f87171'; pe.textContent = 'Incorrect password. Try again.'; }, 4000);
+}
+const PORTAL_BUILD   = '2026-04-11';
+
+function toggleEye() {
+  const input = document.getElementById('portalPw');
+  const icon = document.getElementById('portalEyeIcon');
+  if(input.type === 'password') { input.type = 'text'; icon.textContent = '🙈'; }
+  else { input.type = 'password'; icon.textContent = '👁'; }
+}
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// DEFAULT_PORTAL_PASS removed — Option B
+let PORTAL_HASH = localStorage.getItem('fv_portal_pass') || null;
+
+async function init() {
+  if(!PORTAL_HASH) {
+    // No password set — show create screen on first run
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('createPwScreen').style.display = 'flex';
+  }
+  // Populate version strings
+  const lv = document.getElementById('loginVersion');
+  const fv = document.getElementById('footerVersion');
+  if(lv) lv.textContent = PORTAL_VERSION;
+  if(fv) fv.textContent = PORTAL_VERSION;
+}
+
+async function portalLogin() {
+  if(!PORTAL_HASH){document.getElementById('loginScreen').style.display='none';document.getElementById('createPwScreen').style.display='flex';return;}
+  const pw = document.getElementById('portalPw').value;
+  const hash = await sha256(pw);
+  if(hash === PORTAL_HASH) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('portalTopbar').style.display = 'block';
+    sessionStorage.setItem('fv_portal_auth','1');const _st=localStorage.getItem('portal_timer_setting');if(_st)_portalTimeLeft=parseInt(_st);
+    _startPortalTimer();
+  } else {
+    const err = document.getElementById('portalError');
+    err.style.display = 'block';
+    document.getElementById('portalPw').value = '';
+    setTimeout(()=>err.style.display='none', 3000);
+  }
+}
+
+function portalLogout() {
+  sessionStorage.removeItem('fv_portal_auth');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('portalTopbar').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('portalPw').value = '';
+}
+
+// Auto-restore session within same browser tab session
+if(sessionStorage.getItem('fv_portal_auth')==='1') {
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('portalTopbar').style.display='block';
+}
+
+document.getElementById('portalPw').addEventListener('keydown', e => {
+  if(e.key==='Enter') portalLogin();
+});
+
+init();
+
+function openSettings(){
+  document.getElementById('settings-overlay').classList.add('open');
+  document.getElementById('settings-pw1').value='';
+  document.getElementById('settings-pw2').value='';
+  document.getElementById('settings-msg').textContent='';
+  const savedT=localStorage.getItem('portal_timer_setting');if(savedT){const sel=document.getElementById('portal-timer-select');if(sel)sel.value=savedT;}
+  setTimeout(()=>document.getElementById('settings-pw1').focus(),100);
+}
+
+function closeSettings(){
+  document.getElementById('settings-overlay').classList.remove('open');
+}
+
+function updatePortalTimer(val){
+  _portalTimeLeft=parseInt(val);
+  localStorage.setItem('portal_timer_setting',val);
+  clearInterval(_portalTimerInterval);
+  if(document.getElementById('app').style.display!=='none') _startPortalTimer();
+}
+async function savePortalPassword(){
+  const p1 = document.getElementById('settings-pw1').value;
+  const p2 = document.getElementById('settings-pw2').value;
+  const msg = document.getElementById('settings-msg');
+  if(!p1){ msg.style.color='#f87171'; msg.textContent='Please enter a new password.'; return; }
+  if(p1 !== p2){ msg.style.color='#f87171'; msg.textContent='Passwords do not match.'; return; }
+  if(p1.length < 6){ msg.style.color='#f87171'; msg.textContent='Password must be at least 6 characters.'; return; }
+  const hash = await sha256(p1);
+  PORTAL_HASH = hash;
+  localStorage.setItem('fv_portal_pass', hash);
+  msg.style.color='#4ade80';
+  msg.textContent='✓ Password updated successfully!';
+  document.getElementById('settings-pw1').value='';
+  document.getElementById('settings-pw2').value='';
+  setTimeout(()=>closeSettings(), 1500);
+}
+
+// Close on overlay click — wrapped in DOMContentLoaded so element exists
+
+async function portalCreatePassword() {
+  const p1 = document.getElementById('createPortalPw1').value;
+  const p2 = document.getElementById('createPortalPw2').value;
+  const msg = document.getElementById('createPortalMsg');
+  if(!p1 || p1.length < 4) { msg.style.color='#f87171'; msg.textContent='Minimum 4 characters'; return; }
+  if(p1 !== p2) { msg.style.color='#f87171'; msg.textContent='Passwords do not match'; return; }
+  PORTAL_HASH = await sha256(p1);
+  localStorage.setItem('fv_portal_pass', PORTAL_HASH);
+  document.getElementById('createPwScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('portalError').style.color = '#4ade80';
+  document.getElementById('portalError').textContent = 'Password created — please log in';
+  document.getElementById('portalError').style.display = 'block';
+  setTimeout(()=>{document.getElementById('portalError').style.display='none';document.getElementById('portalError').style.color='';},3000);
+}
+
+/* ══ SESSION TIMER ══ */
+let _portalTimeLeft=600,_portalTimerInterval;
+function _startPortalTimer(){
+  clearInterval(_portalTimerInterval);
+  _portalTimeLeft=600;
+  _portalTimerInterval=setInterval(()=>{
+    _portalTimeLeft--;
+    if(_portalTimeLeft<=0){clearInterval(_portalTimerInterval);portalLogout();}
+  },1000);
+}
+function _resetPortalTimer(){_portalTimeLeft=600;}
+document.addEventListener('mousemove',()=>{if(_portalTimerInterval)_resetPortalTimer();});
+document.addEventListener('keydown',()=>{if(_portalTimerInterval)_resetPortalTimer();});
+document.addEventListener('click',()=>{if(_portalTimerInterval)_resetPortalTimer();});
+document.addEventListener('DOMContentLoaded', function(){
+  document.getElementById('settings-overlay').addEventListener('click', function(e){
+    if(e.target === this) closeSettings();
+  });
+});
+</script>
+
+<!-- SETTINGS MODAL -->
+<div class="settings-overlay" id="settings-overlay">
+  <div class="settings-modal">
+    <h3>⚙️ Portal Settings</h3>
+    <p>Manage your Command Center password and session settings.</p>
+    <div class="settings-field">
+      <label style="font-size:13px;font-weight:600">Auto-Logout Timer</label>
+      <select id="portal-timer-select" onchange="updatePortalTimer(this.value)" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(99,143,194,0.3);background:#1e293b;color:#e2e8f0;font-size:13px;margin-top:4px">
+        <option value="300">5 minutes</option>
+        <option value="600" selected>10 minutes (default)</option>
+        <option value="900">15 minutes</option>
+        <option value="1800">30 minutes</option>
+        <option value="3600">1 hour</option>
+        <option value="14400">4 hours</option>
+        <option value="28800">8 hours</option>
+      </select>
+    </div>
+    <div class="settings-field">
+      <label>New Password</label>
+      <input type="password" id="settings-pw1" class="settings-input" placeholder="Enter new password">
+    </div>
+    <div class="settings-field">
+      <label>Confirm Password</label>
+      <input type="password" id="settings-pw2" class="settings-input" placeholder="Confirm new password">
+    </div>
+    <div class="settings-msg" id="settings-msg"></div>
+    <div class="settings-btns">
+      <button class="btn-settings-cancel" onclick="closeSettings()">Cancel</button>
+      <button class="btn-settings-save" onclick="savePortalPassword()">Update Password</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
