@@ -1,0 +1,3293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Tracker v1.3.1</title>
+<link rel="icon" type="image/x-icon" href="/command-center/health-tracker-favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/command-center/health-tracker-icon-180.png">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async></script>
+<style>
+:root {
+  --bg:      #0d1117;
+  --bg2:     #161b22;
+  --bg3:     #1c2430;
+  --bg4:     #21262d;
+  --border:  #30363d;
+  --border2: #3d444d;
+  --accent:  #00b4d8;
+  --accent2: #0077a8;
+  --gold:    #ffd700;
+  --gold2:   #b89a00;
+  --text:    #e6edf3;
+  --muted:   #8b949e;
+  --dim:     #484f58;
+  --ok:      #3fb950;
+  --warn:    #d29922;
+  --danger:  #f85149;
+  --info:    #58a6ff;
+  --clinical:#00b4d8;
+  --wellness:#5e6672;
+  --radius:  8px;
+  --radius2: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── AUTH GATE ── */
+#authGate {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.auth-box {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2);
+  padding: 40px 48px; width: 380px; text-align: center;
+}
+.auth-box .logo { font-size: 28px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; margin-bottom: 4px; }
+.auth-box .sub { color: var(--muted); font-size: 12px; margin-bottom: 28px; }
+.auth-box input {
+  width: 100%; padding: 10px 14px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text); font-family: inherit; font-size: 14px;
+  margin-bottom: 12px; outline: none; transition: border-color .2s;
+}
+.auth-box input:focus { border-color: var(--accent); }
+.auth-box .btn-primary {
+  width: 100%; padding: 10px; background: var(--accent); color: #000; font-family: inherit;
+  font-weight: 600; font-size: 14px; border: none; border-radius: var(--radius); cursor: pointer;
+  transition: background .2s;
+}
+.auth-box .btn-primary:hover { background: #00d4ff; }
+.auth-box .err { color: var(--danger); font-size: 12px; margin-top: 8px; min-height: 16px; }
+.auth-box .set-note { color: var(--muted); font-size: 11px; margin-top: 8px; }
+
+/* ── MAIN LAYOUT ── */
+#app { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 52px; background: var(--bg2);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.app-title { font-size: 16px; font-weight: 700; color: var(--accent); }
+.app-ver { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; background: var(--bg3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.drive-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); cursor: pointer; padding: 5px 10px; border-radius: 6px; background: var(--bg3); border: 1px solid var(--border); transition: border-color .2s; }
+.drive-status:hover { border-color: var(--accent); }
+.unsaved-badge { font-size: 10px; font-family: 'DM Mono', monospace; color: #f0b55a; background: rgba(240,181,90,0.08); border: 1px solid rgba(240,181,90,0.25); border-radius: 20px; padding: 3px 9px; letter-spacing: .3px; opacity: 0; transition: opacity .4s; pointer-events: none; }
+.drive-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
+.drive-dot.connected { background: var(--ok); }
+
+/* ── TABS ── */
+.tabs {
+  display: flex; gap: 0; background: var(--bg2);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 10px 18px; font-family: inherit; font-size: 13px; font-weight: 500;
+  color: var(--muted); background: transparent; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all .2s; white-space: nowrap; flex-shrink: 0;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── CONTENT ── */
+#content { flex: 1; overflow-y: auto; padding: 20px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 16px 20px;
+}
+.card-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, 1fr); }
+.g3 { grid-template-columns: repeat(3, 1fr); }
+.g4 { grid-template-columns: repeat(4, 1fr); }
+.g6 { grid-template-columns: repeat(6, 1fr); }
+@media(max-width:1100px){ .g6{grid-template-columns:repeat(3,1fr);} }
+@media(max-width:900px){ .g4{grid-template-columns:repeat(2,1fr);} .g3{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:600px){ .g2,.g3,.g4,.g6{grid-template-columns:1fr;} }
+
+/* ── METRIC CARDS ── */
+.metric-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 14px 16px;
+  position: relative; overflow: hidden;
+}
+.metric-card .mc-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.metric-card .mc-value { font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 500; line-height: 1.1; margin: 6px 0 2px; }
+.metric-card .mc-unit { font-size: 11px; color: var(--muted); }
+.metric-card .mc-trend { display: flex; align-items: center; gap: 4px; font-size: 11px; margin-top: 4px; }
+.metric-card .mc-range { font-size: 10px; color: var(--dim); margin-top: 2px; }
+.metric-card canvas.sparkline { position: absolute; bottom: 0; right: 0; opacity: 0.4; }
+.mc-ok .mc-value { color: var(--ok); }
+.mc-warn .mc-value { color: var(--warn); }
+.mc-danger .mc-value { color: var(--danger); }
+.mc-info .mc-value { color: var(--info); }
+.trend-up { color: var(--danger); }
+.trend-down { color: var(--ok); }
+.trend-up-good { color: var(--ok); }
+.trend-flat { color: var(--muted); }
+
+/* ── VISIT CARDS ── */
+.visit-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius2); margin-bottom: 10px; overflow: hidden;
+}
+.visit-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; cursor: pointer; transition: background .15s;
+}
+.visit-header:hover { background: var(--bg3); }
+.visit-header-left { display: flex; align-items: center; gap: 10px; }
+.visit-date { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+.visit-facility { font-size: 12px; color: var(--muted); }
+.visit-type-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.badge-clinical { background: rgba(0,180,216,.15); color: var(--clinical); border: 1px solid rgba(0,180,216,.3); }
+.badge-wellness { background: rgba(94,102,114,.15); color: var(--wellness); border: 1px solid rgba(94,102,114,.3); }
+.badge-partial { background: rgba(210,153,34,.15); color: var(--warn); border: 1px solid rgba(210,153,34,.3); }
+.visit-chevron { font-size: 12px; color: var(--muted); transition: transform .2s; }
+.visit-chevron.open { transform: rotate(180deg); }
+.visit-body { padding: 0 16px 16px; display: none; }
+.visit-body.open { display: block; }
+
+.lab-section { margin-bottom: 14px; }
+.lab-section-title {
+  font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .6px; margin-bottom: 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.lab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
+.lab-item {
+  background: var(--bg3); border-radius: 6px; padding: 8px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.lab-item-name { font-size: 11px; color: var(--muted); }
+.lab-item-val { font-family: 'DM Mono', monospace; font-size: 13px; }
+.lab-item-val.flag-h { color: var(--danger); }
+.lab-item-val.flag-l { color: var(--info); }
+.lab-item-val.flag-ok { color: var(--ok); }
+.lab-item-val.flag-none { color: var(--text); }
+.flag-badge {
+  font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px;
+  margin-left: 4px;
+}
+.fb-h { background: rgba(248,81,73,.2); color: var(--danger); }
+.fb-l { background: rgba(88,166,255,.2); color: var(--info); }
+
+.vitals-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.vital-chip {
+  background: var(--bg3); border-radius: 6px; padding: 6px 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.vital-chip .vc-label { font-size: 11px; color: var(--muted); }
+.vital-chip .vc-val { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+
+.visit-notes { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+.fib4-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.fib4-label { font-size: 11px; color: var(--muted); }
+.fib4-val { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+.fib4-interp { font-size: 11px; }
+
+/* ── TRENDS ── */
+.chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); padding: 20px; margin-bottom: 14px; }
+.chart-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.chart-card .chart-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+.chart-wrap { position: relative; height: 220px; }
+
+/* ── MEDICATIONS ── */
+.med-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2);
+  padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: flex-start; justify-content: space-between;
+}
+.med-info { flex: 1; }
+.med-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.med-dose { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent); }
+.med-indication { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.med-dates { font-size: 11px; color: var(--dim); margin-top: 4px; }
+.med-actions { display: flex; gap: 6px; align-items: center; margin-left: 12px; }
+.med-status { font-size: 10px; padding: 3px 8px; border-radius: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.med-active  { background: rgba(63,185,80,.15);  color: var(--ok);     border: 1px solid rgba(63,185,80,.3); }
+.med-prn     { background: rgba(0,180,216,.15);   color: var(--accent); border: 1px solid rgba(0,180,216,.3); }
+.med-stopped { background: rgba(248,81,73,.1);    color: var(--muted);  border: 1px solid var(--border); }
+
+/* ── WEIGHT LOG ── */
+.weight-quick-card {
+  background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+  border: 1px solid var(--border); border-radius: var(--radius2); padding: 20px;
+  margin-bottom: 14px;
+}
+.weight-current { font-family: 'DM Mono', monospace; font-size: 48px; font-weight: 300; color: var(--accent); line-height: 1; }
+.weight-current-unit { font-size: 16px; color: var(--muted); margin-left: 6px; }
+.weight-bmi { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.weight-quick-form { display: flex; gap: 8px; margin-top: 14px; align-items: flex-end; flex-wrap: wrap; }
+.quick-input-group { display: flex; flex-direction: column; gap: 4px; }
+.quick-input-group label { font-size: 11px; color: var(--muted); }
+.quick-input-group input {
+  padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; width: 110px; outline: none;
+  transition: border-color .2s;
+}
+.quick-input-group input:focus { border-color: var(--accent); }
+.weight-log-table { width: 100%; border-collapse: collapse; }
+.weight-log-table th { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+.weight-log-table td { font-size: 13px; padding: 8px 10px; border-bottom: 1px solid var(--border2); }
+.weight-log-table td:nth-child(2) { font-family: 'DM Mono', monospace; }
+.weight-log-table tr:last-child td { border-bottom: none; }
+
+/* ── BP LOG ── */
+.bp-quick-card {
+  background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+  border: 1px solid var(--border); border-radius: var(--radius2); padding: 20px;
+  margin-bottom: 14px;
+}
+.bp-current { font-family: 'DM Mono', monospace; font-size: 40px; font-weight: 300; color: var(--info); line-height: 1; }
+.bp-current-unit { font-size: 14px; color: var(--muted); margin-left: 4px; }
+.bp-source-badge { font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.bps-manual      { background: rgba(88,166,255,.15); color: var(--info);   border: 1px solid rgba(88,166,255,.3); }
+.bps-apple_watch { background: rgba(63,185,80,.15);  color: var(--ok);     border: 1px solid rgba(63,185,80,.3); }
+.bps-home_cuff   { background: rgba(0,180,216,.15);  color: var(--accent); border: 1px solid rgba(0,180,216,.3); }
+.bps-doctor      { background: rgba(210,153,34,.15); color: var(--warn);   border: 1px solid rgba(210,153,34,.3); }
+
+
+.imaging-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); padding: 14px 16px; margin-bottom: 8px; }
+.imaging-type { font-size: 10px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.imaging-desc { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+.imaging-facility { font-size: 11px; color: var(--muted); }
+.imaging-notes-text { font-size: 11px; color: var(--muted); margin-top: 6px; font-style: italic; }
+
+/* ── CONDITIONS ── */
+.condition-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 8px;
+}
+.condition-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.condition-name { font-weight: 600; font-size: 13px; }
+.condition-icd { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+.condition-status { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.cs-active { background: rgba(248,81,73,.15); color: var(--danger); border: 1px solid rgba(248,81,73,.3); }
+.cs-managed { background: rgba(63,185,80,.15); color: var(--ok); border: 1px solid rgba(63,185,80,.3); }
+.cs-monitoring { background: rgba(210,153,34,.15); color: var(--warn); border: 1px solid rgba(210,153,34,.3); }
+.condition-notes-text { font-size: 11px; color: var(--muted); }
+
+/* ── SETTINGS ── */
+.settings-section { margin-bottom: 24px; }
+.settings-section h3 { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border2); }
+.settings-row:last-child { border-bottom: none; }
+.sr-label { font-size: 13px; }
+.sr-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.settings-input {
+  padding: 6px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); font-family: inherit; font-size: 13px; outline: none;
+  transition: border-color .2s; min-width: 200px;
+}
+.settings-input:focus { border-color: var(--accent); }
+
+/* ── BUTTONS ── */
+.btn { padding: 7px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-accent { background: var(--accent); color: #000; }
+.btn-accent:hover { background: #00d4ff; }
+.btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(248,81,73,.3); }
+.btn-danger:hover { background: rgba(248,81,73,.1); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-gold { background: var(--gold); color: #000; }
+.btn-gold:hover { background: #ffe44d; }
+
+/* ── MODAL ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 500; }
+.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); width: 480px; max-width: 95vw; max-height: 85vh; overflow-y: auto; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.modal-header h2 { font-size: 15px; font-weight: 600; }
+.modal-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; }
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 20px; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 8px 12px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-family: inherit; font-size: 13px; outline: none;
+  transition: border-color .2s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+.form-group textarea { resize: vertical; min-height: 60px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 20px; border-top: 1px solid var(--border); }
+
+/* ── Import / Add Lab Visit Review Modal ── */
+.lab-review-modal { width: 700px; max-width: 96vw; }
+.lab-section-header {
+  font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase;
+  letter-spacing: .8px; padding: 10px 0 6px; border-bottom: 1px solid var(--border2);
+  margin-bottom: 8px; margin-top: 18px; }
+.lab-section-header:first-of-type { margin-top: 0; }
+.lab-field-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 4px; }
+.lab-field-item {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 10px; position: relative; min-height: 62px; }
+.lab-field-item.has-value { border-color: var(--border2); }
+.lab-field-item.flagged-H { border-left: 3px solid var(--warn); }
+.lab-field-item.flagged-L { border-left: 3px solid var(--info); }
+.lab-field-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
+.lab-field-row { display: flex; align-items: baseline; gap: 4px; }
+.lab-field-val { font-size: 15px; font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; }
+.lab-field-val.empty { color: var(--dim); font-size: 12px; font-weight: 400; font-style: italic; font-family: inherit; }
+.lab-field-unit { font-size: 10px; color: var(--dim); }
+.lab-field-input {
+  width: 100%; background: var(--bg4); border: 1px solid var(--accent);
+  border-radius: 4px; color: var(--text); font-family: 'DM Mono', monospace;
+  font-size: 13px; padding: 3px 6px; outline: none; }
+.lab-field-input:focus { box-shadow: 0 0 0 2px rgba(0,180,216,.2); }
+.lab-edit-btn {
+  position: absolute; top: 5px; right: 5px; background: none; border: none;
+  color: var(--dim); font-size: 10px; cursor: pointer; padding: 2px 5px;
+  border-radius: 3px; line-height: 1.4; transition: all .15s; }
+.lab-edit-btn:hover { color: var(--accent); background: rgba(0,180,216,.1); }
+.fib4-preview {
+  margin: 14px 0 4px; padding: 10px 14px; background: var(--bg3);
+  border: 1px solid var(--border2); border-radius: 8px;
+  font-size: 12px; display: flex; align-items: center; gap: 10px; }
+.conflict-banner {
+  background: rgba(248,81,73,.1); border: 1px solid rgba(248,81,73,.35);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 14px;
+  font-size: 12px; color: var(--danger); }
+.vitals-review-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+
+/* ── MISC ── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-title { font-size: 15px; font-weight: 600; }
+.empty-state { text-align: center; color: var(--muted); padding: 40px 20px; font-size: 13px; }
+.sep { height: 1px; background: var(--border); margin: 16px 0; }
+.tooltip-note { font-size: 10px; color: var(--dim); font-style: italic; }
+
+/* dashboard */
+.dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media(max-width:800px){ .dashboard-grid { grid-template-columns: 1fr; } }
+
+.trend-banner {
+  background: linear-gradient(90deg, rgba(0,180,216,.08) 0%, transparent 100%);
+  border: 1px solid rgba(0,180,216,.2); border-radius: var(--radius2);
+  padding: 12px 16px; margin-bottom: 14px; font-size: 12px; color: var(--muted);
+}
+.trend-banner strong { color: var(--accent); }
+
+/* ── FULL PANEL REPORT — light clinical mode ── */
+#pane-panel {
+  background: #f0f4f8;
+  margin: -20px;
+  padding: 24px 24px 40px;
+  min-height: 100%;
+  animation: panelFadeIn .18s ease;
+}
+@keyframes panelFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.rpt-header {
+  background: linear-gradient(135deg, #1a3a5c 0%, #2563a8 100%);
+  border-radius: var(--radius2); padding: 20px 24px; margin-bottom: 16px;
+  display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.rpt-header-left h2 { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -.3px; }
+.rpt-header-left p  { font-size: 12px; color: rgba(255,255,255,.7); margin-top: 3px; }
+.rpt-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.rpt-pill  { padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.rpt-pill-ok   { background: rgba(255,255,255,.18); color: #fff; border: 1px solid rgba(255,255,255,.35); }
+.rpt-pill-warn { background: rgba(248,81,73,.3);    color: #ffc9c7; border: 1px solid rgba(248,81,73,.4); }
+.rpt-pill-info { background: rgba(255,220,50,.22);  color: #ffe97a; border: 1px solid rgba(255,220,50,.4); }
+
+.rpt-flags {
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px;
+}
+.rpt-flags h3 { font-size: 11px; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+.rpt-flag-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rpt-flag-chip {
+  background: #fff; border: 1px solid #fde68a;
+  border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: #78350f;
+}
+.rpt-flag-chip.low { color: #1e40af; border-color: #bfdbfe; }
+
+.rpt-summary { margin-bottom: 14px; }
+.rpt-sum-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px; border-radius: var(--radius); margin-bottom: 5px;
+  font-size: 13px; line-height: 1.5;
+}
+.rpt-sum-ok   { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.rpt-sum-warn { background: #fff7ed; color: #9a3412; border: 1px solid #fdba74; }
+.rpt-sum-info { background: #f0f9ff; color: #0c4a6e; border: 1px solid #bae6fd; }
+.rpt-sum-low  { background: #eff6ff; color: #1e3a8a; border: 1px solid #bfdbfe; }
+
+.rpt-vitals-bar {
+  display: flex; flex-wrap: wrap; gap: 0;
+  margin-top: 16px; padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.2);
+}
+.rpt-v-stat {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 20px 0 0; margin-right: 20px;
+  border-right: 1px solid rgba(255,255,255,.18);
+}
+.rpt-v-stat:last-child { border-right: none; padding-right: 0; margin-right: 0; }
+.rpt-v-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 3px; }
+.rpt-v-val   { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; color: #fff; line-height: 1; }
+.rpt-v-unit  { font-size: 10px; color: rgba(255,255,255,.5); margin-top: 2px; }
+.rpt-v-val.danger { color: #fca5a5; }
+
+/* Unified lab table */
+.rpt-unified-wrap { margin-bottom: 18px; }
+.rpt-unified-table {
+  width: 100%; border-collapse: collapse; background: #fff;
+  border: 1px solid #e2e8f0; border-radius: var(--radius); overflow: hidden;
+  table-layout: fixed;
+}
+.rpt-unified-table colgroup col:nth-child(1) { width: 19%; }
+.rpt-unified-table colgroup col:nth-child(2) { width: 8%;  }
+.rpt-unified-table colgroup col:nth-child(3) { width: 7%;  }
+.rpt-unified-table colgroup col:nth-child(4) { width: 12%; }
+.rpt-unified-table colgroup col:nth-child(5) { width: 16%; }
+.rpt-unified-table colgroup col:nth-child(6) { width: 10%; }
+.rpt-unified-table colgroup col:nth-child(7) { width: 28%; }
+.rpt-unified-table thead th {
+  background: #f1f5f9; color: #475569; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px; padding: 9px 12px; text-align: center;
+  border-bottom: 2px solid #e2e8f0;
+}
+.rpt-unified-table thead th:first-child { text-align: left; }
+.rpt-unified-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .1s; }
+.rpt-unified-table tbody tr:last-child { border-bottom: none; }
+.rpt-unified-table tbody tr:hover { background: #f8fafc; }
+.rpt-unified-table tbody tr.row-flagged { background: #fffbeb; }
+.rpt-unified-table tbody tr.row-flagged:hover { background: #fef9c3; }
+.rpt-unified-table td { padding: 10px 12px; font-size: 13px; vertical-align: middle; overflow: hidden; }
+.rpt-unified-table td:not(:first-child) { text-align: center; }
+.rpt-section-row td {
+  background: #2563a8; color: #fff; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .7px; padding: 7px 14px;
+  text-align: left !important; border-top: 2px solid #e2e8f0;
+}
+.rpt-section-row:first-child td { border-top: none; }
+
+.rpt-section { margin-bottom: 16px; }
+.rpt-section-title {
+  font-size: 11px; font-weight: 700; color: #fff; text-transform: uppercase;
+  letter-spacing: .7px; padding: 8px 14px; background: #2563a8;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.rpt-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; }
+.rpt-table thead th {
+  background: #f1f5f9; color: #475569; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px; padding: 8px 12px; text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+}
+.rpt-table thead th:first-child { text-align: left; }
+.rpt-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .1s; }
+.rpt-table tbody tr:last-child { border-bottom: none; }
+.rpt-table tbody tr:hover { background: #f8fafc; }
+.rpt-table tbody tr.row-flagged { background: #fffbeb; }
+.rpt-table tbody tr.row-flagged:hover { background: #fef9c3; }
+.rpt-table td { padding: 10px 12px; font-size: 13px; vertical-align: middle; }
+.rpt-table td:not(:first-child) { text-align: center; }
+.rpt-test-name { font-weight: 600; color: #1e293b; }
+.rpt-val-ok   { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; color: #16a34a; }
+.rpt-val-h    { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; color: #dc2626; }
+.rpt-val-l    { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; color: #2563eb; }
+.rpt-val-na   { font-family: 'DM Mono', monospace; font-size: 13px; color: #94a3b8; }
+.rpt-range    { font-family: 'DM Mono', monospace; font-size: 11px; color: #94a3b8; }
+.rpt-note     { font-size: 11px; color: #475569; text-align: left !important; max-width: 220px; line-height: 1.4; }
+
+/* Range bar — light version */
+.rpt-bar-wrap { min-width: 90px; }
+.rpt-bar-track { height: 6px; background: #e2e8f0; border-radius: 3px; position: relative; border: 1px solid #cbd5e1; }
+.rpt-bar-fill-ok { position: absolute; top: 0; bottom: 0; background: rgba(22,163,74,.22); border-radius: 3px; }
+.rpt-bar-dot {
+  position: absolute; top: 50%; width: 10px; height: 10px;
+  border-radius: 50%; border: 2px solid #fff; transform: translateY(-50%);
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+.rpt-bar-dot.ok { background: #16a34a; }
+.rpt-bar-dot.h  { background: #dc2626; }
+.rpt-bar-dot.l  { background: #2563eb; }
+.rpt-bar-labels { display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8; margin-top: 2px; }
+
+/* Status badges — light */
+.rpt-badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.rpt-badge-ok   { background: #dcfce7; color: #166534; }
+.rpt-badge-h    { background: #fee2e2; color: #991b1b; }
+.rpt-badge-lo   { background: #dbeafe; color: #1e40af; }
+
+/* Condition cross-ref — light */
+.rpt-crossref { margin-bottom: 18px; }
+.rpt-crossref-title {
+  font-size: 11px; font-weight: 700; color: #fff; text-transform: uppercase;
+  letter-spacing: .7px; padding: 8px 14px; background: #5b21b6;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.rpt-cond-item {
+  background: #fff; border: 1px solid #e2e8f0; border-top: none;
+  padding: 12px 14px; font-size: 13px; line-height: 1.5;
+}
+.rpt-cond-item:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+.rpt-cond-item + .rpt-cond-item { border-top: none; }
+.rpt-cond-name { font-weight: 600; color: #4c1d95; margin-bottom: 3px; font-size: 13px; }
+.rpt-cond-body { font-size: 12px; color: #475569; }
+
+/* Print — already light, just hide chrome and fix scroll */
+@media print {
+  #authGate, header, nav.tabs, .rpt-header-actions { display: none !important; }
+  #content { overflow: visible !important; height: auto !important; }
+  #pane-panel { margin: 0 !important; padding: 16px !important; background: #fff !important; animation: none !important; }
+  .tab-pane { display: none !important; }
+  #pane-panel { display: block !important; }
+}
+
+/* Chart.js dark theme override */
+</style>
+</head>
+<body>
+
+<!-- AUTH GATE -->
+<div id="authGate">
+  <div class="auth-box">
+    <div class="logo">❤ Health Tracker</div>
+    <div class="sub">Personal Health Dashboard — v1.3.1</div>
+    <input type="password" id="pwInput" placeholder="Enter password" autocomplete="current-password">
+    <button class="btn-primary" onclick="submitAuth()">Unlock</button>
+    <div class="err" id="authErr"></div>
+    <div class="set-note" id="authNote"></div>
+    <div style="margin-top:10px;text-align:center;">
+      <a href="#" onclick="showForgotPw();return false" style="font-size:11px;color:var(--text-muted,#888);text-decoration:none;border-bottom:1px dashed currentColor;padding-bottom:1px;">Forgot password?</a>
+    </div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD SCREEN -->
+<div id="forgotPwScreen" style="display:none;position:fixed;inset:0;background:var(--bg,#0d0d0d);align-items:center;justify-content:center;z-index:9999;">
+  <div class="auth-box">
+    <div style="font-size:24px;text-align:center;margin-bottom:8px;">🔑</div>
+    <div class="logo" style="font-size:18px;">Reset Password</div>
+    <div class="sub" style="line-height:1.6;">Verify identity via Google Drive.<br>Your data will not be affected.</div>
+    <div id="fpStep1">
+      <button class="btn-primary" onclick="forgotPwConnectDrive()" style="margin-bottom:8px;">🔗 Verify with Google Drive</button>
+      <div id="fpMsg" style="font-size:12px;min-height:18px;text-align:center;color:var(--text-muted,#888);"></div>
+    </div>
+    <div id="fpStep2" style="display:none;width:100%;">
+      <input type="password" id="fpNewPw1" placeholder="New password" onkeydown="if(event.key==='Enter')document.getElementById('fpNewPw2').focus()" style="width:100%;margin-bottom:8px;">
+      <input type="password" id="fpNewPw2" placeholder="Confirm password" onkeydown="if(event.key==='Enter')forgotPwSave()" style="width:100%;margin-bottom:8px;">
+      <div id="fpErr" class="err" style="min-height:16px;margin-bottom:8px;"></div>
+      <button class="btn-primary" onclick="forgotPwSave()">✓ Set New Password</button>
+    </div>
+    <div style="margin-top:12px;text-align:center;">
+      <a href="#" onclick="hideForgotPw();return false" style="font-size:11px;color:var(--text-muted,#888);text-decoration:none;border-bottom:1px dashed currentColor;padding-bottom:1px;">← Back to login</a>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header>
+    <div class="header-left">
+      <div class="app-title">❤ Health Tracker</div>
+      <div class="app-ver" id="app-ver-display">v1.3.1</div>
+    </div>
+    <div class="header-right">
+      <span class="unsaved-badge" id="unsavedBadge">● Unsaved</span>
+      <div class="drive-status" id="driveStatus" onclick="handleDriveClick()">
+        <div class="drive-dot" id="driveDot"></div>
+        <span id="driveLabel">Drive Sync</span>
+      </div>
+      <button onclick="lockApp()" style="padding:5px 12px;border-radius:20px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s;letter-spacing:.3px" onmouseover="this.style.borderColor='#f87171';this.style.color='#f87171'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">⎋ Lock</button>
+    </div>
+  </header>
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('visits')">Lab Visits</button>
+    <button class="tab-btn" onclick="switchTab('trends')">Trends</button>
+    <button class="tab-btn" onclick="switchTab('panel')" style="color:var(--accent)">★ Latest Panel</button>
+    <button class="tab-btn" onclick="switchTab('meds')">Medications</button>
+    <button class="tab-btn" onclick="switchTab('vitals')">Vitals & Weight</button>
+    <button class="tab-btn" onclick="switchTab('imaging')">Imaging & Notes</button>
+    <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
+  </nav>
+  <div id="content">
+    <div id="pane-dashboard" class="tab-pane active"></div>
+    <div id="pane-visits" class="tab-pane"></div>
+    <div id="pane-trends" class="tab-pane"></div>
+    <div id="pane-panel" class="tab-pane"></div>
+    <div id="pane-meds" class="tab-pane"></div>
+    <div id="pane-vitals" class="tab-pane"></div>
+    <div id="pane-imaging" class="tab-pane"></div>
+    <div id="pane-settings" class="tab-pane"></div>
+  </div>
+</div>
+
+<!-- MODAL CONTAINER -->
+<div id="modalContainer"></div>
+<input type="file" id="importJsonInput"  accept=".json" style="display:none" onchange="handleImportJSON(event)">
+<input type="file" id="importLabInput"   accept=".json" style="display:none" onchange="handleImportLab(event)">
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const CLIENT_ID = '305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const DRIVE_FILE = 'health_tracker_data.json';
+const LS_KEY = 'health_v1';
+const PW_KEY = 'health_pw_hash';
+const DRIVE_TOKEN_KEY = 'ht_drive_token'; // sessionStorage — clears when tab closes
+const APP_VER = '1.2.4';
+
+// ═══════════════════════════════════════════════════════
+// REFERENCE RANGES
+// ═══════════════════════════════════════════════════════
+const REF = {
+  totalCholesterol:{ min:125, max:199, unit:'mg/dL', label:'Total Cholesterol', dir:'low' },
+  triglycerides:   { min:0,   max:149, unit:'mg/dL', label:'Triglycerides',     dir:'low' },
+  hdl:             { min:40,  max:999, unit:'mg/dL', label:'HDL Cholesterol',   dir:'high' },
+  ldl:             { min:0,   max:99,  unit:'mg/dL', label:'LDL Cholesterol',   dir:'low' },
+  directLdl:       { min:0,   max:129, unit:'mg/dL', label:'Direct LDL',        dir:'low' },
+  vldl:            { min:5,   max:40,  unit:'mg/dL', label:'VLDL',              dir:'low' },
+  cholHdlRatio:    { min:0,   max:5.0, unit:'calc',  label:'Chol/HDL Ratio',    dir:'low' },
+  glucose:         { min:65,  max:99,  unit:'mg/dL', label:'Glucose',           dir:'both' },
+  hba1c:           { min:4.0, max:5.6, unit:'%',     label:'HbA1c',             dir:'low' },
+  ast:             { min:10,  max:40,  unit:'U/L',   label:'AST',               dir:'both' },
+  alt:             { min:7,   max:56,  unit:'U/L',   label:'ALT',               dir:'both' },
+  alp:             { min:44,  max:147, unit:'U/L',   label:'ALP',               dir:'both' },
+  albumin:         { min:3.5, max:5.0, unit:'g/dL',  label:'Albumin',           dir:'both' },
+  biliTotal:       { min:0.2, max:1.2, unit:'mg/dL', label:'Total Bilirubin',   dir:'both' },
+  biliDirect:      { min:0,   max:0.2, unit:'mg/dL', label:'Direct Bilirubin',  dir:'low' },
+  totalProtein:    { min:6.3, max:8.2, unit:'g/dL',  label:'Total Protein',     dir:'both' },
+  bun:             { min:7,   max:25,  unit:'mg/dL', label:'BUN',               dir:'both' },
+  creatinine:      { min:0.74,max:1.35,unit:'mg/dL', label:'Creatinine',        dir:'both' },
+  egfr:            { min:60,  max:999, unit:'mL/min',label:'eGFR',              dir:'high' },
+  sodium:          { min:136, max:145, unit:'mEq/L', label:'Sodium',            dir:'both' },
+  potassium:       { min:3.5, max:5.1, unit:'mEq/L', label:'Potassium',         dir:'both' },
+  chloride:        { min:98,  max:107, unit:'mEq/L', label:'Chloride',          dir:'both' },
+  co2:             { min:22,  max:29,  unit:'mEq/L', label:'CO2',               dir:'both' },
+  calcium:         { min:8.5, max:10.2,unit:'mg/dL', label:'Calcium',           dir:'both' },
+  tsh:             { min:0.4, max:4.0, unit:'mIU/L', label:'TSH',               dir:'both' },
+  freeT4:          { min:0.8, max:1.8, unit:'ng/dL', label:'Free T4',           dir:'both' },
+  psa:             { min:0,   max:4.0, unit:'ng/mL', label:'PSA',               dir:'low' },
+  wbc:             { min:4.5, max:11.0,unit:'K/uL',  label:'WBC',               dir:'both' },
+  rbc:             { min:4.5, max:5.9, unit:'M/uL',  label:'RBC',               dir:'both' },
+  hemoglobin:      { min:13.5,max:17.5,unit:'g/dL',  label:'Hemoglobin',        dir:'both' },
+  hematocrit:      { min:41,  max:53,  unit:'%',     label:'Hematocrit',        dir:'both' },
+  platelets:       { min:150, max:400, unit:'K/uL',  label:'Platelets',         dir:'both' },
+  mcv:             { min:80,  max:100, unit:'fL',    label:'MCV',               dir:'both' }
+};
+
+function getFlag(key, val) {
+  if (val == null) return 'none';
+  const r = REF[key];
+  if (!r) return 'none';
+  if (val < r.min) return 'L';
+  if (val > r.max) return 'H';
+  return 'ok';
+}
+
+// ═══════════════════════════════════════════════════════
+// SEED DATA
+// ═══════════════════════════════════════════════════════
+function getSeedData() {
+  return {
+    labVisits: [
+      { id:'lv_2013', date:'2013-10-01', facility:'Quest Diagnostics', visitType:'wellness',
+        labs:{ totalCholesterol:217, hdl:42, triglycerides:158, ldl:143, cholHdlRatio:5.2, glucose:93 },
+        vitals:{ bpSys:111, bpDia:73, waistCirc:35 }, flags:['wellness_rollup'],
+        notes:'Wellness screening. Historical data from 2016 rollup report. Specific day unknown.' },
+      { id:'lv_2014', date:'2014-10-01', facility:'Quest Diagnostics', visitType:'wellness',
+        labs:{ totalCholesterol:210, hdl:34, triglycerides:177, ldl:141, cholHdlRatio:6.2, glucose:88 },
+        vitals:{ bpSys:113, bpDia:76, waistCirc:33 }, flags:['wellness_rollup'],
+        notes:'Wellness screening. Historical data from 2016 rollup report.' },
+      { id:'lv_2015', date:'2015-10-01', facility:'Quest Diagnostics', visitType:'wellness',
+        labs:{ totalCholesterol:205, hdl:27, triglycerides:232, ldl:132, cholHdlRatio:7.6, glucose:83 },
+        vitals:{ bpSys:98, bpDia:72, waistCirc:33 }, flags:['wellness_rollup'],
+        notes:'Wellness screening. Historical data from 2016 rollup report.' },
+      { id:'lv_2016', date:'2016-11-28', facility:'Quest Diagnostics, Tucker GA', visitType:'wellness',
+        labs:{ totalCholesterol:183, hdl:34, triglycerides:119, ldl:125, cholHdlRatio:5.4, glucose:91 },
+        vitals:{ bpSys:126, bpDia:null, waistCirc:35 }, flags:['wellness_screening'],
+        notes:'Annual wellness screening. BP diastolic excluded — OCR error in source document (read as 35, physiologically implausible).' },
+      { id:'lv_2018', date:'2018-11-08', facility:'Quest Diagnostics, Tucker GA', visitType:'wellness',
+        labs:{ totalCholesterol:236, hdl:32, triglycerides:293, ldl:159, cholHdlRatio:7.4, glucose:87 },
+        vitals:{ bpSys:121, bpDia:76, waistCirc:34 }, flags:['wellness_screening'],
+        notes:'Annual wellness screening. Triglycerides crossed into High range.' },
+      { id:'lv_2019', date:'2019-11-22', facility:'Quest Diagnostics, Tucker GA', visitType:'wellness',
+        labs:{ totalCholesterol:255, hdl:32, triglycerides:433, directLdl:139, cholHdlRatio:8.0, glucose:87 },
+        vitals:{ bpSys:129, bpDia:78, waistCirc:35 }, flags:['wellness_screening'],
+        notes:'Calc LDL unavailable — triglycerides >400 mg/dL. Direct LDL used instead. Peak triglyceride year.' },
+      { id:'lv_2020', date:'2020-11-13', facility:'Quest Diagnostics, Lenexa KS', visitType:'wellness',
+        labs:{ totalCholesterol:243, hdl:32, triglycerides:369, directLdl:145, cholHdlRatio:7.6, glucose:66 },
+        vitals:{ bpSys:120, bpDia:70, waistCirc:39 }, flags:['wellness_screening','dried_blood_spot'],
+        notes:'Dried Blood Spot (DBS) remote collection — COVID-era. Results are estimates. Glucose notably low (66) — may reflect fasting or DBS variance.' },
+      { id:'lv_2021', date:'2021-11-12', facility:'Quest Diagnostics, Lenexa KS', visitType:'wellness',
+        labs:{}, vitals:{ bpSys:112, bpDia:69, waistCirc:37 }, flags:['wellness_screening','dried_blood_spot','partial_data'],
+        notes:'DBS collection. Most labs DNR/TNP — likely collection issue. Physical measures only available.' },
+      { id:'lv_2022', date:'2022-08-28', facility:'Quest Diagnostics (via PCP)', visitType:'wellness',
+        labs:{ totalCholesterol:261, hdl:38, triglycerides:376, ldl:159, cholHdlRatio:6.9, glucose:89 },
+        vitals:{ bpSys:122, bpDia:76, waistCirc:35 }, flags:['wellness_screening','pcp_labs'],
+        notes:'Lab results provided by PCP, not performed by Quest as part of the biometric screening. HbA1c of 15.3% in source document excluded as likely erroneous (normal results in 2025/2026).' },
+      { id:'lv_2023', date:'2023-11-13', facility:'Quest Diagnostics (via PCP)', visitType:'wellness',
+        labs:{ totalCholesterol:242, hdl:32, triglycerides:360, ldl:155, cholHdlRatio:7.6, glucose:89 },
+        vitals:{ bpSys:126, bpDia:72 }, flags:['wellness_screening','pcp_labs'],
+        notes:'Lab results provided by PCP.' },
+      { id:'lv_2024', date:'2024-06-25', facility:'Northside / MyOneChart', visitType:'wellness',
+        labs:{ totalCholesterol:146, hdl:37, triglycerides:286, ldl:71, cholHdlRatio:3.9, glucose:93,
+               ast:34, alt:53, alp:65, albumin:4.8, biliTotal:0.6 },
+        vitals:{ weight:164.58, bmi:26.0, bpSys:116, bpDia:76, waistCirc:35 }, flags:['wellness_screening'],
+        notes:'Significant lipid improvement. CT Calcium Score = 0 (2023). Fatty liver ultrasound on record. Meds confirmed starting ~this period.' },
+      { id:'lv_2025', date:'2025-02-20', facility:'Labcorp, Birmingham AL', visitType:'clinical',
+        labs:{
+          totalCholesterol:111, triglycerides:196, hdl:38, ldl:41, vldl:32, cholHdlRatio:2.9,
+          ast:30, alt:37, alp:86, albumin:4.9, biliTotal:0.5, biliDirect:0.20, totalProtein:7.5,
+          glucose:86, bun:11, creatinine:0.83, egfr:107, sodium:140, potassium:4.3, calcium:10.0,
+          hba1c:5.0, tsh:0.824, freeT4:1.18, psa:1.4,
+          wbc:8.3, rbc:5.06, hemoglobin:15.3, hematocrit:45.0, platelets:271, mcv:89
+        },
+        vitals:{ weight:161.6, bmi:25.31, bpSys:103, bpDia:66 }, flags:[],
+        notes:'First full Labcorp clinical panel. All medications confirmed active. LDL 159→41 on Rosuvastatin+Ezetimibe.' },
+      { id:'lv_2026', date:'2026-02-23', facility:'Labcorp, Birmingham AL', visitType:'clinical',
+        labs:{
+          totalCholesterol:99, triglycerides:146, hdl:36, ldl:38, vldl:25, cholHdlRatio:2.8,
+          ast:26, alt:31, alp:60, albumin:4.8, biliTotal:0.6, totalProtein:7.3,
+          glucose:99, bun:14, creatinine:0.87, egfr:104, sodium:139, potassium:4.4, calcium:9.9,
+          hba1c:4.9, tsh:1.24, freeT4:1.24, psa:1.7,
+          wbc:5.2, rbc:5.04, hemoglobin:14.9, hematocrit:45.6, platelets:237, mcv:91
+        },
+        vitals:{ weight:159.4, bmi:24.96, bpSys:113, bpDia:70, pulse:65, o2:97 }, flags:[],
+        notes:'Annual Labcorp panel. Triglycerides below 150 for first time. ALT improved 53→37→31. FIB-4 trending excellently.' }
+    ],
+    medications: [
+      { id:'med_1', name:'Rosuvastatin Calcium',   dose:'10mg',        frequency:'Daily',         indication:'Hypercholesterolemia (E78.00)', startDate:'2025-02-20', stopDate:null, status:'active', notes:'' },
+      { id:'med_2', name:'Ezetimibe',               dose:'10mg',        frequency:'Daily',         indication:'Hypercholesterolemia (E78.00)', startDate:'2025-02-20', stopDate:null, status:'active', notes:'' },
+      { id:'med_3', name:'Xyzal (Levocetirizine)',  dose:'5mg',         frequency:'Daily — evening',indication:'Allergic Rhinitis (J30.9)',    startDate:'2025-02-20', stopDate:null, status:'active', notes:'' },
+      { id:'med_4', name:'Singulair (Montelukast)', dose:'10mg',        frequency:'Daily',         indication:'Asthma (J45.20)',              startDate:'2025-02-20', stopDate:null, status:'active', notes:'' },
+      { id:'med_5', name:'Flonase Sensimist',       dose:'27.5mcg',     frequency:'Daily PRN',     indication:'Rhinitis',                     startDate:'2025-02-20', stopDate:null, status:'prn',    notes:'Use as needed for nasal congestion.' },
+      { id:'med_6', name:'Albuterol HFA',           dose:'4 puffs q4h', frequency:'PRN',           indication:'Asthma (J45.20)',              startDate:'2025-02-20', stopDate:null, status:'prn',    notes:'Rescue inhaler. Drug allergy: hydrocodone.' }
+    ],
+    bpLog: [
+      { id:'bp_2025', date:'2025-02-20', time:'', sys:103, dia:66,  pulse:null, source:'doctor', notes:'Labcorp visit — notably low, excellent.' },
+      { id:'bp_2026', date:'2026-02-23', time:'', sys:113, dia:70,  pulse:65,   source:'doctor', notes:'Labcorp visit. O₂ 97%.' }
+    ],
+    weightLog: [
+      { id:'wt_1', date:'2024-06-25', weight:164.58, bmi:26.00, notes:'Northside screening' },
+      { id:'wt_2', date:'2025-02-20', weight:161.6,  bmi:25.31, notes:'Labcorp visit' },
+      { id:'wt_3', date:'2025-08-18', weight:168.5,  bmi:26.39, notes:'Back-calculated from BMI 26.39 (approximate)' },
+      { id:'wt_4', date:'2025-12-22', weight:161.0,  bmi:25.21, notes:'Back-calculated from BMI 25.21 (approximate)' },
+      { id:'wt_5', date:'2026-02-23', weight:159.4,  bmi:24.96, notes:'Labcorp visit — lowest recorded' }
+    ],
+    imagingNotes: [
+      { id:'img_1', date:'2023-01-01', type:'Ultrasound', description:'Fatty Liver — Grade Unknown', facility:'Unknown facility', notes:'Diagnosed K76.0. Grade pending detailed records. ALT 53→37→31 suggests improvement.' },
+      { id:'img_2', date:'2023-01-01', type:'CT Scan', description:'CT Coronary Calcium Score = 0', facility:'Unknown facility', notes:'Zero calcium score — excellent cardiovascular indicator. No plaque detected.' }
+    ],
+    conditions: [
+      { id:'cond_1', name:'Fatty Liver', icd:'K76.0', status:'active', diagnosedDate:'2023-01-01', notes:'Ultrasound 2023, grade unknown. ALT trending down: 53→37→31. FIB-4 well within low-risk range (<1.3) at both Labcorp visits.' },
+      { id:'cond_2', name:'Hypercholesterolemia', icd:'E78.00', status:'managed', diagnosedDate:'2018-01-01', notes:'Well controlled on Rosuvastatin 10mg + Ezetimibe 10mg. LDL trajectory: 159→71→41→38 mg/dL.' },
+      { id:'cond_3', name:'Asthma', icd:'J45.20', status:'managed', diagnosedDate:'2020-01-01', notes:'Mild intermittent. Managed with Singulair daily + Albuterol HFA rescue inhaler PRN.' },
+      { id:'cond_4', name:'Allergic Rhinitis', icd:'J30.9', status:'managed', diagnosedDate:'2020-01-01', notes:'Managed on Xyzal 5mg daily + Flonase Sensimist PRN.' },
+      { id:'cond_5', name:'AVN Bilateral Hips', icd:'M87.00', status:'monitoring', diagnosedDate:'2022-01-01', notes:'Avascular necrosis. Monitoring. Drug allergy: hydrocodone.' }
+    ],
+    settings: {
+      provider:'Dr. Lauren Brewington',
+      facility:'Sugarloaf Medical PC, Suwanee GA',
+      dob:'1974-09-01',
+      sex:'M',
+      heightIn:67,
+      driveEnabled:false,
+      lastSync:null
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let appData = null;
+let driveFileId = null;
+let driveToken = null;
+let activeTab = 'dashboard';
+let chartInstances = {};
+
+function saveState() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(appData)); } catch(e) {}
+  _htMarkUnsaved();
+}
+function _htMarkUnsaved() { const b = document.getElementById('unsavedBadge'); if(b) b.style.opacity = '1'; }
+function _htMarkSynced()  { const b = document.getElementById('unsavedBadge'); if(b) b.style.opacity = '0'; }
+function loadState() {
+  try {
+    const s = localStorage.getItem(LS_KEY);
+    if (s) { appData = JSON.parse(s); return true; }
+  } catch(e) {}
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function submitAuth() {
+  const pw = document.getElementById('pwInput').value;
+  if (!pw) return;
+  const stored = localStorage.getItem(PW_KEY);
+  const hash = await sha256(pw);
+  if (!stored) {
+    // First run — set password (Option B)
+    localStorage.setItem(PW_KEY, hash);
+    unlockApp();
+  } else if (hash === stored) {
+    unlockApp();
+  } else {
+    document.getElementById('authErr').textContent = 'Incorrect password.';
+    document.getElementById('pwInput').value = '';
+  }
+}
+
+// ── FORGOT PASSWORD ──────────────────────────────────────────────────────────
+function showForgotPw(){
+  document.getElementById('authGate').style.display='none';
+  document.getElementById('forgotPwScreen').style.display='flex';
+  document.getElementById('fpStep1').style.display='block';
+  document.getElementById('fpStep2').style.display='none';
+  document.getElementById('fpMsg').textContent='';
+  const p1=document.getElementById('fpNewPw1');if(p1)p1.value='';
+  const p2=document.getElementById('fpNewPw2');if(p2)p2.value='';
+  document.getElementById('fpErr').textContent='';
+}
+function hideForgotPw(){
+  document.getElementById('forgotPwScreen').style.display='none';
+  document.getElementById('authGate').style.display='flex';
+}
+function forgotPwConnectDrive(){
+  const msg=document.getElementById('fpMsg');
+  msg.style.color='var(--text-muted,#888)';msg.textContent='Connecting to Google…';
+  if(!window.google?.accounts?.oauth2){msg.style.color='#f87171';msg.textContent='Auth library not ready — reload and try again.';return;}
+  try{
+    google.accounts.oauth2.initTokenClient({
+      client_id:CLIENT_ID,scope:DRIVE_SCOPE,
+      callback:async r=>{
+        if(r.error){msg.style.color='#f87171';msg.textContent='Google sign-in failed. Try again.';return;}
+        driveToken=r.access_token;
+        sessionStorage.setItem(DRIVE_TOKEN_KEY,driveToken);
+        appData.settings.driveEnabled=true;
+        updateDriveUI(true);
+        msg.style.color='#4ade80';msg.textContent='✓ Identity verified — set your new password below.';
+        document.getElementById('fpStep2').style.display='block';
+        setTimeout(()=>document.getElementById('fpNewPw1').focus(),100);
+      }
+    }).requestAccessToken({prompt:'consent'});
+  }catch(e){msg.style.color='#f87171';msg.textContent='Drive unavailable — reload and try again.';}
+}
+async function forgotPwSave(){
+  const p1=document.getElementById('fpNewPw1').value;
+  const p2=document.getElementById('fpNewPw2').value;
+  const err=document.getElementById('fpErr');
+  if(!p1||p1.length<4){err.textContent='Minimum 4 characters';return;}
+  if(p1!==p2){err.textContent='Passwords do not match';return;}
+  localStorage.setItem(PW_KEY,await sha256(p1));
+  document.getElementById('forgotPwScreen').style.display='none';
+  document.getElementById('authGate').style.display='flex';
+  const ae=document.getElementById('authErr');
+  ae.style.color='#4ade80';ae.textContent='✓ Password reset — please log in';
+  setTimeout(()=>{ae.textContent='';ae.style.color='';},4000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const stored = localStorage.getItem(PW_KEY);
+  if (!stored) {
+    document.getElementById('authNote').textContent = 'First run — set a password to get started.';
+  }
+  document.getElementById('pwInput').addEventListener('keydown', e => { if(e.key==='Enter') submitAuth(); });
+
+  // Session restore — stay unlocked within same browser tab
+  if (sessionStorage.getItem('ht_auth') === '1') {
+    document.getElementById('authGate').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initApp();
+    _startHtTimer();
+    if(!tryRestoreDriveToken())handleDriveClick();
+  }
+});
+
+function unlockApp() {
+  sessionStorage.setItem('ht_auth', '1');
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  initApp();
+  _startHtTimer();
+  if(!tryRestoreDriveToken())handleDriveClick();
+}
+
+function lockApp() {
+  sessionStorage.removeItem('ht_auth');
+  sessionStorage.removeItem(DRIVE_TOKEN_KEY);
+  driveToken = null;
+  clearInterval(_htTimerInterval);
+  _htTimerInterval = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('authGate').style.display = 'flex';
+  document.getElementById('pwInput').value = '';
+  document.getElementById('authErr').textContent = '';
+}
+
+// ── Auto-lock timer (matches portal pattern) ──
+const HT_TIMER_KEY = 'ht_timer_setting';
+let _htTimeLeft = 600;   // default 10 min
+let _htTimerInterval = null;
+
+function _startHtTimer() {
+  clearInterval(_htTimerInterval);
+  const saved = localStorage.getItem(HT_TIMER_KEY);
+  _htTimeLeft = saved ? parseInt(saved) : 600;
+  _htTimerInterval = setInterval(() => {
+    _htTimeLeft--;
+    if (_htTimeLeft <= 0) { clearInterval(_htTimerInterval); lockApp(); }
+  }, 1000);
+}
+function _resetHtTimer() { 
+  const saved = localStorage.getItem(HT_TIMER_KEY);
+  _htTimeLeft = saved ? parseInt(saved) : 600;
+}
+document.addEventListener('mousemove', () => { if (_htTimerInterval) _resetHtTimer(); });
+document.addEventListener('keydown',   () => { if (_htTimerInterval) _resetHtTimer(); });
+document.addEventListener('click',     () => { if (_htTimerInterval) _resetHtTimer(); });
+
+function updateHtTimer(val) {
+  localStorage.setItem(HT_TIMER_KEY, val);
+  _htTimeLeft = parseInt(val);
+  if (_htTimerInterval) { clearInterval(_htTimerInterval); _startHtTimer(); }
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+function initApp() {
+  if (!loadState()) {
+    appData = getSeedData();
+    saveState();
+  }
+  // Schema migrations
+  if (!appData.conditions)   appData.conditions   = getSeedData().conditions;
+  if (!appData.imagingNotes) appData.imagingNotes = getSeedData().imagingNotes;
+  if (!appData.bpLog)        appData.bpLog        = getSeedData().bpLog;
+  // Migrate med active boolean → status string
+  appData.medications = appData.medications.map(m => {
+    if (m.status) return m; // already migrated
+    return { ...m, status: m.active ? 'active' : 'stopped' };
+  });
+  saveState();
+  renderTab('dashboard');
+  initDrive();
+}
+
+// ═══════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════
+function switchTab(tab) {
+  const tabs = ['dashboard','visits','trends','panel','meds','vitals','imaging','settings'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('pane-'+tab).classList.add('active');
+  activeTab = tab;
+  renderTab(tab);
+}
+function renderTab(tab) {
+  switch(tab) {
+    case 'dashboard': renderDashboard(); break;
+    case 'visits':    renderVisits(); break;
+    case 'trends':    renderTrends(); break;
+    case 'panel':     renderPanel(); break;
+    case 'meds':      renderMeds(); break;
+    case 'vitals':    renderVitals(); break;
+    case 'imaging':   renderImaging(); break;
+    case 'settings':  renderSettings(); break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+function fmtDateShort(d) {
+  if (!d) return '—';
+  const dt = new Date(d+'T00:00:00');
+  const mon = dt.toLocaleDateString('en-US',{month:'short'});
+  const yr  = dt.toLocaleDateString('en-US',{year:'2-digit'});
+  return `${mon} '${yr}`;
+}
+function sortedVisits() {
+  return [...appData.labVisits].sort((a,b) => b.date.localeCompare(a.date));
+}
+function latestClinical() {
+  return [...appData.labVisits].filter(v=>v.visitType==='clinical').sort((a,b)=>b.date.localeCompare(a.date))[0];
+}
+function latestAny() {
+  return [...appData.labVisits].sort((a,b)=>b.date.localeCompare(a.date))[0];
+}
+function calcAge(date) {
+  const dob = new Date(appData.settings.dob);
+  const d = new Date(date+'T00:00:00');
+  let age = d.getFullYear() - dob.getFullYear();
+  const m = d.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && d.getDate() < dob.getDate())) age--;
+  return age;
+}
+function calcFIB4(visit) {
+  const {ast,alt,platelets} = visit.labs || {};
+  if (!ast||!alt||!platelets) return null;
+  const age = calcAge(visit.date);
+  return (age * ast) / (platelets * Math.sqrt(alt));
+}
+function calcBMI(weight, heightIn) {
+  if (!weight || !heightIn) return null;
+  return (703 * weight) / (heightIn * heightIn);
+}
+function uid() { return 'id_' + Math.random().toString(36).slice(2); }
+
+// Trend direction helpers
+function trendDir(curr, prev, higherIsBetter) {
+  if (curr == null || prev == null) return 'flat';
+  const delta = curr - prev;
+  if (Math.abs(delta) < 0.01) return 'flat';
+  if (higherIsBetter) return delta > 0 ? 'up-good' : 'down-bad';
+  return delta < 0 ? 'down' : 'up';
+}
+function trendHtml(curr, prev, higherIsBetter) {
+  const dir = trendDir(curr, prev, higherIsBetter);
+  if (dir === 'flat') return '<span class="trend-flat">→ no change</span>';
+  if (dir === 'down') return `<span class="trend-down">↓ ${Math.abs(curr-prev).toFixed(1)} vs prior</span>`;
+  if (dir === 'up')   return `<span class="trend-up">↑ ${Math.abs(curr-prev).toFixed(1)} vs prior</span>`;
+  if (dir === 'up-good') return `<span class="trend-up-good">↑ ${Math.abs(curr-prev).toFixed(1)} vs prior</span>`;
+  return `<span class="trend-down">↓ ${Math.abs(curr-prev).toFixed(1)} vs prior</span>`;
+}
+
+// Sparkline
+function drawSparkline(canvas, values, color) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+  const clean = values.filter(v => v != null);
+  if (clean.length < 2) return;
+  const min = Math.min(...clean) * 0.92;
+  const max = Math.max(...clean) * 1.08;
+  const xStep = w / (clean.length - 1);
+  const grad = ctx.createLinearGradient(0,0,w,0);
+  grad.addColorStop(0,'rgba(0,180,216,0.3)');
+  grad.addColorStop(1,color);
+  ctx.beginPath();
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  clean.forEach((v,i) => {
+    const x = i * xStep;
+    const y = h - ((v - min) / (max - min || 1)) * (h - 4) - 2;
+    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  // dot at end
+  const lx = (clean.length-1)*xStep;
+  const ly = h - ((clean[clean.length-1]-min)/(max-min||1))*(h-4)-2;
+  ctx.beginPath();
+  ctx.arc(lx,ly,3,0,Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function getSparkValues(key) {
+  return [...appData.labVisits]
+    .sort((a,b)=>a.date.localeCompare(b.date))
+    .map(v => (v.labs && v.labs[key] != null) ? v.labs[key] : null)
+    .filter(v=>v!=null).slice(-8);
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+function renderDashboard() {
+  const lc = latestClinical();
+  const prev = appData.labVisits.filter(v=>v.visitType==='clinical').sort((a,b)=>b.date.localeCompare(a.date))[1];
+  const prevLabs = prev?.labs || {};
+  const labs = lc?.labs || {};
+
+  const metrics = [
+    { key:'triglycerides', label:'Triglycerides', higherBetter:false },
+    { key:'ldl',           label:'LDL Cholesterol', higherBetter:false },
+    { key:'hdl',           label:'HDL Cholesterol', higherBetter:true  },
+    { key:'hba1c',         label:'HbA1c', higherBetter:false },
+    { key:'alt',           label:'ALT (Liver)', higherBetter:false },
+    { key:'glucose',       label:'Glucose', higherBetter:false }
+  ];
+
+  let cardsHtml = metrics.map(m => {
+    const val = labs[m.key];
+    const pval = prevLabs[m.key];
+    const ref = REF[m.key];
+    const flag = getFlag(m.key, val);
+    const statusClass = flag==='H' ? 'mc-danger' : flag==='L' ? (m.higherBetter ? 'mc-danger' : 'mc-info') : 'mc-ok';
+    const trend = val!=null && pval!=null ? trendHtml(val, pval, m.higherBetter) : '';
+    return `<div class="metric-card ${statusClass}" id="mc-${m.key}">
+      <div class="mc-label">${m.label}</div>
+      <div class="mc-value">${val != null ? val : '—'}<span class="mc-unit"> ${ref?.unit||''}</span></div>
+      <div class="mc-trend">${trend}</div>
+      <div class="mc-range">Ref: ${ref ? (ref.dir==='high'?'≥'+ref.min:ref.dir==='low'?'<'+ref.max:ref.min+'–'+ref.max) : ''} ${ref?.unit||''}</div>
+      <canvas class="sparkline" width="80" height="40" id="spark-${m.key}"></canvas>
+    </div>`;
+  }).join('');
+
+  // Latest weight
+  const wt = [...appData.weightLog].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const prevWt = [...appData.weightLog].sort((a,b)=>b.date.localeCompare(a.date))[1];
+  const wtDelta = (wt && prevWt) ? (wt.weight - prevWt.weight).toFixed(1) : null;
+  const wtDeltaHtml = wtDelta ? `<span style="color:${parseFloat(wtDelta)<0?'var(--ok)':'var(--warn)'}">${parseFloat(wtDelta)>0?'+':''}${wtDelta} lbs vs prior</span>` : '';
+
+  // FIB-4
+  const fib4 = lc ? calcFIB4(lc) : null;
+  const fib4Html = fib4 ? `FIB-4 Score: <strong style="color:${fib4<1.3?'var(--ok)':fib4<2.67?'var(--warn)':'var(--danger)'}">${fib4.toFixed(2)}</strong> <span style="font-size:11px;color:var(--muted)">(${fib4<1.3?'Low risk for fibrosis':fib4<2.67?'Indeterminate — follow up':'High risk — refer for biopsy'})</span>` : '';
+
+  const pane = document.getElementById('pane-dashboard');
+  pane.innerHTML = `
+    <div class="trend-banner">
+      📈 Tracking 13 years of health data (2013–2026). Key lipid story: Triglycerides
+      <strong>433 → 146</strong> · LDL <strong>159 → 38</strong> · HbA1c stable at <strong>4.9%</strong>
+      — medications are clearly working. ${lc ? `<span style="color:var(--muted)">Latest: ${fmtDate(lc.date)}</span>` : ''}
+    </div>
+
+    <div class="grid g6" style="margin-bottom:14px">${cardsHtml}</div>
+
+    <div class="dashboard-grid">
+      <!-- Weight Card -->
+      <div class="weight-quick-card">
+        <div class="card-title" style="margin-bottom:8px">⚖️ Current Weight</div>
+        <div>
+          <span class="weight-current">${wt ? wt.weight : '—'}</span>
+          <span class="weight-current-unit">lbs</span>
+        </div>
+        <div class="weight-bmi">BMI ${wt?.bmi ?? '—'} ${wtDeltaHtml}</div>
+        <div class="weight-quick-form">
+          <div class="quick-input-group">
+            <label>Date</label>
+            <input type="date" id="wtDate" value="${new Date().toISOString().slice(0,10)}" style="width:140px">
+          </div>
+          <div class="quick-input-group">
+            <label>Weight (lbs)</label>
+            <input type="number" id="wtVal" placeholder="159.4" step="0.1" style="width:100px">
+          </div>
+          <button class="btn btn-accent btn-sm" onclick="quickAddWeight()">Log Weight</button>
+        </div>
+      </div>
+
+      <!-- Conditions -->
+      <div class="card">
+        <div class="card-title">Active Conditions</div>
+        ${appData.conditions.map(c => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)">
+            <div>
+              <div style="font-size:13px;font-weight:500">${c.name}</div>
+              <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${c.icd}</div>
+            </div>
+            <span class="condition-status ${c.status==='active'?'cs-active':c.status==='managed'?'cs-managed':'cs-monitoring'}">${c.status}</span>
+          </div>
+        `).join('')}
+        ${fib4Html ? `<div style="font-size:12px;margin-top:10px;color:var(--muted)">🔬 ${fib4Html}</div>` : ''}
+      </div>
+    </div>
+
+    <!-- Latest visit summary -->
+    ${lc ? `
+    <div class="card" style="margin-top:0">
+      <div class="card-title">Latest Full Panel — ${fmtDate(lc.date)} (${lc.facility})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+        ${['totalCholesterol','triglycerides','hdl','ldl','hba1c','glucose','ast','alt','tsh','psa','egfr','wbc'].map(k=>{
+          const v = lc.labs[k];
+          if (v==null) return '';
+          const f = getFlag(k,v);
+          return `<div style="background:var(--bg3);border-radius:6px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--muted)">${REF[k]?.label||k}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:13px;color:${f==='H'?'var(--danger)':f==='L'?'var(--info)':'var(--ok)'}">${v}<span style="font-size:9px;color:var(--dim);margin-left:2px">${f!=='ok'&&f!=='none'?f:''}</span></span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+  `;
+
+  // Draw sparklines
+  requestAnimationFrame(() => {
+    metrics.forEach(m => {
+      const canvas = document.getElementById('spark-'+m.key);
+      const values = getSparkValues(m.key);
+      drawSparkline(canvas, values, '#00b4d8');
+    });
+  });
+}
+
+
+
+
+// ═══════════════════════════════════════════════════════
+// LAB VISITS
+// ═══════════════════════════════════════════════════════
+function renderVisits() {
+  const visits = sortedVisits();
+  const pane = document.getElementById('pane-visits');
+  pane.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Lab Visits <span style="font-size:12px;color:var(--muted);font-weight:400">(${visits.length} total)</span></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:var(--muted)">
+          <span style="display:inline-block;width:8px;height:8px;background:var(--clinical);border-radius:50%;margin-right:4px"></span>Clinical
+          <span style="display:inline-block;width:8px;height:8px;background:var(--wellness);border-radius:50%;margin:0 4px 0 10px"></span>Wellness Screening
+        </span>
+        <button class="btn btn-accent btn-sm" onclick="openAddLabVisitModal()">＋ Add Lab Visit</button>
+      </div>
+    </div>
+    ${visits.map(v => renderVisitCard(v)).join('')}
+  `;
+}
+
+function renderVisitCard(v) {
+  const isPartial = v.flags?.includes('partial_data');
+  const badgeClass = v.visitType==='clinical' ? 'badge-clinical' : isPartial ? 'badge-partial' : 'badge-wellness';
+  const badgeText = v.visitType==='clinical' ? 'Full Panel' : isPartial ? 'Partial Data' : 'Wellness Screen';
+  const labKeys = Object.keys(v.labs||{}).filter(k => v.labs[k] != null);
+  const fib4 = calcFIB4(v);
+
+  const labSections = buildLabSections(v.labs||{});
+
+  return `<div class="visit-card">
+    <div class="visit-header" onclick="toggleVisit('${v.id}')">
+      <div class="visit-header-left">
+        <div>
+          <div class="visit-date">${fmtDate(v.date)}</div>
+          <div class="visit-facility">${v.facility}</div>
+        </div>
+        <span class="visit-type-badge ${badgeClass}">${badgeText}</span>
+        ${v.visitType==='wellness'?'<span style="font-size:10px;color:var(--dim);font-family:\'DM Mono\',monospace">'+labKeys.length+' values</span>':''}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        ${v.vitals?.bpSys ? `<span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted)">${v.vitals.bpSys}/${v.vitals.bpDia??'?'} mmHg</span>` : ''}
+        ${v.vitals?.weight ? `<span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted)">${v.vitals.weight} lbs</span>` : ''}
+        <span class="visit-chevron" id="chev-${v.id}">▼</span>
+      </div>
+    </div>
+    <div class="visit-body" id="body-${v.id}">
+      ${labSections}
+      ${v.vitals ? renderVitalsChips(v.vitals) : ''}
+      ${fib4 != null ? `<div class="fib4-row"><span class="fib4-label">FIB-4 Score:</span><span class="fib4-val" style="color:${fib4<1.3?'var(--ok)':fib4<2.67?'var(--warn)':'var(--danger)'}">${fib4.toFixed(2)}</span><span class="fib4-interp" style="font-size:11px;color:var(--muted)">${fib4<1.3?'✓ Low risk for advanced fibrosis':fib4<2.67?'⚠ Indeterminate':'⚠ High risk'}</span></div>` : ''}
+      ${v.notes ? `<div class="visit-notes">📋 ${v.notes}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildLabSections(labs) {
+  const sections = {
+    'Lipids': ['totalCholesterol','triglycerides','hdl','ldl','vldl','directLdl','cholHdlRatio'],
+    'Liver': ['ast','alt','alp','albumin','biliTotal','biliDirect','totalProtein'],
+    'Metabolic / CMP': ['glucose','hba1c','bun','creatinine','egfr','sodium','potassium','chloride','co2','calcium'],
+    'Other': ['tsh','freeT4','psa'],
+    'CBC': ['wbc','rbc','hemoglobin','hematocrit','platelets','mcv']
+  };
+  let html = '';
+  for (const [section, keys] of Object.entries(sections)) {
+    const items = keys.filter(k => labs[k] != null);
+    if (!items.length) continue;
+    html += `<div class="lab-section">
+      <div class="lab-section-title">${section}</div>
+      <div class="lab-grid">
+        ${items.map(k => {
+          const val = labs[k];
+          const f = getFlag(k, val);
+          const cls = f==='H'?'flag-h':f==='L'?'flag-l':f==='ok'?'flag-ok':'flag-none';
+          const fb = f==='H'?'<span class="flag-badge fb-h">H</span>':f==='L'?'<span class="flag-badge fb-l">L</span>':'';
+          return `<div class="lab-item">
+            <span class="lab-item-name">${REF[k]?.label||k}</span>
+            <span class="lab-item-val ${cls}">${val}${fb} <span style="font-size:10px;color:var(--dim)">${REF[k]?.unit||''}</span></span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+  if (!html) html = `<div style="color:var(--dim);font-size:12px;padding:8px 0">No lab values recorded for this visit.</div>`;
+  return html;
+}
+
+function renderVitalsChips(vitals) {
+  const chips = [];
+  if (vitals.bpSys != null) chips.push({ label:'BP', val:`${vitals.bpSys}/${vitals.bpDia??'?'} mmHg` });
+  if (vitals.pulse != null) chips.push({ label:'Pulse', val:`${vitals.pulse} bpm` });
+  if (vitals.o2 != null)    chips.push({ label:'O₂', val:`${vitals.o2}%` });
+  if (vitals.temp != null)  chips.push({ label:'Temp', val:`${vitals.temp}°F` });
+  if (vitals.weight != null) chips.push({ label:'Weight', val:`${vitals.weight} lbs` });
+  if (vitals.bmi != null)   chips.push({ label:'BMI', val:`${vitals.bmi}` });
+  if (vitals.waistCirc != null) chips.push({ label:'Waist', val:`${vitals.waistCirc} in` });
+  if (!chips.length) return '';
+  return `<div class="lab-section">
+    <div class="lab-section-title">Vitals & Physical</div>
+    <div class="vitals-row">
+      ${chips.map(c=>`<div class="vital-chip"><span class="vc-label">${c.label}</span><span class="vc-val">${c.val}</span></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function toggleVisit(id) {
+  const body = document.getElementById('body-'+id);
+  const chev = document.getElementById('chev-'+id);
+  const open = body.classList.toggle('open');
+  chev.classList.toggle('open', open);
+}
+
+// ═══════════════════════════════════════════════════════
+// TRENDS
+// ═══════════════════════════════════════════════════════
+function renderTrends() {
+  const pane = document.getElementById('pane-trends');
+  pane.innerHTML = `
+    <div class="trend-banner">
+      Vertical gold markers indicate medication start events. Clinical visits (Labcorp) shown as solid dots; wellness screenings shown as hollow circles.
+    </div>
+    <div class="chart-card">
+      <h3>Lipid Panel — Full History</h3>
+      <div class="chart-sub">Total Cholesterol · LDL · HDL · Triglycerides (2013–2026)</div>
+      <div class="chart-wrap"><canvas id="chartLipids"></canvas></div>
+    </div>
+    <div class="grid g2">
+      <div class="chart-card">
+        <h3>Liver Enzymes</h3>
+        <div class="chart-sub">AST · ALT · ALP</div>
+        <div class="chart-wrap"><canvas id="chartLiver"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Metabolic Markers</h3>
+        <div class="chart-sub">Glucose · HbA1c (right axis)</div>
+        <div class="chart-wrap"><canvas id="chartMetabolic"></canvas></div>
+      </div>
+    </div>
+    <div class="grid g2">
+      <div class="chart-card">
+        <h3>Weight Trend</h3>
+        <div class="chart-sub">lbs over time</div>
+        <div class="chart-wrap"><canvas id="chartWeight"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Blood Pressure</h3>
+        <div class="chart-sub">Systolic · Diastolic (all visits)</div>
+        <div class="chart-wrap"><canvas id="chartBP"></canvas></div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(() => {
+    destroyCharts();
+    buildLipidsChart();
+    buildLiverChart();
+    buildMetabolicChart();
+    buildWeightChart();
+    buildBPChart();
+  });
+}
+
+function destroyCharts() {
+  Object.values(chartInstances).forEach(c => { try { c.destroy(); } catch(e){} });
+  chartInstances = {};
+}
+
+// Med event dates for vertical markers
+const MED_EVENTS = [
+  { date:'2025-02-20', label:'Meds Started\n(Rosuvastatin+Ezetimibe)' }
+];
+
+const chartDefaults = {
+  plugins: {
+    legend: { labels: { color:'#8b949e', font:{ family:'Outfit', size:11 }, usePointStyle:true, pointStyleWidth:8 } }
+  },
+  scales: {
+    x: { ticks:{ color:'#8b949e', font:{family:'DM Mono',size:10} }, grid:{ color:'rgba(48,54,61,0.6)' } },
+    y: { ticks:{ color:'#8b949e', font:{family:'DM Mono',size:10} }, grid:{ color:'rgba(48,54,61,0.6)' } }
+  }
+};
+
+function getVisitSeries(visits, key) {
+  const sorted = [...visits].sort((a,b)=>a.date.localeCompare(b.date));
+  return {
+    labels: sorted.map(v => fmtDateShort(v.date)),
+    values: sorted.map(v => (v.labs&&v.labs[key]!=null) ? v.labs[key] : null),
+    pointStyles: sorted.map(v => v.visitType==='clinical' ? 'circle' : 'rectRot'),
+    pointRadius: sorted.map(v => v.labs&&v.labs[key]!=null ? (v.visitType==='clinical'?5:4) : 0),
+    dates: sorted.map(v=>v.date)
+  };
+}
+
+function medMarkerPlugin(chartId) {
+  return {
+    id: 'medMarker_'+chartId,
+    afterDraw(chart) {
+      const { ctx, chartArea, scales, data } = chart;
+      if (!chartArea) return;
+      MED_EVENTS.forEach(ev => {
+        const idx = data.labels?.findIndex(l => {
+          // find closest label
+          const evDate = new Date(ev.date+'T00:00:00');
+          const evLabel = fmtDateShort(ev.date);
+          return l === evLabel;
+        });
+        if (idx === -1 || idx == null) return;
+        try {
+          const x = scales.x.getPixelForValue(idx);
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255,215,0,0.8)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([5,4]);
+          ctx.beginPath();
+          ctx.moveTo(x, chartArea.top);
+          ctx.lineTo(x, chartArea.bottom);
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(255,215,0,0.9)';
+          ctx.font = '600 9px Outfit, sans-serif';
+          ctx.fillText('💊 Meds', x+3, chartArea.top+12);
+          ctx.restore();
+        } catch(e){}
+      });
+    }
+  };
+}
+
+function buildLipidsChart() {
+  const visits = [...appData.labVisits].sort((a,b)=>a.date.localeCompare(b.date));
+  const labels = visits.map(v=>fmtDateShort(v.date));
+  const mk = key => visits.map(v=>(v.labs&&v.labs[key]!=null)?v.labs[key]:null);
+  const styles = visits.map(v=>v.visitType==='clinical'?'circle':'rectRot');
+  const radii = (key) => visits.map(v=>(v.labs&&v.labs[key]!=null)?(v.visitType==='clinical'?5:4):0);
+
+  const plugin = medMarkerPlugin('lipids');
+  Chart.register(plugin);
+  const ctx = document.getElementById('chartLipids').getContext('2d');
+  chartInstances.lipids = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'Total Cholesterol', data:mk('totalCholesterol'), borderColor:'#58a6ff', backgroundColor:'rgba(88,166,255,0.08)', tension:0.3, pointStyle:styles, pointRadius:radii('totalCholesterol'), spanGaps:true },
+        { label:'LDL', data:mk('ldl')||mk('directLdl'), borderColor:'#f85149', backgroundColor:'rgba(248,81,73,0.08)', tension:0.3, pointStyle:styles, pointRadius:radii('ldl'), spanGaps:true },
+        { label:'HDL', data:mk('hdl'), borderColor:'#3fb950', backgroundColor:'rgba(63,185,80,0.08)', tension:0.3, pointStyle:styles, pointRadius:radii('hdl'), spanGaps:true },
+        { label:'Triglycerides', data:mk('triglycerides'), borderColor:'#ffd700', backgroundColor:'rgba(255,215,0,0.08)', tension:0.3, pointStyle:styles, pointRadius:radii('triglycerides'), spanGaps:true }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ ...chartDefaults.plugins,
+        medMarker_lipids:{},
+        tooltip:{ callbacks:{ title:ctx=>`${labels[ctx[0].dataIndex]} — ${visits[ctx[0].dataIndex]?.facility||''}` } }
+      },
+      scales:{
+        x:{ ...chartDefaults.scales.x, ticks:{ ...chartDefaults.scales.x.ticks, maxRotation:45 } },
+        y:{ ...chartDefaults.scales.y, title:{ display:true, text:'mg/dL', color:'#484f58', font:{size:10} } }
+      }
+    }
+  });
+}
+
+function buildLiverChart() {
+  const visits = [...appData.labVisits].filter(v=>v.labs&&(v.labs.ast||v.labs.alt||v.labs.alp)).sort((a,b)=>a.date.localeCompare(b.date));
+  const labels = visits.map(v=>fmtDateShort(v.date));
+  const plugin = medMarkerPlugin('liver');
+  Chart.register(plugin);
+  const ctx = document.getElementById('chartLiver').getContext('2d');
+  chartInstances.liver = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'AST', data:visits.map(v=>v.labs.ast??null), borderColor:'#ff7b54', tension:0.3, pointRadius:5, spanGaps:true },
+      { label:'ALT', data:visits.map(v=>v.labs.alt??null), borderColor:'#f85149', tension:0.3, pointRadius:5, spanGaps:true },
+      { label:'ALP', data:visits.map(v=>v.labs.alp??null), borderColor:'#d29922', tension:0.3, pointRadius:5, spanGaps:true }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ ...chartDefaults.plugins, medMarker_liver:{} },
+      scales:{ x:chartDefaults.scales.x, y:{ ...chartDefaults.scales.y, title:{ display:true, text:'U/L', color:'#484f58', font:{size:10} } } }
+    }
+  });
+}
+
+function buildMetabolicChart() {
+  const glVisits = [...appData.labVisits].filter(v=>v.labs&&v.labs.glucose!=null).sort((a,b)=>a.date.localeCompare(b.date));
+  const a1cVisits = [...appData.labVisits].filter(v=>v.labs&&v.labs.hba1c!=null).sort((a,b)=>a.date.localeCompare(b.date));
+  const allDates = [...new Set([...glVisits.map(v=>v.date),...a1cVisits.map(v=>v.date)])].sort();
+  const labels = allDates.map(d=>fmtDateShort(d));
+  const byDate = {};
+  appData.labVisits.forEach(v=>{ byDate[v.date]=v; });
+
+  const plugin = medMarkerPlugin('metabolic');
+  Chart.register(plugin);
+  const ctx = document.getElementById('chartMetabolic').getContext('2d');
+  chartInstances.metabolic = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'Glucose (mg/dL)', data:allDates.map(d=>byDate[d]?.labs?.glucose??null), borderColor:'#00b4d8', yAxisID:'y', tension:0.3, pointRadius:4, spanGaps:true },
+      { label:'HbA1c (%)', data:allDates.map(d=>byDate[d]?.labs?.hba1c??null), borderColor:'#9d4edd', yAxisID:'y2', tension:0.3, pointRadius:5, spanGaps:true }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ ...chartDefaults.plugins, medMarker_metabolic:{} },
+      scales:{
+        x:chartDefaults.scales.x,
+        y:{ ...chartDefaults.scales.y, position:'left', title:{ display:true, text:'mg/dL', color:'#484f58', font:{size:10} } },
+        y2:{ ...chartDefaults.scales.y, position:'right', title:{ display:true, text:'%', color:'#484f58', font:{size:10} }, grid:{ drawOnChartArea:false } }
+      }
+    }
+  });
+}
+
+function buildWeightChart() {
+  const wts = [...appData.weightLog].sort((a,b)=>a.date.localeCompare(b.date));
+  const labels = wts.map(w=>fmtDateShort(w.date));
+  const plugin = medMarkerPlugin('weight');
+  Chart.register(plugin);
+  const ctx = document.getElementById('chartWeight').getContext('2d');
+  chartInstances.weight = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'Weight (lbs)', data:wts.map(w=>w.weight), borderColor:'#00b4d8', backgroundColor:'rgba(0,180,216,0.05)', tension:0.3, pointRadius:5, fill:true }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ ...chartDefaults.plugins, medMarker_weight:{} },
+      scales:{
+        x:chartDefaults.scales.x,
+        y:{ ...chartDefaults.scales.y, min:150, title:{ display:true, text:'lbs', color:'#484f58', font:{size:10} } }
+      }
+    }
+  });
+}
+
+function buildBPChart() {
+  // Merge bpLog entries + lab visit vitals into one unified sorted series
+  const entries = [];
+  // From lab visits
+  appData.labVisits.forEach(v => {
+    if (v.vitals?.bpSys != null) {
+      entries.push({ date:v.date, sys:v.vitals.bpSys, dia:v.vitals.bpDia, pulse:v.vitals.pulse||null, source:'doctor', label:fmtDateShort(v.date) });
+    }
+  });
+  // From bpLog (may duplicate lab visit dates — dedupe by id, not date)
+  (appData.bpLog||[]).forEach(b => {
+    // Skip if already covered by a lab visit on same date
+    const alreadyIn = entries.find(e => e.date === b.date && e.source === 'doctor');
+    if (!alreadyIn) {
+      entries.push({ date:b.date, sys:b.sys, dia:b.dia, pulse:b.pulse, source:b.source, label:fmtDateShort(b.date) });
+    }
+  });
+  entries.sort((a,b) => a.date.localeCompare(b.date));
+
+  const labels = entries.map(e => e.label);
+  const sourceColors = { apple_watch:'#3fb950', home_cuff:'#00b4d8', manual:'#58a6ff', doctor:'#d29922' };
+
+  const plugin = medMarkerPlugin('bp');
+  Chart.register(plugin);
+  const ctx = document.getElementById('chartBP').getContext('2d');
+  chartInstances.bp = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'Systolic',  data:entries.map(e=>e.sys),  borderColor:'#f85149', backgroundColor:'rgba(248,81,73,0.05)',  tension:0.3, pointRadius:5,
+          pointBackgroundColor:entries.map(e=>sourceColors[e.source]||'#58a6ff'), fill:false, spanGaps:true },
+        { label:'Diastolic', data:entries.map(e=>e.dia),  borderColor:'#58a6ff', backgroundColor:'rgba(88,166,255,0.05)', tension:0.3, pointRadius:5,
+          pointBackgroundColor:entries.map(e=>sourceColors[e.source]||'#58a6ff'), fill:false, spanGaps:true },
+        { label:'Pulse',     data:entries.map(e=>e.pulse||null), borderColor:'rgba(210,153,34,0.6)', borderDash:[4,3], tension:0.3, pointRadius:3, fill:false, spanGaps:true }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        ...chartDefaults.plugins,
+        medMarker_bp:{},
+        tooltip:{
+          callbacks:{
+            afterBody: ctx => {
+              const e = entries[ctx[0].dataIndex];
+              const sl = { apple_watch:'Apple Watch', home_cuff:'Home Cuff', manual:'Manual', doctor:'Doctor Office' };
+              return [`Source: ${sl[e.source]||e.source}`];
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ ...chartDefaults.scales.x, ticks:{ ...chartDefaults.scales.x.ticks, maxRotation:45 } },
+        y:{ ...chartDefaults.scales.y, min:50, title:{ display:true, text:'mmHg / bpm', color:'#484f58', font:{size:10} } }
+      }
+    }
+  });
+
+  // Legend for source dot colors
+  const legend = document.createElement('div');
+  legend.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:10px;color:var(--muted)';
+  legend.innerHTML = Object.entries(sourceColors).map(([src,col])=>
+    `<span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:${col};display:inline-block"></span>${{apple_watch:'Apple Watch',home_cuff:'Home Cuff',manual:'Manual',doctor:'Doctor Office'}[src]}</span>`
+  ).join('');
+  document.getElementById('chartBP').parentElement.appendChild(legend);
+}
+
+// ═══════════════════════════════════════════════════════
+// FULL PANEL REPORT
+// ═══════════════════════════════════════════════════════
+
+// Smart clinical notes per marker — auto-generated guidance
+const PANEL_NOTES = {
+  totalCholesterol: v => v < 100 ? 'Below range — uncommon on statins; discuss with provider. Not a concern if LDL is well-controlled.' :
+                         v < 125 ? 'Low-normal. Monitor in context of statin use.' :
+                         v < 200 ? 'Normal range. Good.' :
+                         v < 240 ? 'Borderline high. Focus on LDL and triglycerides.' : 'High — elevated cardiovascular risk.',
+  triglycerides:    v => v < 100 ? 'Excellent — optimal range.' :
+                         v < 150 ? 'Normal. Keep diet low in refined carbs and sugars.' :
+                         v < 200 ? 'Borderline high. Reduce refined carbs, alcohol, and sugary drinks.' :
+                         v < 500 ? 'High — cardiovascular risk factor. Dietary changes + possible medication adjustment.' : 'Very high — pancreatitis risk. Contact provider promptly.',
+  hdl:              v => v < 35  ? 'Very low — significant cardiovascular risk factor. Regular aerobic exercise, healthy fats (avocado, olive oil, nuts) can help raise HDL.' :
+                         v < 40  ? 'Below optimal. Exercise and healthy fats can help. Discuss with provider.' :
+                         v < 60  ? 'Normal. Higher is better for cardiovascular protection.' : 'Excellent — high HDL is protective against heart disease.',
+  ldl:              v => v < 70  ? 'Optimal — excellent for someone with cardiovascular risk factors. Statins working well.' :
+                         v < 100 ? 'Near-optimal. Good control.' :
+                         v < 130 ? 'Borderline. Review diet and exercise.' :
+                         v < 160 ? 'High — lifestyle modification and possible medication needed.' : 'Very high — significant cardiovascular risk.',
+  directLdl:        v => v < 100 ? 'Optimal direct LDL.' : v < 130 ? 'Near-optimal.' : 'Elevated — discuss with provider.',
+  vldl:             v => v < 30  ? 'Normal.' : v < 40 ? 'Upper normal — monitor triglycerides.' : 'Elevated VLDL correlates with high triglycerides.',
+  cholHdlRatio:     v => v < 3.5 ? 'Excellent ratio — highly desirable.' :
+                         v < 5.0 ? 'Acceptable ratio. Lower is better.' : 'Elevated ratio — cardiovascular risk indicator. Focus on lowering LDL and raising HDL.',
+  glucose:          v => v < 65  ? 'Low — hypoglycemia. Discuss with provider.' :
+                         v < 86  ? 'Normal. Well-controlled.' :
+                         v < 100 ? v >= 95 ? 'Normal but at upper end — worth monitoring trend at next visit.' : 'Normal.' :
+                         v < 126 ? 'Prediabetes range — lifestyle changes (diet, exercise) are strongly recommended.' : 'Diabetic range — requires immediate provider consultation.',
+  hba1c:            v => v < 4.8 ? 'Very low A1c — excellent long-term glucose control.' :
+                         v < 5.7 ? 'Normal — no sign of diabetes or prediabetes. Excellent.' :
+                         v < 6.5 ? 'Prediabetes range — dietary changes and exercise can reverse this.' : 'Diabetic range — requires medical management.',
+  ast:              v => v <= 40 ? 'Normal. No acute liver stress.' : v < 80 ? 'Mildly elevated — could be exercise or fatty liver. Monitor.' : 'Elevated — liver evaluation recommended.',
+  alt:              v => v <= 44 ? 'Normal.' : v < 80 ? 'Mildly elevated — common with fatty liver. Trend is key.' : 'Elevated — liver evaluation recommended. Key marker for NAFLD.',
+  alp:              v => v < 44  ? 'Low — uncommon; discuss with provider.' : v <= 147 ? 'Normal.' : 'Elevated — bone or liver cause possible. Further workup may be needed.',
+  albumin:          v => v < 3.5 ? 'Low albumin — may indicate liver or kidney issues. Discuss with provider.' : v <= 5.0 ? 'Normal — good liver synthetic function.' : 'High normal.',
+  biliTotal:        v => v <= 1.2 ? 'Normal.' : 'Elevated — possible liver or hemolytic issue. Discuss with provider.',
+  biliDirect:       v => v <= 0.2 ? 'Normal.' : 'Elevated direct bilirubin — possible liver/biliary issue.',
+  totalProtein:     v => (v >= 6.3 && v <= 8.2) ? 'Normal.' : v < 6.3 ? 'Low — possible malnutrition or liver issue.' : 'High — may indicate dehydration or chronic inflammation.',
+  bun:              v => (v >= 7 && v <= 25)     ? 'Normal kidney filtration.' : v < 7 ? 'Low — usually benign; possible low protein intake.' : 'Elevated — monitor kidney function.',
+  creatinine:       v => (v >= 0.74 && v <= 1.35)? 'Normal kidney function.' : v < 0.74 ? 'Low — usually reflects low muscle mass; benign.' : 'Elevated — possible kidney impairment. Monitor closely.',
+  egfr:             v => v >= 90  ? 'Normal kidney function.' : v >= 60 ? 'Mildly reduced — monitor annually.' : v >= 30 ? 'Moderate CKD — nephrology referral may be warranted.' : 'Advanced CKD — nephrology consultation required.',
+  sodium:           v => (v >= 136 && v <= 145)  ? 'Normal electrolyte balance.' : v < 136 ? 'Low sodium — hyponatremia. Can cause fatigue, confusion. Discuss with provider.' : 'High sodium — hypernatremia. Often dehydration-related.',
+  potassium:        v => (v >= 3.5 && v <= 5.1)  ? 'Normal.' : v < 3.5 ? 'Low potassium — risk of muscle cramps and arrhythmia. Discuss with provider.' : 'High potassium — can affect heart rhythm. Discuss with provider.',
+  chloride:         v => (v >= 98 && v <= 107)   ? 'Normal.' : 'Outside range — discuss electrolyte balance with provider.',
+  co2:              v => (v >= 22 && v <= 29)    ? 'Normal acid-base balance.' : v < 22 ? 'Low — possible acidosis. Discuss with provider.' : 'High — possible alkalosis.',
+  calcium:          v => (v >= 8.5 && v <= 10.2) ? 'Normal — good bone mineral support.' : v < 8.5 ? 'Low calcium — bone health concern. Discuss vitamin D and calcium intake.' : 'Elevated calcium — possible parathyroid issue. Discuss with provider.',
+  tsh:              v => v < 0.4  ? 'Low TSH — possible hyperthyroidism. Discuss with provider.' :
+                         v <= 4.0 ? 'Normal thyroid function.' : 'Elevated TSH — possible hypothyroidism. Discuss with provider.',
+  freeT4:           v => (v >= 0.8 && v <= 1.8)  ? 'Normal free T4 — thyroid hormone level is appropriate.' : v < 0.8 ? 'Low free T4 — hypothyroid pattern. Discuss with provider.' : 'High — hyperthyroid pattern possible.',
+  psa:              v => v < 1.0  ? 'Low PSA — very low prostate cancer risk indicator. Excellent.' :
+                         v < 4.0  ? 'Normal range. Annual monitoring appropriate for your age.' :
+                         v < 10.0 ? 'Borderline elevated — repeat testing and possible urology referral recommended.' : 'Elevated — urology consultation recommended.',
+  wbc:              v => v < 4.5  ? 'Low WBC — possible immune suppression or viral illness. Discuss with provider.' :
+                         v <= 11.0? 'Normal — no active infection or immune concern.' : 'Elevated — possible infection or inflammation.',
+  rbc:              v => (v >= 4.5 && v <= 5.9)  ? 'Normal red cell count.' : v < 4.5 ? 'Low — possible anemia. Check hemoglobin trend.' : 'High — possible dehydration or polycythemia.',
+  hemoglobin:       v => (v >= 13.5 && v <= 17.5)? 'Normal — good oxygen-carrying capacity.' : v < 13.5 ? 'Low — anemia. Discuss with provider.' : 'High — possible dehydration or polycythemia.',
+  hematocrit:       v => (v >= 41 && v <= 53)    ? 'Normal.' : v < 41 ? 'Low — possible anemia or blood loss.' : 'High — possible dehydration.',
+  platelets:        v => v < 150  ? 'Low platelets — bleeding risk. Discuss with provider.' : v <= 400 ? 'Normal platelet count.' : 'High — possible reactive thrombocytosis. Monitor.',
+  mcv:              v => v < 80   ? 'Low MCV — microcytic anemia (often iron deficiency). Discuss with provider.' : v <= 100 ? 'Normal red cell size.' : 'High MCV — macrocytic anemia (B12/folate deficiency possible). Discuss with provider.'
+};
+
+function getNote(key, val) {
+  const fn = PANEL_NOTES[key];
+  if (!fn || val == null) return '—';
+  return fn(val);
+}
+
+function buildRangeBar(key, val) {
+  if (val == null) return '<span style="color:var(--dim);font-size:11px">—</span>';
+  const r = REF[key];
+  if (!r) return '<span style="color:var(--dim);font-size:11px">—</span>';
+  const flag = getFlag(key, val);
+  const dotCls = flag === 'H' ? 'h' : flag === 'L' ? 'l' : 'ok';
+
+  // Position dot within [displayMin, displayMax]
+  const displayMin = r.min === 0 ? 0 : r.min * 0.6;
+  const displayMax = r.max === 999 ? val * 1.3 : r.max * 1.4;
+  const range = displayMax - displayMin;
+  let pct = ((val - displayMin) / range) * 100;
+  pct = Math.max(2, Math.min(96, pct));
+
+  // Green fill between ref min and max
+  const fillLeft = ((r.min - displayMin) / range) * 100;
+  const fillRight = r.max === 999 ? 70 : ((r.max - displayMin) / range) * 100;
+  const fillWidth = Math.max(0, Math.min(100, fillRight) - Math.max(0, fillLeft));
+
+  return `<div class="rpt-bar-wrap">
+    <div class="rpt-bar-track">
+      <div class="rpt-bar-fill-ok" style="left:${Math.max(0,fillLeft)}%;width:${fillWidth}%"></div>
+      <div class="rpt-bar-dot ${dotCls}" style="left:calc(${pct}% - 5px)"></div>
+    </div>
+    <div class="rpt-bar-labels">
+      <span>${r.min === 0 ? '0' : r.min}</span>
+      <span>${r.max === 999 ? '↑' : r.max}</span>
+    </div>
+  </div>`;
+}
+
+function buildUnifiedLabTable(sections, labs) {
+  // sections = array of { title, keys }
+  // All sections go into one <table> — guaranteed column alignment
+  let rows = '';
+  sections.forEach(sec => {
+    const available = sec.keys.filter(k => labs[k] != null);
+    if (!available.length) return;
+    // Section divider row
+    rows += `<tr class="rpt-section-row"><td colspan="7">${sec.title}</td></tr>`;
+    available.forEach(k => {
+      const val  = labs[k];
+      const flag = getFlag(k, val);
+      const r    = REF[k];
+      const valCls    = flag === 'H' ? 'rpt-val-h' : flag === 'L' ? 'rpt-val-l' : 'rpt-val-ok';
+      const badgeCls  = flag === 'H' ? 'rpt-badge rpt-badge-h' : flag === 'L' ? 'rpt-badge rpt-badge-lo' : 'rpt-badge rpt-badge-ok';
+      const badgeText = flag === 'H' ? '▲ High' : flag === 'L' ? '▼ Low' : '✓ Normal';
+      const rowCls    = (flag === 'H' || flag === 'L') ? 'row-flagged' : '';
+      const refStr    = r ? (r.dir === 'high' ? `≥ ${r.min}` : r.dir === 'low' ? `< ${r.max}` : `${r.min} – ${r.max}`) : '—';
+      rows += `<tr class="${rowCls}">
+        <td class="rpt-test-name">${r?.label || k}</td>
+        <td class="${valCls}">${val}</td>
+        <td class="rpt-range">${r?.unit || '—'}</td>
+        <td class="rpt-range">${refStr}</td>
+        <td>${buildRangeBar(k, val)}</td>
+        <td><span class="${badgeCls}">${badgeText}</span></td>
+        <td class="rpt-note" style="text-align:left">${getNote(k, val)}</td>
+      </tr>`;
+    });
+  });
+  if (!rows) return '';
+  return `<div class="rpt-unified-wrap">
+    <table class="rpt-unified-table">
+      <colgroup><col><col><col><col><col><col><col></colgroup>
+      <thead><tr>
+        <th style="text-align:left">Test</th>
+        <th>Value</th><th>Unit</th><th>Reference Range</th>
+        <th>Visual</th><th>Status</th>
+        <th style="text-align:left">Notes / Guidance</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function buildConditionsCrossRef(visit) {
+  const conditions = appData.conditions || [];
+  if (!conditions.length) return '';
+  const labs = visit.labs || {};
+  const condMap = {
+    'K76.0':  { icon:'🫀', name:'Fatty Liver (K76.0)',         fn: l => {
+      const ast = l.ast, alt = l.alt, alp = l.alp;
+      const markers = [ast!=null?`AST ${ast}`:null, alt!=null?`ALT ${alt}`:null, alp!=null?`ALP ${alp}`:null].filter(Boolean).join(', ');
+      const allNorm = [ast,alt,alp].filter(v=>v!=null).every(v=>v<=45);
+      return `Liver function markers (${markers||'not tested'}) are ${allNorm?'<strong style="color:var(--ok)">all within normal range — a positive trend</strong>':'showing some elevation — monitor closely'}. Note: fatty liver can exist with normal enzymes. The definitive grade comes from imaging, not bloodwork. A follow-up ultrasound since 2023 may be warranted.`;
+    }},
+    'E78.00': { icon:'💊', name:'Hypercholesterolemia (E78.00)', fn: l => {
+      const ldl = l.ldl ?? l.directLdl, hdl = l.hdl, trig = l.triglycerides, tc = l.totalCholesterol;
+      return `LDL ${ldl!=null?`<strong style="color:${ldl<70?'var(--ok)':'var(--warn)'}">${ldl} mg/dL</strong>`:'not tested'} · HDL ${hdl!=null?`<strong style="color:${hdl<40?'var(--info)':'var(--ok)'}">${hdl} mg/dL</strong>`:'not tested'} · Triglycerides ${trig!=null?`<strong style="color:${trig<150?'var(--ok)':'var(--warn)'}">${trig} mg/dL</strong>`:'not tested'}. ${ldl!=null&&ldl<70?'Excellent LDL control on current statin+ezetimibe regimen.':''} ${hdl!=null&&hdl<40?'HDL remains below optimal — aerobic exercise and healthy fats are the primary levers.':''} CT Calcium Score 0 (2023) remains reassuring.`;
+    }},
+    'J45.20': { icon:'🌬️', name:'Asthma (J45.20)',              fn: l => {
+      return `No direct lab markers for asthma in this panel. CBC shows no concerning eosinophilia pattern. Continue current inhaler regimen and PRN Albuterol as needed.`;
+    }},
+    'J30.9':  { icon:'🌿', name:'Allergic Rhinitis (J30.9)',    fn: l => {
+      return `No direct lab markers ordered. Stable on current medications (Xyzal, Flonase Sensimist). No action needed from this lab panel.`;
+    }},
+    'M87.00': { icon:'🦴', name:'AVN Bilateral Hips (M87.00)',  fn: l => {
+      const ca = l.calcium, cr = l.creatinine, eg = l.egfr;
+      return `Calcium ${ca!=null?ca+' mg/dL ('+getFlag('calcium',ca)+')':'not tested'}, Creatinine ${cr!=null?cr+' mg/dL':'not tested'}, eGFR ${eg!=null?eg:'not tested'}. ${ca&&cr?'Bone mineral metabolism markers are within normal range — supportive for bone health.':''} Follow up with orthopedic specialist for imaging-based monitoring of AVN progression. Drug allergy (hydrocodone) noted in chart.`;
+    }}
+  };
+  const items = conditions.map(c => {
+    const entry = condMap[c.icd];
+    if (!entry) return `<div class="rpt-cond-item"><div class="rpt-cond-name">${c.name} (${c.icd})</div><div class="rpt-cond-body" style="color:var(--dim)">No automated cross-reference available for this condition.</div></div>`;
+    return `<div class="rpt-cond-item">
+      <div class="rpt-cond-name">${entry.icon} ${entry.name}</div>
+      <div class="rpt-cond-body">${entry.fn(labs)}</div>
+    </div>`;
+  }).join('');
+  return `<div class="rpt-crossref">
+    <div class="rpt-crossref-title">How This Panel Relates to Your Active Conditions</div>
+    ${items}
+  </div>`;
+}
+
+function renderPanel() {
+  const pane = document.getElementById('pane-panel');
+  const visit = latestClinical();
+  if (!visit) {
+    pane.innerHTML = `<div class="empty-state" style="padding:60px">
+      <div style="font-size:40px;margin-bottom:12px">🔬</div>
+      <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">No Full Panel Yet</div>
+      <div style="color:var(--muted)">Add a clinical lab visit (Labcorp or similar) in the Lab Visits tab to generate your detailed panel report.</div>
+    </div>`;
+    return;
+  }
+  const labs = visit.labs || {};
+  const vitals = visit.vitals || {};
+  const fib4 = calcFIB4(visit);
+
+  // Tally flags
+  const allKeys = Object.keys(labs);
+  const flagged = allKeys.filter(k => { const f = getFlag(k, labs[k]); return f === 'H' || f === 'L'; });
+  const normal  = allKeys.filter(k => getFlag(k, labs[k]) === 'ok');
+  const highs   = flagged.filter(k => getFlag(k, labs[k]) === 'H');
+  const lows    = flagged.filter(k => getFlag(k, labs[k]) === 'L');
+
+  // Build smart summary items
+  const summaryItems = [];
+  if (normal.length) summaryItems.push({ cls:'rpt-sum-ok',   text:`✓ <strong>${normal.length} of ${allKeys.length}</strong> results are within normal reference range.` });
+  highs.forEach(k => {
+    const r = REF[k];
+    summaryItems.push({ cls:'rpt-sum-warn', text:`▲ <strong>${r?.label||k} (${labs[k]} ${r?.unit||''})</strong> — Above range. ${getNote(k, labs[k])}` });
+  });
+  lows.forEach(k => {
+    const r = REF[k];
+    summaryItems.push({ cls:'rpt-sum-low',  text:`▼ <strong>${r?.label||k} (${labs[k]} ${r?.unit||''})</strong> — Below range. ${getNote(k, labs[k])}` });
+  });
+  // Borderline watch items (normal but near edge)
+  const watchMap = {
+    glucose:     { threshold: v => v >= 90 && v <= 99, note: 'At the upper end of normal — worth watching the trend over future visits.' },
+    hdl:         { threshold: v => v >= 40 && v <= 45, note: 'Low-normal HDL — aerobic exercise is the best natural lever to raise this.' },
+    psa:         { threshold: v => v >= 2.5 && v <= 4, note: 'Mid-to-upper normal range. Annual monitoring appropriate.' },
+    triglycerides:{ threshold: v => v >= 130 && v < 150, note: 'Upper normal — keep an eye on refined carb and sugar intake.' }
+  };
+  Object.entries(watchMap).forEach(([k, w]) => {
+    if (labs[k] != null && w.threshold(labs[k])) {
+      summaryItems.push({ cls:'rpt-sum-info', text:`ℹ <strong>${REF[k]?.label||k} (${labs[k]})</strong> — ${w.note}` });
+    }
+  });
+  if (fib4 != null) {
+    const fib4Color = fib4 < 1.3 ? 'var(--ok)' : fib4 < 2.67 ? 'var(--warn)' : 'var(--danger)';
+    const fib4Interp = fib4 < 1.3 ? 'Low risk for advanced fibrosis — excellent.' : fib4 < 2.67 ? 'Indeterminate — follow up imaging recommended.' : 'High risk — hepatology referral recommended.';
+    summaryItems.push({ cls: fib4 < 1.3 ? 'rpt-sum-ok' : 'rpt-sum-warn',
+      text:`🔬 <strong>FIB-4 Score: ${fib4.toFixed(2)}</strong> — ${fib4Interp} (Age × AST ÷ [Platelets × √ALT])` });
+  }
+  if (visit.notes) summaryItems.push({ cls:'rpt-sum-info', text:`📋 <strong>Visit Notes:</strong> ${visit.notes}` });
+
+  // Build comparison to previous clinical visit
+  const prevVisit = [...appData.labVisits].filter(v=>v.visitType==='clinical'&&v.date<visit.date).sort((a,b)=>b.date.localeCompare(a.date))[0];
+
+  // Build vitals row for inside the header
+  const vitalsHtml = Object.keys(vitals).length ? (() => {
+    const stats = [];
+    if (vitals.weight != null) stats.push({ label:'Weight',         val: vitals.weight,                                        unit:'lbs'  });
+    if (vitals.bmi    != null) stats.push({ label:'BMI',            val: vitals.bmi,                                           unit:''     });
+    if (vitals.bpSys  != null) stats.push({ label:'Blood Pressure', val: `${vitals.bpSys}/${vitals.bpDia??'?'}`,              unit:'mmHg', danger: vitals.bpSys >= 130 });
+    if (vitals.pulse  != null) stats.push({ label:'Pulse',          val: vitals.pulse,                                         unit:'bpm'  });
+    if (vitals.o2     != null) stats.push({ label:'O₂ Sat',         val: vitals.o2,                                            unit:'%'    });
+    if (vitals.temp   != null) stats.push({ label:'Temp',           val: vitals.temp,                                          unit:'°F'   });
+    if (vitals.waistCirc != null) stats.push({ label:'Waist',       val: vitals.waistCirc,                                     unit:'in'   });
+    return `<div class="rpt-vitals-bar">
+      ${stats.map(s=>`<div class="rpt-v-stat">
+        <div class="rpt-v-label">${s.label}</div>
+        <div class="rpt-v-val${s.danger?' danger':''}">${s.val}</div>
+        ${s.unit?`<div class="rpt-v-unit">${s.unit}</div>`:''}
+      </div>`).join('')}
+    </div>`;
+  })() : '';
+
+  // Unified lab table — one table, all sections, perfect column alignment
+  const labTable = buildUnifiedLabTable([
+    { title:'Lipid Panel',                 keys:['totalCholesterol','triglycerides','hdl','ldl','vldl','directLdl','cholHdlRatio'] },
+    { title:'Liver Function',              keys:['ast','alt','alp','albumin','biliTotal','biliDirect','totalProtein'] },
+    { title:'Metabolic / Kidney (CMP)',    keys:['glucose','hba1c','bun','creatinine','egfr','sodium','potassium','chloride','co2','calcium'] },
+    { title:'Thyroid, Diabetes & Prostate',keys:['tsh','freeT4','psa'] },
+    { title:'Complete Blood Count (CBC)',  keys:['wbc','rbc','hemoglobin','hematocrit','platelets','mcv'] }
+  ], labs);
+
+  pane.innerHTML = `
+    <!-- HEADER — includes vitals -->
+    <div class="rpt-header">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <h2 style="font-size:20px;font-weight:700;color:#fff;letter-spacing:-.3px">Full Panel Report — ${fmtDate(visit.date)}</h2>
+            <p style="font-size:12px;color:rgba(255,255,255,.65);margin-top:3px">${visit.facility} &nbsp;·&nbsp; Auto-generated from latest clinical visit${prevVisit ? ' &nbsp;·&nbsp; vs. '+fmtDate(prevVisit.date) : ''}</p>
+            <div class="rpt-pills" style="margin-top:8px">
+              ${normal.length ? `<span class="rpt-pill rpt-pill-ok">✓ ${normal.length} Normal</span>` : ''}
+              ${highs.length  ? `<span class="rpt-pill rpt-pill-warn">▲ ${highs.length} High</span>` : ''}
+              ${lows.length   ? `<span class="rpt-pill rpt-pill-info">▼ ${lows.length} Low</span>` : ''}
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0">
+            <button onclick="window.print()" style="padding:6px 14px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">🖨 Print / PDF</button>
+            <button onclick="switchTab('visits')" style="padding:6px 14px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">All Visits →</button>
+          </div>
+        </div>
+        ${vitalsHtml}
+      </div>
+    </div>
+
+    <!-- FLAGS SUMMARY -->
+    ${flagged.length ? `<div class="rpt-flags">
+      <h3>⚠ Items Outside Reference Range</h3>
+      <div class="rpt-flag-chips">
+        ${highs.map(k=>`<span class="rpt-flag-chip">${REF[k]?.label||k}: ${labs[k]} ${REF[k]?.unit||''} (High)</span>`).join('')}
+        ${lows.map(k=>`<span class="rpt-flag-chip low">${REF[k]?.label||k}: ${labs[k]} ${REF[k]?.unit||''} (Low)</span>`).join('')}
+      </div>
+    </div>` : `<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:13px;color:#065f46">
+      ✓ All results within reference range — excellent panel.
+    </div>`}
+
+    <!-- SMART SUMMARY -->
+    <div class="rpt-summary">
+      ${summaryItems.map(s=>`<div class="rpt-sum-item ${s.cls}">${s.text}</div>`).join('')}
+    </div>
+
+    <!-- UNIFIED LAB TABLE -->
+    ${labTable}
+
+    <!-- CONDITIONS CROSS-REFERENCE -->
+    ${buildConditionsCrossRef(visit)}
+
+    <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:20px;padding-bottom:10px">
+      For informational purposes only. Discuss all results with ${appData.settings.provider||'your healthcare provider'} before making any health decisions.
+    </div>
+  `;
+}
+
+
+function renderMeds() {
+  const active  = appData.medications.filter(m => m.status === 'active');
+  const prn     = appData.medications.filter(m => m.status === 'prn');
+  const stopped = appData.medications.filter(m => m.status === 'stopped');
+  const pane = document.getElementById('pane-meds');
+  pane.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Medications</div>
+      <button class="btn btn-accent btn-sm" onclick="openMedModal()">+ Add Medication</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;background:var(--bg3);border-radius:6px;padding:8px 12px;border:1px solid var(--border)">
+      📋 Provider: ${appData.settings.provider||'—'} · ${appData.settings.facility||'—'}
+    </div>
+    ${active.length ? `
+      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+        Daily / Scheduled <span style="font-weight:400;color:var(--dim)">(${active.length})</span>
+      </div>
+      ${active.map(m=>renderMedCard(m)).join('')}
+    ` : ''}
+    ${prn.length ? `
+      <div style="font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px">
+        As-Needed / PRN <span style="font-weight:400;color:var(--dim)">(${prn.length})</span>
+      </div>
+      ${prn.map(m=>renderMedCard(m)).join('')}
+    ` : ''}
+    ${stopped.length ? `
+      <div style="font-size:12px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px">
+        Stopped <span style="font-weight:400">(${stopped.length})</span>
+      </div>
+      ${stopped.map(m=>renderMedCard(m)).join('')}
+    ` : ''}
+  `;
+}
+
+function renderMedCard(m) {
+  const statusMap = {
+    active:  { cls:'med-active',  label:'Active'     },
+    prn:     { cls:'med-prn',     label:'PRN / As-Needed' },
+    stopped: { cls:'med-stopped', label:'Stopped'    }
+  };
+  const st = statusMap[m.status] || statusMap['stopped'];
+  return `<div class="med-card">
+    <div class="med-info">
+      <div class="med-name">${m.name}</div>
+      <div class="med-dose">${m.dose} · ${m.frequency}</div>
+      <div class="med-indication">${m.indication}</div>
+      <div class="med-dates">Started ${fmtDate(m.startDate)}${m.stopDate?' · Stopped '+fmtDate(m.stopDate):''}</div>
+      ${m.notes ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;font-style:italic">${m.notes}</div>` : ''}
+    </div>
+    <div class="med-actions">
+      <span class="med-status ${st.cls}">${st.label}</span>
+      <button class="btn btn-outline btn-sm" onclick="editMed('${m.id}')">Edit</button>
+    </div>
+  </div>`;
+}
+
+function openMedModal(medId) {
+  const med = medId ? appData.medications.find(m=>m.id===medId) : null;
+  const html = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>${med?'Edit':'Add'} Medication</h2>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Medication Name</label>
+            <input type="text" id="mName" value="${med?.name||''}" placeholder="Rosuvastatin Calcium">
+          </div>
+          <div class="form-group">
+            <label>Dose</label>
+            <input type="text" id="mDose" value="${med?.dose||''}" placeholder="10mg">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Frequency</label>
+            <input type="text" id="mFreq" value="${med?.frequency||''}" placeholder="Daily">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="mStatus">
+              <option value="active"  ${!med||med.status==='active' ?'selected':''}>Active — Daily/Scheduled</option>
+              <option value="prn"     ${med?.status==='prn'         ?'selected':''}>As-Needed / PRN</option>
+              <option value="stopped" ${med?.status==='stopped'     ?'selected':''}>Stopped</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Indication</label>
+          <input type="text" id="mIndication" value="${med?.indication||''}" placeholder="Hypercholesterolemia (E78.00)">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" id="mStart" value="${med?.startDate||''}">
+          </div>
+          <div class="form-group">
+            <label>Stop Date</label>
+            <input type="date" id="mStop" value="${med?.stopDate||''}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="mNotes">${med?.notes||''}</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        ${med?`<button class="btn btn-danger btn-sm" onclick="deleteMed('${med.id}')">Delete</button>`:''}
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveMed('${med?.id||''}')">Save</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+
+function editMed(id) { openMedModal(id); }
+function saveMed(id) {
+  const data = {
+    name:       document.getElementById('mName').value,
+    dose:       document.getElementById('mDose').value,
+    frequency:  document.getElementById('mFreq').value,
+    indication: document.getElementById('mIndication').value,
+    startDate:  document.getElementById('mStart').value,
+    stopDate:   document.getElementById('mStop').value || null,
+    status:     document.getElementById('mStatus').value,
+    notes:      document.getElementById('mNotes').value
+  };
+  if (!data.name) return;
+  if (id) {
+    const i = appData.medications.findIndex(m=>m.id===id);
+    if (i>-1) appData.medications[i] = { ...appData.medications[i], ...data };
+  } else {
+    appData.medications.push({ id:uid(), ...data });
+  }
+  saveState(); closeModal(); renderMeds();
+}
+function deleteMed(id) {
+  if (!confirm('Remove this medication?')) return;
+  appData.medications = appData.medications.filter(m=>m.id!==id);
+  saveState(); closeModal(); renderMeds();
+}
+function closeModal() { document.getElementById('modalContainer').innerHTML = ''; }
+
+// ═══════════════════════════════════════════════════════
+// VITALS & WEIGHT
+// ═══════════════════════════════════════════════════════
+function renderVitals() {
+  const wts = [...appData.weightLog].sort((a,b)=>b.date.localeCompare(a.date));
+  const bps = [...(appData.bpLog||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  const latestBp = bps[0];
+  const sourceLabels = { manual:'Manual', apple_watch:'Apple Watch', home_cuff:'Home Cuff', doctor:'Doctor Office' };
+  const sourceCls    = { manual:'bps-manual', apple_watch:'bps-apple_watch', home_cuff:'bps-home_cuff', doctor:'bps-doctor' };
+
+  const pane = document.getElementById('pane-vitals');
+  pane.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Vitals & Weight Log</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="openWeightModal()">+ Weight</button>
+        <button class="btn btn-accent btn-sm" onclick="openBpModal()">+ Blood Pressure</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+
+      <!-- WEIGHT PANEL -->
+      <div class="weight-quick-card" style="margin-bottom:0">
+        <div class="card-title" style="margin-bottom:6px">⚖️ Weight</div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span class="weight-current" style="font-size:36px">${wts[0]?.weight ?? '—'}</span>
+          <span class="weight-current-unit">lbs</span>
+          <span class="weight-bmi" style="margin-left:4px">BMI ${wts[0]?.bmi ?? '—'}</span>
+        </div>
+        <div style="margin-top:10px;height:70px"><canvas id="miniWeightChart"></canvas></div>
+        <!-- Quick entry -->
+        <div class="weight-quick-form" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div class="quick-input-group">
+            <label>Date</label>
+            <input type="date" id="wtDate-v" value="${new Date().toISOString().slice(0,10)}" style="width:130px">
+          </div>
+          <div class="quick-input-group">
+            <label>Weight (lbs)</label>
+            <input type="number" id="wtVal-v" placeholder="159.4" step="0.1" style="width:90px">
+          </div>
+          <button class="btn btn-outline btn-sm" style="align-self:flex-end" onclick="quickAddWeight()">Log</button>
+        </div>
+      </div>
+
+      <!-- BP PANEL -->
+      <div class="bp-quick-card" style="margin-bottom:0">
+        <div class="card-title" style="margin-bottom:6px">🫀 Blood Pressure</div>
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <span class="bp-current">${latestBp ? latestBp.sys+'/'+latestBp.dia : '—'}</span>
+          <span class="bp-current-unit">mmHg</span>
+          ${latestBp?.pulse ? `<span style="font-size:13px;color:var(--muted);margin-left:8px">· ${latestBp.pulse} bpm</span>` : ''}
+        </div>
+        ${latestBp ? `<div style="margin-top:4px;display:flex;align-items:center;gap:6px">
+          <span class="bp-source-badge ${sourceCls[latestBp.source]||'bps-manual'}">${sourceLabels[latestBp.source]||latestBp.source}</span>
+          <span style="font-size:11px;color:var(--dim)">${fmtDate(latestBp.date)}</span>
+        </div>` : ''}
+        <div style="margin-top:10px;height:70px"><canvas id="miniBpChart"></canvas></div>
+        <!-- Quick entry -->
+        <div class="weight-quick-form" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div class="quick-input-group">
+            <label>Sys</label>
+            <input type="number" id="bqSys" placeholder="113" style="width:65px">
+          </div>
+          <div class="quick-input-group">
+            <label>Dia</label>
+            <input type="number" id="bqDia" placeholder="70" style="width:65px">
+          </div>
+          <div class="quick-input-group">
+            <label>Pulse</label>
+            <input type="number" id="bqPulse" placeholder="65" style="width:65px">
+          </div>
+          <div class="quick-input-group">
+            <label>Source</label>
+            <select id="bqSource" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:12px;outline:none;width:110px">
+              <option value="apple_watch">Apple Watch</option>
+              <option value="home_cuff">Home Cuff</option>
+              <option value="manual">Manual</option>
+              <option value="doctor">Doctor Office</option>
+            </select>
+          </div>
+          <button class="btn btn-outline btn-sm" style="align-self:flex-end" onclick="quickAddBp()">Log</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEIGHT LOG TABLE -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">Weight History</div>
+      <table class="weight-log-table">
+        <thead><tr><th>Date</th><th>Weight</th><th>BMI</th><th>Notes</th><th></th></tr></thead>
+        <tbody>
+          ${wts.map(w=>`
+            <tr>
+              <td>${fmtDate(w.date)}</td>
+              <td>${w.weight} lbs</td>
+              <td>${w.bmi}</td>
+              <td style="color:var(--muted);font-size:12px">${w.notes||''}</td>
+              <td><button class="btn btn-outline btn-sm" onclick="deleteWeight('${w.id}')">×</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- BP LOG TABLE -->
+    <div class="card">
+      <div class="card-title">Blood Pressure History</div>
+      <table class="weight-log-table">
+        <thead><tr><th>Date</th><th>Time</th><th>Reading</th><th>Pulse</th><th>Source</th><th>Notes</th><th></th></tr></thead>
+        <tbody>
+          ${bps.map(b=>`
+            <tr>
+              <td>${fmtDate(b.date)}</td>
+              <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${b.time||'—'}</td>
+              <td><span style="font-family:'DM Mono',monospace;font-weight:600;color:${bpColor(b.sys,b.dia)}">${b.sys}/${b.dia}</span> <span style="font-size:11px;color:var(--dim)">mmHg</span></td>
+              <td style="font-family:'DM Mono',monospace">${b.pulse ? b.pulse+' bpm' : '—'}</td>
+              <td><span class="bp-source-badge ${sourceCls[b.source]||'bps-manual'}">${sourceLabels[b.source]||b.source||'—'}</span></td>
+              <td style="color:var(--muted);font-size:12px">${b.notes||''}</td>
+              <td><button class="btn btn-outline btn-sm" onclick="deleteBp('${b.id}')">×</button></td>
+            </tr>
+          `).join('')}
+          ${!bps.length?`<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:20px">No BP readings yet. Log your first reading above.</td></tr>`:''}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  requestAnimationFrame(() => {
+    // Weight mini chart
+    const wtSorted = [...wts].reverse();
+    const wCtx = document.getElementById('miniWeightChart')?.getContext('2d');
+    if (wCtx) {
+      if (chartInstances.miniWeight) { try{chartInstances.miniWeight.destroy();}catch(e){} }
+      chartInstances.miniWeight = new Chart(wCtx, {
+        type:'line',
+        data:{ labels:wtSorted.map(w=>fmtDateShort(w.date)), datasets:[{
+          data:wtSorted.map(w=>w.weight), borderColor:'#00b4d8', backgroundColor:'rgba(0,180,216,0.06)',
+          tension:0.4, pointRadius:3, fill:true
+        }]},
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false} },
+          scales:{ x:{ticks:{color:'#8b949e',font:{size:10},maxRotation:0},grid:{color:'rgba(48,54,61,0.5)'}},
+                   y:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'rgba(48,54,61,0.5)'}} }
+        }
+      });
+    }
+    // BP mini chart
+    const bpSorted = [...bps].reverse();
+    const bCtx = document.getElementById('miniBpChart')?.getContext('2d');
+    if (bCtx && bpSorted.length >= 1) {
+      if (chartInstances.miniBp) { try{chartInstances.miniBp.destroy();}catch(e){} }
+      chartInstances.miniBp = new Chart(bCtx, {
+        type:'line',
+        data:{ labels:bpSorted.map(b=>fmtDateShort(b.date)), datasets:[
+          { data:bpSorted.map(b=>b.sys), borderColor:'#f85149', tension:0.4, pointRadius:3, label:'Sys' },
+          { data:bpSorted.map(b=>b.dia), borderColor:'#58a6ff', tension:0.4, pointRadius:3, label:'Dia' }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false} },
+          scales:{ x:{ticks:{color:'#8b949e',font:{size:10},maxRotation:0},grid:{color:'rgba(48,54,61,0.5)'}},
+                   y:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'rgba(48,54,61,0.5)'},min:50} }
+        }
+      });
+    }
+  });
+}
+
+function bpColor(sys, dia) {
+  if (!sys) return 'var(--text)';
+  if (sys >= 140 || dia >= 90) return 'var(--danger)';
+  if (sys >= 130 || dia >= 80) return 'var(--warn)';
+  if (sys < 90)                return 'var(--info)';
+  return 'var(--ok)';
+}
+
+function quickAddWeight() {
+  // Read from whichever tab's inputs are currently active
+  const dateId = activeTab === 'vitals' ? 'wtDate-v' : 'wtDate';
+  const valId  = activeTab === 'vitals' ? 'wtVal-v'  : 'wtVal';
+  const d = document.getElementById(dateId)?.value;
+  const w = parseFloat(document.getElementById(valId)?.value);
+  if (!d || isNaN(w)) return;
+  const h = appData.settings.heightIn || 67;
+  appData.weightLog.push({ id:uid(), date:d, weight:w, bmi:parseFloat(calcBMI(w,h).toFixed(2)), notes:'' });
+  appData.weightLog.sort((a,b)=>a.date.localeCompare(b.date));
+  saveState();
+  renderVitals();
+  if (activeTab==='dashboard') renderDashboard();
+}
+
+function quickAddBp() {
+  const sys   = parseInt(document.getElementById('bqSys').value);
+  const dia   = parseInt(document.getElementById('bqDia').value);
+  const pulse = parseInt(document.getElementById('bqPulse').value) || null;
+  const source = document.getElementById('bqSource').value;
+  if (isNaN(sys) || isNaN(dia)) return;
+  appData.bpLog.push({ id:uid(), date:new Date().toISOString().slice(0,10), time:'', sys, dia, pulse, source, notes:'' });
+  appData.bpLog.sort((a,b)=>a.date.localeCompare(b.date));
+  saveState();
+  renderVitals();
+}
+
+function openWeightModal() {
+  const html = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header"><h2>Add Weight Entry</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label>Date</label><input type="date" id="wDate" value="${new Date().toISOString().slice(0,10)}"></div>
+          <div class="form-group"><label>Weight (lbs)</label><input type="number" id="wWeight" step="0.1" placeholder="159.4"></div>
+        </div>
+        <div class="form-group"><label>Notes</label><input type="text" id="wNotes" placeholder="Optional"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveWeightEntry()">Save</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+function saveWeightEntry() {
+  const d = document.getElementById('wDate').value;
+  const w = parseFloat(document.getElementById('wWeight').value);
+  if (!d||isNaN(w)) return;
+  const h = appData.settings.heightIn||67;
+  appData.weightLog.push({ id:uid(), date:d, weight:w, bmi:parseFloat(calcBMI(w,h).toFixed(2)), notes:document.getElementById('wNotes').value });
+  appData.weightLog.sort((a,b)=>a.date.localeCompare(b.date));
+  saveState(); closeModal(); renderVitals();
+}
+function deleteWeight(id) {
+  appData.weightLog = appData.weightLog.filter(w=>w.id!==id);
+  saveState(); renderVitals();
+}
+
+function openBpModal(bpId) {
+  const bp = bpId ? (appData.bpLog||[]).find(b=>b.id===bpId) : null;
+  const html = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header"><h2>${bp?'Edit':'Add'} Blood Pressure Reading</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label>Date</label><input type="date" id="bpDate" value="${bp?.date||new Date().toISOString().slice(0,10)}"></div>
+          <div class="form-group"><label>Time (optional)</label><input type="time" id="bpTime" value="${bp?.time||''}"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Systolic (mmHg)</label><input type="number" id="bpSys" value="${bp?.sys||''}" placeholder="113"></div>
+          <div class="form-group"><label>Diastolic (mmHg)</label><input type="number" id="bpDia" value="${bp?.dia||''}" placeholder="70"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Pulse (bpm)</label><input type="number" id="bpPulse" value="${bp?.pulse||''}" placeholder="65"></div>
+          <div class="form-group">
+            <label>Source</label>
+            <select id="bpSource">
+              <option value="apple_watch" ${bp?.source==='apple_watch'?'selected':''}>Apple Watch</option>
+              <option value="home_cuff"   ${bp?.source==='home_cuff'  ?'selected':''}>Home Cuff</option>
+              <option value="manual"      ${bp?.source==='manual'     ?'selected':''}>Manual</option>
+              <option value="doctor"      ${bp?.source==='doctor'     ?'selected':''}>Doctor Office</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Notes</label><input type="text" id="bpNotes" value="${bp?.notes||''}" placeholder="Optional context"></div>
+      </div>
+      <div class="modal-footer">
+        ${bp?`<button class="btn btn-danger btn-sm" onclick="deleteBp('${bp.id}')">Delete</button>`:''}
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveBpEntry('${bp?.id||''}')">Save</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+
+function saveBpEntry(id) {
+  const sys   = parseInt(document.getElementById('bpSys').value);
+  const dia   = parseInt(document.getElementById('bpDia').value);
+  if (isNaN(sys)||isNaN(dia)) return;
+  const entry = {
+    date:   document.getElementById('bpDate').value,
+    time:   document.getElementById('bpTime').value || '',
+    sys,
+    dia,
+    pulse:  parseInt(document.getElementById('bpPulse').value) || null,
+    source: document.getElementById('bpSource').value,
+    notes:  document.getElementById('bpNotes').value
+  };
+  if (!appData.bpLog) appData.bpLog = [];
+  if (id) {
+    const i = appData.bpLog.findIndex(b=>b.id===id);
+    if (i>-1) appData.bpLog[i] = { ...appData.bpLog[i], ...entry };
+  } else {
+    appData.bpLog.push({ id:uid(), ...entry });
+  }
+  appData.bpLog.sort((a,b)=>a.date.localeCompare(b.date));
+  saveState(); closeModal(); renderVitals();
+}
+
+function deleteBp(id) {
+  appData.bpLog = (appData.bpLog||[]).filter(b=>b.id!==id);
+  saveState(); closeModal(); renderVitals();
+}
+
+// ═══════════════════════════════════════════════════════
+// IMAGING & NOTES
+// ═══════════════════════════════════════════════════════
+function renderImaging() {
+  const imgs = [...appData.imagingNotes].sort((a,b)=>b.date.localeCompare(a.date));
+  const pane = document.getElementById('pane-imaging');
+  pane.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Imaging & Clinical Notes</div>
+      <button class="btn btn-accent btn-sm" onclick="openImagingModal()">+ Add Record</button>
+    </div>
+    ${imgs.map(img=>`
+      <div class="imaging-card">
+        <div class="imaging-type">${img.type}</div>
+        <div class="imaging-desc">${img.description}</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="imaging-facility">${img.facility} · ${fmtDate(img.date)}</div>
+            ${img.notes?`<div class="imaging-notes-text">${img.notes}</div>`:''}
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="deleteImaging('${img.id}')">×</button>
+        </div>
+      </div>
+    `).join('')}
+    ${!imgs.length?'<div class="empty-state">No imaging records. Add ultrasound, MRI, CT results here.</div>':''}
+  `;
+}
+function openImagingModal() {
+  const html = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header"><h2>Add Imaging / Note</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label>Date</label><input type="date" id="iDate" value="${new Date().toISOString().slice(0,10)}"></div>
+          <div class="form-group"><label>Type</label><input type="text" id="iType" placeholder="Ultrasound / CT / MRI / X-Ray"></div>
+        </div>
+        <div class="form-group"><label>Description / Finding</label><input type="text" id="iDesc" placeholder="Fatty liver grade 1 — improving"></div>
+        <div class="form-group"><label>Facility</label><input type="text" id="iFacility" placeholder="Northside Hospital"></div>
+        <div class="form-group"><label>Notes</label><textarea id="iNotes" placeholder="Additional context..."></textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveImaging()">Save</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+function saveImaging() {
+  const rec = {
+    id:uid(),
+    date: document.getElementById('iDate').value,
+    type: document.getElementById('iType').value,
+    description: document.getElementById('iDesc').value,
+    facility: document.getElementById('iFacility').value,
+    notes: document.getElementById('iNotes').value
+  };
+  if (!rec.description) return;
+  appData.imagingNotes.push(rec);
+  saveState(); closeModal(); renderImaging();
+}
+function deleteImaging(id) {
+  appData.imagingNotes = appData.imagingNotes.filter(i=>i.id!==id);
+  saveState(); renderImaging();
+}
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════
+function renderSettings() {
+  const s = appData.settings;
+  const pane = document.getElementById('pane-settings');
+  pane.innerHTML = `
+    <div style="max-width:640px">
+      <div class="settings-section">
+        <h3>Provider</h3>
+        <div class="settings-row">
+          <div><div class="sr-label">Provider Name</div></div>
+          <input class="settings-input" id="sProvider" value="${s.provider||''}" placeholder="Dr. Lauren Brewington">
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Facility</div></div>
+          <input class="settings-input" id="sFacility" value="${s.facility||''}" placeholder="Sugarloaf Medical PC">
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>Profile</h3>
+        <div class="settings-row">
+          <div><div class="sr-label">Date of Birth</div></div>
+          <input class="settings-input" id="sDob" type="date" value="${s.dob||''}" style="min-width:160px">
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Height (inches)</div></div>
+          <input class="settings-input" id="sHeight" type="number" value="${s.heightIn||67}" style="min-width:80px;max-width:100px">
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>Google Drive Sync</h3>
+        <div class="settings-row">
+          <div>
+            <div class="sr-label">Drive Status</div>
+            <div class="sr-sub" id="syncStatus">${s.driveEnabled?'Connected · Last sync: '+(s.lastSync?fmtDate(s.lastSync.split('T')[0]):'Never'):'Not connected'}</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" onclick="handleDriveClick()">Connect Drive</button>
+            ${s.driveEnabled?`<button class="btn btn-accent" onclick="saveToDrive()">Sync Now</button>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>Security</h3>
+        <div class="settings-row">
+          <div>
+            <div class="sr-label">Auto-Lock Timer</div>
+            <div class="sr-sub">Lock app after this period of inactivity</div>
+          </div>
+          <select class="settings-input" id="sTimer" onchange="updateHtTimer(this.value)" style="min-width:160px;max-width:180px">
+            <option value="300"  ${(localStorage.getItem(HT_TIMER_KEY)||'600')==='300'  ?'selected':''}>5 minutes</option>
+            <option value="600"  ${(localStorage.getItem(HT_TIMER_KEY)||'600')==='600'  ?'selected':''}>10 minutes (default)</option>
+            <option value="900"  ${(localStorage.getItem(HT_TIMER_KEY)||'600')==='900'  ?'selected':''}>15 minutes</option>
+            <option value="1800" ${(localStorage.getItem(HT_TIMER_KEY)||'600')==='1800' ?'selected':''}>30 minutes</option>
+            <option value="3600" ${(localStorage.getItem(HT_TIMER_KEY)||'600')==='3600' ?'selected':''}>1 hour</option>
+            <option value="14400"${(localStorage.getItem(HT_TIMER_KEY)||'600')==='14400'?'selected':''}>4 hours</option>
+            <option value="28800"${(localStorage.getItem(HT_TIMER_KEY)||'600')==='28800'?'selected':''}>8 hours</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Change Password</div></div>
+          <button class="btn btn-outline" onclick="changePassword()">Change Password</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Lock Now</div><div class="sr-sub">Return to login screen</div></div>
+          <button class="btn btn-outline" onclick="lockApp()">⎋ Lock App</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>Data</h3>
+        <div class="settings-row">
+          <div><div class="sr-label">Export Data</div>
+<div class="settings-row"><div class="sr-label" style="font-weight:600;">Drive Backup</div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><div class="sr-sub">Auto-backup every <select id="_bkDaysSelect" onchange="localStorage.setItem(BACKUP_DAYS_LS_KEY,this.value);_bkInitSettings()" style="background:#1e1e1e;color:#e0e0e0;border:1px solid #333;border-radius:4px;padding:2px 6px;font-size:11px;"><option value="3">3 days</option><option value="5">5 days</option><option value="7">7 days</option><option value="14">14 days</option></select> · Last: <span id="_bkLastLabel">—</span></div><button class="btn btn-outline" onclick="checkAndRunBackup(true)" style="font-size:12px;padding:6px 14px;white-space:nowrap;">Backup Now</button></div></div><div class="sr-sub">Download full JSON backup of all health data</div></div>
+          <button class="btn btn-outline" onclick="exportData()">⬇ Export JSON</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Import JSON Backup</div><div class="sr-sub">Restore from a previously exported JSON backup file</div></div>
+          <button class="btn btn-outline" onclick="document.getElementById('importJsonInput').click()">⬆ Import JSON</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Import Cleaned Lab Results</div><div class="sr-sub">Load a formatted lab results file — review &amp; edit before adding</div></div>
+          <button class="btn btn-accent" onclick="document.getElementById('importLabInput').click()">🔬 Import Lab Results</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Add Lab Visit Manually</div><div class="sr-sub">Enter lab values by hand for a new visit</div></div>
+          <button class="btn btn-outline" onclick="openAddLabVisitModal()">＋ Add Lab Visit</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Reset to Seed Data</div><div class="sr-sub" style="color:var(--danger)">Clears all local data — cannot be undone</div></div>
+          <button class="btn btn-danger" onclick="resetData()">Reset</button>
+        </div>
+      </div>
+      <button class="btn btn-accent" style="margin-top:8px" onclick="saveSettings()">Save Settings</button>
+      <div style="font-size:10px;color:var(--dim);margin-top:16px;font-family:'DM Mono',monospace">
+        Health Tracker v${APP_VER} · localStorage key: ${LS_KEY} · Drive file: ${DRIVE_FILE} · bpLog entries: ${(appData.bpLog||[]).length}
+      </div>
+    </div>
+  `;
+}
+
+function saveSettings() {
+  appData.settings.provider = document.getElementById('sProvider').value;
+  appData.settings.facility = document.getElementById('sFacility').value;
+  appData.settings.dob = document.getElementById('sDob').value;
+  appData.settings.heightIn = parseFloat(document.getElementById('sHeight').value)||67;
+  saveState();
+  showToast('Settings saved');
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(appData, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `health_tracker_export_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+function changePassword() {
+  const np = prompt('Enter new password:');
+  if (!np) return;
+  sha256(np).then(h => { localStorage.setItem(PW_KEY, h); showToast('Password updated'); });
+}
+
+function resetData() {
+  if (!confirm('This will reset all data to the original seeded dataset. Are you sure?')) return;
+  appData = getSeedData();
+  saveState();
+  renderTab(activeTab);
+  showToast('Data reset to seed');
+}
+
+// Toast
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#161b22;border:1px solid #30363d;color:#e6edf3;padding:10px 16px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { t.style.opacity='1'; });
+  setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 2500);
+}
+
+// ═══════════════════════════════════════════════════════
+// GOOGLE DRIVE
+// ═══════════════════════════════════════════════════════
+function initDrive() {
+  if (appData.settings.driveEnabled) updateDriveUI(true);
+}
+
+function handleDriveClick() {
+  if (!driveToken) {
+    if (!window.google?.accounts?.oauth2) {
+      showToast('Auth library not ready — reload and try again.'); return;
+    }
+    google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: async (resp) => {
+        if (resp.error) { showToast('Google sign-in failed.'); return; }
+        driveToken = resp.access_token;
+        sessionStorage.setItem(DRIVE_TOKEN_KEY, driveToken);
+        appData.settings.driveEnabled = true;
+        updateDriveUI(true);
+        await loadFromDrive();
+      }
+    }).requestAccessToken();
+  } else {
+    saveToDrive();
+  }
+}
+
+// Restore Drive token from sessionStorage — avoids OAuth popup on re-login
+function tryRestoreDriveToken() {
+  const cached = sessionStorage.getItem(DRIVE_TOKEN_KEY);
+  if (!cached) return false;
+  driveToken = cached;
+  appData.settings.driveEnabled = true;
+  updateDriveUI(true);
+  // Data loads from localStorage on init — Drive token ready for next save
+  return true;
+}
+
+function updateDriveUI(connected) {
+  const dot = document.getElementById('driveDot');
+  const label = document.getElementById('driveLabel');
+  if (dot) dot.className = 'drive-dot' + (connected ? ' connected' : '');
+  if (label) label.textContent = connected ? 'Drive Connected' : 'Drive Sync';
+}
+
+// ── Find file in appDataFolder ────────────────────────────────────────────────
+async function getDriveFileId() {
+  if (driveFileId) return driveFileId;
+  const q = encodeURIComponent(`name='${DRIVE_FILE}' and trashed=false`);
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name)`,
+    { headers: { Authorization: `Bearer ${driveToken}` } }
+  );
+  if (res.status === 401) {
+    driveToken = null;
+    sessionStorage.removeItem(DRIVE_TOKEN_KEY);
+    updateDriveUI(false);
+    showToast('Session expired — reconnect Drive');
+    return null;
+  }
+  const data = await res.json();
+  if (data.files && data.files.length > 0) { driveFileId = data.files[0].id; return driveFileId; }
+  return null;
+}
+
+// ── Save to Drive ─────────────────────────────────────────────────────────────
+async function saveToDrive() {
+  if (!driveToken) { handleDriveClick(); return; }
+  try {
+    const content = JSON.stringify(appData);
+    const blob = new Blob([content], { type: 'application/json' });
+    const fileId = await getDriveFileId();
+    if (!fileId && !driveToken) return; // 401 was handled in getDriveFileId
+    if (fileId) {
+      await fetch(
+        `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+        { method: 'PATCH', headers: { Authorization: `Bearer ${driveToken}`, 'Content-Type': 'application/json' }, body: content }
+      );
+    } else {
+      const meta = JSON.stringify({ name: DRIVE_FILE, parents: ['appDataFolder'] });
+      const form = new FormData();
+      form.append('metadata', new Blob([meta], { type: 'application/json' }));
+      form.append('file', blob);
+      const res = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+        { method: 'POST', headers: { Authorization: `Bearer ${driveToken}` }, body: form }
+      );
+      driveFileId = (await res.json()).id;
+    }
+    appData.settings.lastSync = new Date().toISOString();
+    saveState();
+    _htMarkSynced();
+    showToast('Saved to Drive ✓');
+  } catch(e) { console.error(e); showToast('Drive save failed'); }
+}
+
+// ── Load from Drive ───────────────────────────────────────────────────────────
+async function loadFromDrive() {
+  if (!driveToken) return;
+  try {
+    const fileId = await getDriveFileId();
+    if (!fileId && !driveToken) return; // 401 handled
+    if (!fileId) { await saveToDrive(); return; } // no file yet — push current data
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: `Bearer ${driveToken}` } }
+    );
+    if (res.status === 401) {
+      driveToken = null;
+      sessionStorage.removeItem(DRIVE_TOKEN_KEY);
+      updateDriveUI(false);
+      showToast('Session expired — reconnect Drive');
+      return;
+    }
+    const remote = await res.json();
+    if (remote.labVisits) {
+      appData = remote;
+      saveState();
+      renderTab(activeTab);
+      showToast('Loaded from Drive ✓');
+      _htMarkSynced();
+      setTimeout(()=>checkAndRunBackup(),500);
+    }
+  } catch(e) { console.error(e); showToast('Drive load failed'); }
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPORT JSON BACKUP
+// ═══════════════════════════════════════════════════════
+function handleImportJSON(e) {
+  const file = e.target.files[0];
+  e.target.value = ''; // reset so same file can be re-selected
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const parsed = JSON.parse(evt.target.result);
+      // Validate it looks like health tracker data
+      if (!parsed.labVisits || !parsed.medications || !parsed.settings) {
+        showToast('⚠ Invalid backup file — missing required fields'); return;
+      }
+      const visitCount = parsed.labVisits.length;
+      const confirmed = confirm(
+        `Restore from backup?\n\n` +
+        `This will replace ALL current data with:\n` +
+        `• ${visitCount} lab visit${visitCount!==1?'s':''}\n` +
+        `• ${parsed.medications?.length||0} medication${(parsed.medications?.length||0)!==1?'s':''}\n` +
+        `• ${parsed.weightLog?.length||0} weight entries\n\n` +
+        `Current data will be overwritten. This cannot be undone.`
+      );
+      if (!confirmed) return;
+      appData = parsed;
+      saveState();
+      renderTab(activeTab);
+      showToast('✓ Backup restored successfully');
+    } catch(err) {
+      showToast('⚠ Could not parse file — is it a valid JSON backup?');
+      console.error('[ImportJSON]', err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════
+// LAB SECTIONS DEFINITION — shared by review modal + Add Visit
+// ═══════════════════════════════════════════════════════
+const LAB_SECTIONS = [
+  { title: 'Lipid Panel', keys: ['totalCholesterol','triglycerides','hdl','ldl','vldl','directLdl','cholHdlRatio'] },
+  { title: 'Liver Function', keys: ['ast','alt','alp','albumin','biliTotal','biliDirect','totalProtein'] },
+  { title: 'Metabolic / Kidney (CMP)', keys: ['glucose','hba1c','bun','creatinine','egfr','sodium','potassium','chloride','co2','calcium'] },
+  { title: 'Thyroid, Diabetes & Prostate', keys: ['tsh','freeT4','psa'] },
+  { title: 'Complete Blood Count (CBC)', keys: ['wbc','rbc','hemoglobin','hematocrit','platelets','mcv'] }
+];
+
+const VITALS_FIELDS = [
+  { key:'weight', label:'Weight', unit:'lbs', step:'0.1' },
+  { key:'bpSys',  label:'BP Systolic', unit:'mmHg', step:'1' },
+  { key:'bpDia',  label:'BP Diastolic', unit:'mmHg', step:'1' },
+  { key:'pulse',  label:'Pulse', unit:'bpm', step:'1' },
+  { key:'o2',     label:'O₂ Sat', unit:'%', step:'0.1' },
+  { key:'temp',   label:'Temp', unit:'°F', step:'0.1' }
+];
+
+// ═══════════════════════════════════════════════════════
+// IMPORT CLEANED LAB RESULTS — file handler
+// ═══════════════════════════════════════════════════════
+function handleImportLab(e) {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const parsed = JSON.parse(evt.target.result);
+      // Accept either a bare visit object or a wrapped {visit:...} format
+      const visit = parsed.visit || parsed;
+      if (!visit.date) {
+        showToast('⚠ Lab results file must include a date field'); return;
+      }
+      openLabReviewModal(visit, 'import');
+    } catch(err) {
+      showToast('⚠ Could not parse lab results file');
+      console.error('[ImportLab]', err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════
+// LAB REVIEW MODAL — shared by Import + Add Visit
+// mode: 'import' (pre-filled, locked by default) | 'add' (blank, always editable)
+// ═══════════════════════════════════════════════════════
+function openLabReviewModal(visit, mode) {
+  const labs    = visit.labs    || {};
+  const vitals  = visit.vitals  || {};
+  const isImport = mode === 'import';
+
+  // Conflict check
+  const conflict = isImport
+    ? (appData.labVisits||[]).find(v => v.date === visit.date)
+    : null;
+
+  // Build lab field sections HTML
+  function buildLabFields() {
+    return LAB_SECTIONS.map(section => {
+      const fieldsHtml = `<div class="lab-field-grid">
+        ${section.keys.map(key => {
+          const ref   = REF[key];
+          const val   = labs[key];
+          const flag  = (val != null) ? getFlag(key, val) : 'none';
+          const flagCls = flag === 'H' ? 'flagged-H' : flag === 'L' ? 'flagged-L' : '';
+          const hasCls  = val != null ? 'has-value' : '';
+          const editBtnHtml = isImport
+            ? `<button class="lab-edit-btn" onclick="toggleLabField('${key}',this)" title="Edit">✏</button>`
+            : '';
+          const displayHtml = isImport
+            ? `<div class="lab-field-row" id="display-${key}">
+                <span class="lab-field-val ${val==null?'empty':''}">${val != null ? val : '—'}</span>
+                ${val != null && ref ? `<span class="lab-field-unit">${ref.unit}</span>` : ''}
+              </div>`
+            : '';
+          const inputHtml = (!isImport || val == null)
+            ? `<div id="input-${key}" ${isImport&&val==null?'':'style="display:none"'}>
+                <input class="lab-field-input" type="number" step="any"
+                  id="field-${key}"
+                  value="${val != null ? val : ''}"
+                  placeholder="${ref?.unit||''}"
+                  oninput="onLabFieldChange()">
+              </div>`
+            : `<div id="input-${key}" style="display:none">
+                <input class="lab-field-input" type="number" step="any"
+                  id="field-${key}"
+                  value="${val != null ? val : ''}"
+                  placeholder="${ref?.unit||''}"
+                  oninput="onLabFieldChange()">
+              </div>`;
+          return `<div class="lab-field-item ${hasCls} ${flagCls}" id="item-${key}">
+            ${editBtnHtml}
+            <div class="lab-field-label">${ref?.label||key}</div>
+            ${displayHtml}
+            ${inputHtml}
+          </div>`;
+        }).join('')}
+      </div>`;
+      return `<div class="lab-section-header">${section.title}</div>${fieldsHtml}`;
+    }).join('');
+  }
+
+  // Build vitals fields
+  function buildVitalsFields() {
+    return `<div class="lab-section-header">Vitals at Visit</div>
+    <div class="vitals-review-grid">
+      ${VITALS_FIELDS.map(f => {
+        const val = vitals[f.key];
+        const editBtnHtml = isImport
+          ? `<button class="lab-edit-btn" onclick="toggleLabField('v_${f.key}',this)" title="Edit">✏</button>`
+          : '';
+        const displayHtml = isImport
+          ? `<div class="lab-field-row" id="display-v_${f.key}">
+              <span class="lab-field-val ${val==null?'empty':''}">${val != null ? val : '—'}</span>
+              ${val != null ? `<span class="lab-field-unit">${f.unit}</span>` : ''}
+            </div>`
+          : '';
+        const inputHtml = (!isImport || val == null)
+          ? `<div id="input-v_${f.key}" ${isImport&&val==null?'':'style="display:none"'}>
+              <input class="lab-field-input" type="number" step="${f.step}"
+                id="field-v_${f.key}" value="${val != null ? val : ''}" placeholder="${f.unit}"
+                oninput="onLabFieldChange()">
+            </div>`
+          : `<div id="input-v_${f.key}" style="display:none">
+              <input class="lab-field-input" type="number" step="${f.step}"
+                id="field-v_${f.key}" value="${val != null ? val : ''}" placeholder="${f.unit}"
+                oninput="onLabFieldChange()">
+            </div>`;
+        return `<div class="lab-field-item ${val!=null?'has-value':''}" id="item-v_${f.key}">
+          ${editBtnHtml}
+          <div class="lab-field-label">${f.label}</div>
+          ${displayHtml}
+          ${inputHtml}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  const conflictHtml = conflict
+    ? `<div class="conflict-banner">⛔ A visit on <strong>${fmtDate(conflict.date)}</strong> already exists.
+        Import is blocked — delete the existing visit first or choose a different file.</div>`
+    : '';
+
+  const modeLabel = isImport ? 'Review Lab Results' : 'Add Lab Visit';
+  const modeIcon  = isImport ? '🔬' : '＋';
+
+  const html = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal lab-review-modal">
+      <div class="modal-header">
+        <h2>${modeIcon} ${modeLabel}${visit.date ? ' — ' + fmtDate(visit.date) : ''}</h2>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body">
+
+        ${conflictHtml}
+
+        <!-- Visit metadata -->
+        <div class="form-row" style="margin-bottom:14px">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Visit Date</label>
+            <input type="date" id="rv-date" value="${visit.date||''}" ${isImport?'':'required'}>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Visit Type</label>
+            <select id="rv-type">
+              <option value="clinical"  ${(visit.visitType||'clinical')==='clinical' ?'selected':''}>Full Panel (Clinical)</option>
+              <option value="wellness"  ${visit.visitType==='wellness' ?'selected':''}>Wellness Screening</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:16px">
+          <label>Facility</label>
+          <input type="text" id="rv-facility" value="${visit.facility||''}" placeholder="e.g. Labcorp, Birmingham AL">
+        </div>
+
+        ${isImport
+          ? `<div style="font-size:11px;color:var(--muted);margin-bottom:12px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+              ℹ Fields are <strong style="color:var(--text)">locked by default</strong>.
+              Click <strong style="color:var(--accent)">✏</strong> on any field to edit it.
+              Empty fields (—) are always editable.
+            </div>`
+          : `<div style="font-size:11px;color:var(--muted);margin-bottom:12px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+              ℹ Enter any values you have — leave unknown fields blank. All fields are optional.
+            </div>`}
+
+        <!-- FIB-4 live preview -->
+        <div class="fib4-preview" id="fib4-preview">
+          <span style="font-size:11px;color:var(--muted)">🔬 FIB-4:</span>
+          <span id="fib4-val" style="font-weight:600;font-family:'DM Mono',monospace">—</span>
+          <span id="fib4-interp" style="font-size:11px;color:var(--muted)"></span>
+        </div>
+
+        <!-- Lab fields by section -->
+        ${buildLabFields()}
+
+        <!-- Vitals -->
+        ${buildVitalsFields()}
+
+        <!-- Notes -->
+        <div class="form-group" style="margin-top:16px;margin-bottom:0">
+          <label>Visit Notes</label>
+          <textarea id="rv-notes" placeholder="Observations, context, doctor comments…">${visit.notes||''}</textarea>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-accent" id="rv-confirm-btn"
+          onclick="confirmLabVisit('${mode}')"
+          ${conflict ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>
+          ${isImport ? '✓ Add to Health Tracker' : '＋ Save Lab Visit'}
+        </button>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('modalContainer').innerHTML = html;
+  // Run FIB-4 once on open with existing values
+  onLabFieldChange();
+}
+
+// Toggle a single field between locked display and editable input
+function toggleLabField(key, btn) {
+  const inputWrap = document.getElementById('input-' + key);
+  const displayEl = document.getElementById('display-' + key);
+  if (!inputWrap) return;
+  const isHidden = inputWrap.style.display === 'none';
+  if (isHidden) {
+    if (displayEl) displayEl.style.display = 'none';
+    inputWrap.style.display = 'block';
+    const inp = inputWrap.querySelector('input');
+    if (inp) inp.focus();
+    btn.textContent = '✕';
+    btn.title = 'Lock field';
+  } else {
+    // Read current value back into display
+    const inp = inputWrap.querySelector('input');
+    if (inp && displayEl) {
+      const v = inp.value.trim();
+      const key2 = key.replace('v_','');
+      const ref = REF[key2];
+      const span = displayEl.querySelector('.lab-field-val');
+      const unitSpan = displayEl.querySelector('.lab-field-unit');
+      if (span) {
+        if (v) {
+          span.textContent = v;
+          span.classList.remove('empty');
+          if (unitSpan) { unitSpan.textContent = ref?.unit||''; unitSpan.style.display=''; }
+        } else {
+          span.textContent = '—';
+          span.classList.add('empty');
+          if (unitSpan) unitSpan.style.display = 'none';
+        }
+      }
+    }
+    displayEl.style.display = 'block';
+    inputWrap.style.display = 'none';
+    btn.textContent = '✏';
+    btn.title = 'Edit';
+  }
+  onLabFieldChange();
+}
+
+// Live FIB-4 recalculation whenever any field changes
+function onLabFieldChange() {
+  const get = id => {
+    const inp = document.getElementById('field-' + id);
+    if (inp) { const v = parseFloat(inp.value); return isNaN(v) ? null : v; }
+    // If input is hidden, read from display span
+    const disp = document.getElementById('display-' + id);
+    if (disp) { const span = disp.querySelector('.lab-field-val'); const v = parseFloat(span?.textContent); return isNaN(v) ? null : v; }
+    return null;
+  };
+  const ast  = get('ast');
+  const alt  = get('alt');
+  const plt  = get('platelets');
+  const fib4El    = document.getElementById('fib4-val');
+  const fib4Interp = document.getElementById('fib4-interp');
+  if (!fib4El) return;
+  if (ast && alt && plt) {
+    const dateEl = document.getElementById('rv-date');
+    const dob    = appData.settings?.dob;
+    let age = 50; // fallback
+    if (dateEl?.value && dob) {
+      const visitDate = new Date(dateEl.value);
+      const dobDate   = new Date(dob);
+      age = Math.floor((visitDate - dobDate) / (365.25*24*60*60*1000));
+    }
+    const fib4 = (age * ast) / (plt * Math.sqrt(alt));
+    const color = fib4 < 1.3 ? 'var(--ok)' : fib4 < 2.67 ? 'var(--warn)' : 'var(--danger)';
+    const interp = fib4 < 1.3 ? '✓ Low risk for advanced fibrosis'
+                  : fib4 < 2.67 ? '⚠ Indeterminate — follow up recommended'
+                  : '⚠ High risk — hepatology referral recommended';
+    fib4El.textContent = fib4.toFixed(2);
+    fib4El.style.color = color;
+    fib4Interp.textContent = interp;
+    fib4Interp.style.color = color;
+  } else {
+    fib4El.textContent = '—';
+    fib4El.style.color = '';
+    fib4Interp.textContent = 'Enter AST, ALT, Platelets to calculate';
+    fib4Interp.style.color = 'var(--muted)';
+  }
+}
+
+// Read all field values from the modal and build a visit object
+function readLabModalValues(mode) {
+  const date     = document.getElementById('rv-date')?.value;
+  const type     = document.getElementById('rv-type')?.value || 'clinical';
+  const facility = document.getElementById('rv-facility')?.value || '';
+  const notes    = document.getElementById('rv-notes')?.value || '';
+
+  // Read lab values — check both input fields and display spans
+  const labs = {};
+  LAB_SECTIONS.forEach(sec => {
+    sec.keys.forEach(key => {
+      const inp = document.getElementById('field-' + key);
+      let val = null;
+      if (inp && inp.closest('[style*="display:none"]') === null && inp.value !== '') {
+        val = parseFloat(inp.value);
+      } else if (inp && inp.value !== '') {
+        val = parseFloat(inp.value);
+      } else {
+        // Try display span
+        const disp = document.getElementById('display-' + key);
+        if (disp) {
+          const span = disp.querySelector('.lab-field-val:not(.empty)');
+          if (span) val = parseFloat(span.textContent);
+        }
+      }
+      if (val != null && !isNaN(val)) labs[key] = val;
+    });
+  });
+
+  // Read vitals
+  const vitals = {};
+  VITALS_FIELDS.forEach(f => {
+    const inp = document.getElementById('field-v_' + f.key);
+    let val = null;
+    if (inp && inp.value !== '') {
+      val = parseFloat(inp.value);
+    } else {
+      const disp = document.getElementById('display-v_' + f.key);
+      if (disp) {
+        const span = disp.querySelector('.lab-field-val:not(.empty)');
+        if (span) val = parseFloat(span.textContent);
+      }
+    }
+    if (val != null && !isNaN(val)) vitals[f.key] = val;
+  });
+
+  // Auto-calc BMI if weight present
+  if (vitals.weight) {
+    const h = appData.settings?.heightIn || 67;
+    vitals.bmi = parseFloat(calcBMI(vitals.weight, h).toFixed(2));
+  }
+
+  return { date, type, facility, notes, labs, vitals };
+}
+
+// Confirm and save the lab visit
+function confirmLabVisit(mode) {
+  const { date, type, facility, notes, labs, vitals } = readLabModalValues(mode);
+  if (!date) { showToast('⚠ Visit date is required'); return; }
+
+  // Conflict check (double-check in case somehow bypassed)
+  if ((appData.labVisits||[]).find(v => v.date === date)) {
+    showToast('⚠ A visit on ' + fmtDate(date) + ' already exists — import blocked');
+    return;
+  }
+
+  // Build the visit object
+  const newVisit = {
+    id:         'lv_' + date.replace(/-/g,''),
+    date,
+    facility:   facility || 'Unknown facility',
+    visitType:  type,
+    labs,
+    vitals,
+    flags:      [],
+    notes
+  };
+
+  // Add to appData, re-sort by date
+  appData.labVisits = [...(appData.labVisits||[]), newVisit]
+    .sort((a,b) => a.date.localeCompare(b.date));
+
+  // Also add weight to weightLog if captured
+  if (vitals.weight && date) {
+    const alreadyLogged = (appData.weightLog||[]).find(w => w.date === date);
+    if (!alreadyLogged) {
+      const h = appData.settings?.heightIn || 67;
+      appData.weightLog = [...(appData.weightLog||[]),
+        { id:'wt_'+uid(), date, weight:vitals.weight,
+          bmi:parseFloat(calcBMI(vitals.weight,h).toFixed(2)), notes:'From lab visit' }
+      ].sort((a,b)=>a.date.localeCompare(b.date));
+    }
+  }
+
+  // Also log BP if captured
+  if (vitals.bpSys && date) {
+    const alreadyLogged = (appData.bpLog||[]).find(b => b.date === date);
+    if (!alreadyLogged) {
+      appData.bpLog = [...(appData.bpLog||[]),
+        { id:'bp_'+uid(), date, time:'', sys:vitals.bpSys, dia:vitals.bpDia||null,
+          pulse:vitals.pulse||null, source:'doctor', notes:'From lab visit' }
+      ].sort((a,b)=>a.date.localeCompare(b.date));
+    }
+  }
+
+  saveState();
+  closeModal();
+  renderTab(activeTab);
+  showToast(mode === 'import'
+    ? '✓ Lab results added — Latest Panel updated'
+    : '✓ Lab visit saved');
+}
+
+// Open Add Lab Visit modal (blank form)
+function openAddLabVisitModal() {
+  openLabReviewModal({ date:'', facility:'', visitType:'clinical', labs:{}, vitals:{}, notes:'' }, 'add');
+}
+
+// ── DRIVE BACKUP SYSTEM ──────────────────────────────────────────────────────
+const BACKUP_FILE = 'health_tracker_backup.json';
+const BACKUP_LS_KEY = 'ht_last_backup';
+const BACKUP_DAYS_LS_KEY = 'ht_backup_days';
+function _bkGetDays(){return parseInt(localStorage.getItem(BACKUP_DAYS_LS_KEY)||'5');}
+function _bkIsDue(){const l=localStorage.getItem(BACKUP_LS_KEY);if(!l)return true;return(Date.now()-parseInt(l))>_bkGetDays()*86400000;}
+function _bkLastLabel(){const l=localStorage.getItem(BACKUP_LS_KEY);if(!l)return'Never';return new Date(parseInt(l)).toLocaleDateString();}
+function _bkInitSettings(){const s=document.getElementById('_bkDaysSelect');if(s)s.value=_bkGetDays();const lb=document.getElementById('_bkLastLabel');if(lb)lb.textContent=_bkLastLabel();}
+function _bkLiveCount(){return (appData.labVisits?.length||0)+(appData.medications?.length||0);}
+function _bkLivePayload(){return JSON.stringify(appData);}
+function _bkCountFromData(bd){return (bd.labVisits?.length||0)+(bd.medications?.length||0);}
+async function _bkWriteFile(payload,existId,token){
+  if(existId){
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existId}?uploadType=media`,
+      {method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:payload});
+  }else{
+    const _f=new FormData();
+    _f.append('metadata',new Blob([JSON.stringify({name:BACKUP_FILE,parents:['appDataFolder']})],{type:'application/json'}));
+    _f.append('file',new Blob([payload],{type:'application/json'}));
+    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+      {method:'POST',headers:{Authorization:'Bearer '+token},body:_f});
+  }
+  localStorage.setItem(BACKUP_LS_KEY,Date.now().toString());
+  const lb=document.getElementById('_bkLastLabel');if(lb)lb.textContent=_bkLastLabel();
+}
+async function checkAndRunBackup(force=false){
+  if(!force&&!_bkIsDue())return;
+  const _t=driveToken;if(!_t)return;
+  const payload=_bkLivePayload();
+  const liveSize=payload.length,liveCount=_bkLiveCount();
+  try{
+    const q=encodeURIComponent(`name='${BACKUP_FILE}' and trashed=false`);
+    const r=await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,size)`,
+      {headers:{Authorization:'Bearer '+_t}});
+    if(r.status===401)return;
+    const j=await r.json();
+    if(j.files&&j.files.length>0){
+      const existId=j.files[0].id,existSize=parseInt(j.files[0].size||0);
+      const rc=await fetch(`https://www.googleapis.com/drive/v3/files/${existId}?alt=media`,
+        {headers:{Authorization:'Bearer '+_t}});
+      if(rc.ok){try{const bd=await rc.json();const ec=_bkCountFromData(bd);if(liveCount<ec||liveSize<existSize){_bkShowShrink(liveCount,liveSize,ec,existSize,payload,existId,_t);return;}}catch(e){}}
+      await _bkWriteFile(payload,existId,_t);
+    }else{await _bkWriteFile(payload,null,_t);}
+    showToast('📦 Backup saved');
+  }catch(e){console.warn('[Backup]',e);}
+}
+function _bkShowShrink(lc,ls,ec,es,payload,existId,token){
+  const el=document.getElementById('_bkShrinkModal');if(!el)return;
+  document.getElementById('_bkLiveInfo').textContent=lc+' records · '+(ls/1024).toFixed(1)+' KB';
+  document.getElementById('_bkExistInfo').textContent=ec+' records · '+(es/1024).toFixed(1)+' KB';
+  el.style.display='flex';
+  document.getElementById('_bkKeepBtn').onclick=()=>{localStorage.setItem(BACKUP_LS_KEY,Date.now().toString());el.style.display='none';const lb=document.getElementById('_bkLastLabel');if(lb)lb.textContent=_bkLastLabel();};
+  document.getElementById('_bkUpdateBtn').onclick=async()=>{el.style.display='none';await _bkWriteFile(payload,existId,token);showToast('📦 Backup saved');};
+}
+document.addEventListener('DOMContentLoaded',_bkInitSettings);
+// ── END BACKUP SYSTEM ────────────────────────────────────────────────────────
+
+</script>
+<!-- Drive Backup Shrinkage Modal -->
+<div id="_bkShrinkModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;">
+  <div style="background:#1e1e1e;border:1px solid #444;border-radius:14px;padding:26px;max-width:400px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+    <div style="font-size:16px;font-weight:700;color:#f5f0e8;margin-bottom:8px;">⚠️ Backup Shrinkage Detected</div>
+    <div style="font-size:13px;color:#aaa;margin-bottom:16px;line-height:1.5;">Your current data is smaller than the existing backup. This may mean records were deleted.</div>
+    <div style="background:#2a2a2a;border-radius:8px;padding:12px;margin-bottom:18px;font-size:12px;font-family:'DM Mono',monospace;line-height:1.9;">
+      <div><span style="color:#888;">Current:&nbsp;&nbsp;</span><span id="_bkLiveInfo" style="color:#f5f0e8;"></span></div>
+      <div><span style="color:#888;">Backup:&nbsp;&nbsp;&nbsp;</span><span id="_bkExistInfo" style="color:#5dbb80;"></span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button id="_bkKeepBtn" style="padding:11px;background:rgba(45,212,100,0.12);color:#5dbb80;border:1px solid rgba(45,212,100,0.3);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">🔒 Keep Existing Backup</button>
+      <button id="_bkUpdateBtn" style="padding:11px;background:transparent;color:#777;border:1px solid #333;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">Update Backup with Current Data</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
