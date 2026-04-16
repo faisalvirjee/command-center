@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<!-- LPL-Wipe | v1.0 | 2026-04-16 — One-time migration utility -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LPL-Wipe — Migration Utility</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: #0a0e1a;
+    color: #e8edf5;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    background: #1a2235;
+    border: 1px solid #2a3650;
+    border-radius: 16px;
+    padding: 40px 48px;
+    width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .icon { font-size: 36px; margin-bottom: 16px; }
+  h1 { font-size: 20px; font-weight: 700; color: #f87171; margin-bottom: 8px; }
+  .subtitle { font-size: 13px; color: #8fa3c0; margin-bottom: 28px; line-height: 1.5; }
+  .keys-box {
+    background: #0f1525;
+    border: 1px solid #2a3650;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-family: 'DM Mono', 'Courier New', monospace;
+    font-size: 12px;
+  }
+  .keys-section { margin-bottom: 14px; }
+  .keys-section:last-child { margin-bottom: 0; }
+  .keys-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #4a6080;
+    margin-bottom: 8px;
+  }
+  .key-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    color: #8fa3c0;
+  }
+  .key-row .dot { width: 6px; height: 6px; border-radius: 50%; background: #2a3650; flex-shrink: 0; }
+  .key-row.cleared .dot { background: #2dd4a0; }
+  .key-row.cleared { color: #2dd4a0; }
+  .key-row .key-name { flex: 1; }
+  .key-row .key-status { font-size: 10px; color: #4a6080; }
+  .key-row.cleared .key-status { color: #2dd4a0; }
+  .btn-wipe {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #f87171, #dc2626);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .btn-wipe:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(248,113,113,0.4); }
+  .btn-wipe:disabled { background: #2a3650; color: #4a6080; cursor: default; transform: none; box-shadow: none; }
+  .result {
+    display: none;
+    margin-top: 20px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .result.success {
+    display: block;
+    background: rgba(45,212,160,0.1);
+    border: 1px solid rgba(45,212,160,0.3);
+    color: #2dd4a0;
+  }
+  .warning-note {
+    font-size: 11px;
+    color: #4a6080;
+    text-align: center;
+    margin-top: 16px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="icon">🧹</div>
+  <h1>LPL Tracker — Migration Wipe</h1>
+  <p class="subtitle">
+    One-time utility to clear <strong style="color:#e8edf5;">lpl-tracker</strong> localStorage and sessionStorage keys
+    before migrating to <strong style="color:#e8edf5;">financial-tracker</strong>.
+    Does not affect any other Command Center apps.
+  </p>
+
+  <div class="keys-box">
+    <div class="keys-section">
+      <div class="keys-label">localStorage — will be cleared</div>
+      <div class="key-row" id="k-lpl_pass">
+        <div class="dot"></div>
+        <span class="key-name">lpl_pass</span>
+        <span class="key-status" id="s-lpl_pass">—</span>
+      </div>
+      <div class="key-row" id="k-lpl_data">
+        <div class="dot"></div>
+        <span class="key-name">lpl_data</span>
+        <span class="key-status" id="s-lpl_data">—</span>
+      </div>
+      <div class="key-row" id="k-lpl_drive_file_id">
+        <div class="dot"></div>
+        <span class="key-name">lpl_drive_file_id</span>
+        <span class="key-status" id="s-lpl_drive_file_id">—</span>
+      </div>
+      <div class="key-row" id="k-lpl_timer_setting">
+        <div class="dot"></div>
+        <span class="key-name">lpl_timer_setting</span>
+        <span class="key-status" id="s-lpl_timer_setting">—</span>
+      </div>
+      <div class="key-row" id="k-lpl_last_backup">
+        <div class="dot"></div>
+        <span class="key-name">lpl_last_backup</span>
+        <span class="key-status" id="s-lpl_last_backup">—</span>
+      </div>
+      <div class="key-row" id="k-lpl_backup_days">
+        <div class="dot"></div>
+        <span class="key-name">lpl_backup_days</span>
+        <span class="key-status" id="s-lpl_backup_days">—</span>
+      </div>
+    </div>
+    <div class="keys-section">
+      <div class="keys-label">sessionStorage — will be cleared</div>
+      <div class="key-row" id="k-lpl_auth">
+        <div class="dot"></div>
+        <span class="key-name">lpl_auth</span>
+        <span class="key-status" id="s-lpl_auth">—</span>
+      </div>
+      <div class="key-row" id="k-lpl_drive_token">
+        <div class="dot"></div>
+        <span class="key-name">lpl_drive_token</span>
+        <span class="key-status" id="s-lpl_drive_token">—</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-wipe" id="wipeBtn" onclick="runWipe()">
+    🗑️ Clear LPL Keys
+  </button>
+
+  <div class="result" id="result"></div>
+  <p class="warning-note">
+    All other Command Center app data is unaffected.<br>
+    This page can be safely deleted from repo after migration is complete.
+  </p>
+</div>
+
+<script>
+  const LS_KEYS = [
+    'lpl_pass',
+    'lpl_data',
+    'lpl_drive_file_id',
+    'lpl_timer_setting',
+    'lpl_last_backup',
+    'lpl_backup_days'
+  ];
+  const SS_KEYS = [
+    'lpl_auth',
+    'lpl_drive_token'
+  ];
+
+  // On load — show current state of each key
+  window.addEventListener('load', () => {
+    LS_KEYS.forEach(k => {
+      const exists = localStorage.getItem(k) !== null;
+      document.getElementById('s-' + k).textContent = exists ? 'found' : 'not set';
+    });
+    SS_KEYS.forEach(k => {
+      const exists = sessionStorage.getItem(k) !== null;
+      document.getElementById('s-' + k).textContent = exists ? 'found' : 'not set';
+    });
+  });
+
+  function runWipe() {
+    const btn = document.getElementById('wipeBtn');
+    btn.disabled = true;
+    btn.textContent = 'Clearing…';
+
+    LS_KEYS.forEach(k => {
+      localStorage.removeItem(k);
+      const row = document.getElementById('k-' + k);
+      const stat = document.getElementById('s-' + k);
+      row.classList.add('cleared');
+      stat.textContent = 'cleared';
+    });
+    SS_KEYS.forEach(k => {
+      sessionStorage.removeItem(k);
+      const row = document.getElementById('k-' + k);
+      const stat = document.getElementById('s-' + k);
+      row.classList.add('cleared');
+      stat.textContent = 'cleared';
+    });
+
+    const result = document.getElementById('result');
+    result.className = 'result success';
+    result.textContent = '✓ All LPL keys cleared — you are ready to run financial-tracker.html';
+    btn.textContent = '✓ Done';
+  }
+</script>
+
+</body>
+</html>
