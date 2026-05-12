@@ -1169,17 +1169,17 @@ tr.bulk-selected > td:first-child { box-shadow: inset 3px 0 0 #4aa8e0; backgroun
         <tr>
           <th class="bulk-checkbox-cell no-label" id="bulk-header-cell" style="display:none"><input type="checkbox" id="bulk-select-all" onchange="toggleBulkSelectAll(this.checked)" title="Select all visible"></th>
           <th class="sortable" onclick="sortByCol('name')">Item</th>
-          <th>Current Status</th>
-          <th>eBay</th>
-          <th>Facebook</th>
+          <th class="sortable" onclick="sortByCol('status')">Current Status</th>
+          <th class="sortable" onclick="sortByCol('ebay')">eBay</th>
+          <th class="sortable" onclick="sortByCol('facebook')">Facebook</th>
           <th class="sortable" onclick="sortByCol('cost')">My Cost</th>
           <th class="sortable" onclick="sortByCol('price')">Sale Price</th>
-          <th>eBay Net</th>
+          <th class="sortable" onclick="sortByCol('ebaynet')">eBay Net</th>
           <th class="sortable" onclick="sortByCol('profit')">eBay Profit $</th>
           <th class="sortable" onclick="sortByCol('margin')">eBay Margin</th>
           <th class="sortable" onclick="sortByCol('breakeven')">Break-Even</th>
-          <th>FB Net</th>
-          <th>Promo %</th>
+          <th class="sortable" onclick="sortByCol('fbnet')">FB Net</th>
+          <th class="sortable" onclick="sortByCol('promo')">Promo %</th>
           <th class="sortable" onclick="sortByCol('customer')">Customer Name</th>
           <th>Notes</th>
           <th class="sortable" onclick="sortByCol('grading')">Grading</th>
@@ -1327,20 +1327,20 @@ tr.bulk-selected > td:first-child { box-shadow: inset 3px 0 0 #4aa8e0; backgroun
     <table>
       <thead>
         <tr>
-          <th>Item</th>
-          <th>Cost</th>
-          <th>Sold For</th>
-          <th>Actual Profit</th>
-          <th>Profit %</th>
-          <th>Customer Name</th>
-          <th>Grading</th>
-          <th>Grade</th>
-          <th>Signed</th>
-          <th>Signed By</th>
-          <th>Source</th>
+          <th class="sortable" onclick="sortSoldByCol('name')">Item</th>
+          <th class="sortable" onclick="sortSoldByCol('cost')">Cost</th>
+          <th class="sortable" onclick="sortSoldByCol('soldfor')">Sold For</th>
+          <th class="sortable" onclick="sortSoldByCol('profit')">Actual Profit</th>
+          <th class="sortable" onclick="sortSoldByCol('margin')">Profit %</th>
+          <th class="sortable" onclick="sortSoldByCol('customer')">Customer Name</th>
+          <th class="sortable" onclick="sortSoldByCol('grading')">Grading</th>
+          <th class="sortable" onclick="sortSoldByCol('grade')">Grade</th>
+          <th class="sortable" onclick="sortSoldByCol('signed')">Signed</th>
+          <th class="sortable" onclick="sortSoldByCol('signedby')">Signed By</th>
+          <th class="sortable" onclick="sortSoldByCol('source')">Source</th>
           <th>Notes</th>
-          <th>Date Added</th>
-          <th>Last Updated</th>
+          <th class="sortable" onclick="sortSoldByCol('dateadded')">Date Added</th>
+          <th class="sortable" onclick="sortSoldByCol('dateupdated')">Last Updated</th>
         </tr>
       </thead>
       <tbody id="sold-body"></tbody>
@@ -1718,7 +1718,7 @@ tr.bulk-selected > td:first-child { box-shadow: inset 3px 0 0 #4aa8e0; backgroun
 <script>
 
 // VERSION
-const APP_VERSION = 'v1.8.5';
+const APP_VERSION = 'v1.8.7';
 const APP_BUILD   = '2026-04-30';
 document.addEventListener('DOMContentLoaded', () => {
   const lv = document.getElementById('cst-login-version');
@@ -3034,6 +3034,30 @@ let colSortKey = 'newest'; // default: newest first
 let colSortDir = 'desc';
 const PAGE_SIZE = 25;
 
+// Sold tab — independent sort state
+let soldSortKey = 'dateadded';
+let soldSortDir = 'desc';
+
+function sortSoldByCol(key) {
+  if (soldSortKey === key) {
+    soldSortDir = soldSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    soldSortKey = key;
+    soldSortDir = (key === 'profit' || key === 'margin' || key === 'soldfor') ? 'desc' : 'asc';
+  }
+  // Update sold header arrows
+  const soldTable = document.querySelector('#tab-sold table');
+  if (soldTable) {
+    soldTable.querySelectorAll('th.sortable').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.getAttribute('onclick') === `sortSoldByCol('${key}')`) {
+        th.classList.add(soldSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+  }
+  renderSold();
+}
+
 function sortByCol(key) {
   if (colSortKey === key) {
     colSortDir = colSortDir === 'asc' ? 'desc' : 'asc';
@@ -3041,16 +3065,18 @@ function sortByCol(key) {
     colSortKey = key;
     colSortDir = key === 'profit' || key === 'margin' ? 'desc' : 'asc';
   }
-  // Update header arrows
-  document.querySelectorAll('th.sortable').forEach(th => {
-    th.classList.remove('sort-asc','sort-desc');
-  });
-  // Find the clicked th by its onclick content and mark it
-  document.querySelectorAll('th.sortable').forEach(th => {
-    if (th.getAttribute('onclick') === `sortByCol('${key}')`) {
-      th.classList.add(colSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
-    }
-  });
+  // Update header arrows — scoped to inventory table only
+  const invTable = document.querySelector('#tab-inventory table');
+  if (invTable) {
+    invTable.querySelectorAll('th.sortable').forEach(th => {
+      th.classList.remove('sort-asc','sort-desc');
+    });
+    invTable.querySelectorAll('th.sortable').forEach(th => {
+      if (th.getAttribute('onclick') === `sortByCol('${key}')`) {
+        th.classList.add(colSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+  }
   invPage = 0;
   renderInvTable();
 }
@@ -3119,11 +3145,17 @@ function renderInvTable() {
     // Column header sort — takes priority when user clicked a header
     if (colSortKey !== 'newest') {
       if (colSortKey === 'name')      return a.item.localeCompare(b.item) * dir;
+      if (colSortKey === 'status')    return ((a.currentStatus||'').localeCompare(b.currentStatus||'')) * dir;
+      if (colSortKey === 'ebay')      return ((a.ebayStatus||'').localeCompare(b.ebayStatus||'')) * dir;
+      if (colSortKey === 'facebook')  return ((a.fbStatus||'').localeCompare(b.fbStatus||'')) * dir;
       if (colSortKey === 'cost')      return (a.myCost - b.myCost) * dir;
       if (colSortKey === 'price')     return (a.salePrice - b.salePrice) * dir;
+      if (colSortKey === 'ebaynet')   return ((a.ebayNet||0) - (b.ebayNet||0)) * dir;
       if (colSortKey === 'profit')    return (calcEbayProfit(a) - calcEbayProfit(b)) * dir;
       if (colSortKey === 'margin')    { const ma = a.salePrice>0?calcEbayProfit(a)/a.salePrice:0; const mb = b.salePrice>0?calcEbayProfit(b)/b.salePrice:0; return (ma-mb)*dir; }
       if (colSortKey === 'breakeven') { const ba = a.myCost>0?((a.myCost+0.40+(a.actualShipping||0)-(a.shippingCharged||0))/(1-0.1325-(a.promoPct||0))):999; const bb = b.myCost>0?((b.myCost+0.40+(b.actualShipping||0)-(b.shippingCharged||0))/(1-0.1325-(b.promoPct||0))):999; return (ba-bb)*dir; }
+      if (colSortKey === 'fbnet')     return ((a.fbNet||0) - (b.fbNet||0)) * dir;
+      if (colSortKey === 'promo')     return ((a.promoPct||0) - (b.promoPct||0)) * dir;
       if (colSortKey === 'customer')  return ((a.purchaser||'').localeCompare(b.purchaser||'')) * dir;
       if (colSortKey === 'grading')   return ((a.gradingCo||'').localeCompare(b.gradingCo||'')) * dir;
       if (colSortKey === 'grade')     return ((a.grade||0) - (b.grade||0)) * dir;
@@ -3362,6 +3394,26 @@ function renderSold() {
   } else {
     filterBar.style.display = 'none';
   }
+
+  // Sort filtered results
+  filtered.sort((a, b) => {
+    const dir = soldSortDir === 'asc' ? 1 : -1;
+    if (soldSortKey === 'name')       return (a.item||'').localeCompare(b.item||'') * dir;
+    if (soldSortKey === 'cost')       return ((a.myCost||0) - (b.myCost||0)) * dir;
+    if (soldSortKey === 'soldfor')    return ((a.salePrice||0) - (b.salePrice||0)) * dir;
+    if (soldSortKey === 'profit')     return ((a.actualProfit||0) - (b.actualProfit||0)) * dir;
+    if (soldSortKey === 'margin')     { const ma = a.salePrice>0?(a.actualProfit||0)/a.salePrice:0; const mb = b.salePrice>0?(b.actualProfit||0)/b.salePrice:0; return (ma-mb)*dir; }
+    if (soldSortKey === 'customer')   return ((a.purchaser||'').localeCompare(b.purchaser||'')) * dir;
+    if (soldSortKey === 'grading')    return ((a.gradingCo||'').localeCompare(b.gradingCo||'')) * dir;
+    if (soldSortKey === 'grade')      return ((a.grade||0) - (b.grade||0)) * dir;
+    if (soldSortKey === 'signed')     return ((a.signed||'').localeCompare(b.signed||'')) * dir;
+    if (soldSortKey === 'signedby')   return ((a.signedBy||'').localeCompare(b.signedBy||'')) * dir;
+    if (soldSortKey === 'source')     return ((a.source||'').localeCompare(b.source||'')) * dir;
+    if (soldSortKey === 'dateadded')  return ((a.addedAt||0) - (b.addedAt||0)) * dir;
+    if (soldSortKey === 'dateupdated') return ((a.updatedAt||0) - (b.updatedAt||0)) * dir;
+    // default: newest first
+    return (b.addedAt||b.id||0) - (a.addedAt||a.id||0);
+  });
 
   $('sold-body').innerHTML = filtered.map(i => {
     const p = i.actualProfit;
