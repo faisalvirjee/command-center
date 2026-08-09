@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retirement Contribution Planner</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230a0e1a'/%3E%3Ctext x='50' y='70' font-size='58' text-anchor='middle' fill='%23f0b429' font-family='sans-serif' font-weight='bold'%3E%24%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0e1a; --bg2:#0f1525; --bg3:#161d30; --card:#1a2235; --card2:#1f2a40;
+  --border:#2a3650; --accent:#4f8ef7; --accent2:#7eb8f7; --gold:#f0b429; --gold2:#ffd166;
+  --green:#2dd4a0; --red:#f87171; --text:#e8edf5; --text2:#8fa3c0; --text3:#4a6080;
+  --shadow:0 4px 24px rgba(0,0,0,0.4); --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.5}
+.hidden{display:none!important}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+input[type=text],input[type=number],input[type=date],input[type=password],select{
+  background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+input[type=range]{-webkit-appearance:none;width:100%;height:5px;background:var(--bg3);border-radius:3px;border:1px solid var(--border);padding:0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--gold);cursor:pointer;border:2px solid var(--bg)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--gold);cursor:pointer;border:2px solid var(--bg)}
+.btn{background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:500;transition:.15s}
+.btn:hover{background:var(--card2);border-color:var(--accent)}
+.btn.primary{background:var(--gold);color:#1a1200;border-color:var(--gold);font-weight:600}
+.btn.primary:hover{background:var(--gold2)}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn.danger{border-color:#5a2a2a;color:var(--red)}
+
+/* ===== LOGIN ===== */
+#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+#gateCard{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px;max-width:420px;width:100%;box-shadow:var(--shadow)}
+#gateCard h1{font-size:21px;margin-bottom:6px;color:var(--gold)}
+#gateCard p.sub{color:var(--text2);font-size:13px;margin-bottom:22px}
+.step{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px}
+.step .num{display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--gold);color:#1a1200;text-align:center;font-size:12px;font-weight:700;line-height:20px;margin-right:8px}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500}
+
+/* ===== SHELL ===== */
+#app{display:none}
+#topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+#topbar .brand{font-weight:700;color:var(--gold);font-size:15px;letter-spacing:.3px}
+#topbar .ver{font-size:11px;color:var(--text3)}
+.spacer{flex:1}
+.pill{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer}
+#tabs{display:flex;gap:2px;padding:0 12px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{padding:10px 14px;font-size:13px;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);font-weight:600}
+main{padding:18px;max-width:1240px;margin:0 auto}
+.page{display:none}
+.page.active{display:block}
+h2.ph{font-size:17px;margin-bottom:4px}
+p.phs{color:var(--text2);font-size:12.5px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.card h3{font-size:14px;margin-bottom:12px;color:var(--gold);font-weight:600}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.kpi .lab{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.kpi .val{font-size:20px;font-weight:700}
+.kpi .sub{font-size:11px;color:var(--text3);margin-top:3px}
+.kpi.good .val{color:var(--green)} .kpi.warn .val{color:var(--gold)} .kpi.bad .val{color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:8px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:7px 6px;border-bottom:1px solid rgba(42,54,80,.5)}
+tr:hover td{background:var(--bg2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tag{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;white-space:nowrap}
+.tag.pt{background:rgba(79,142,247,.18);color:var(--accent2)}
+.tag.rt{background:rgba(45,212,160,.18);color:var(--green)}
+.tag.fr{background:rgba(240,180,41,.18);color:var(--gold)}
+.tag.sp{background:rgba(248,113,113,.15);color:var(--red)}
+.tag.ne{background:rgba(74,96,128,.2);color:var(--text3)}
+.bar{display:flex;height:24px;border-radius:6px;overflow:hidden;background:var(--bg3);margin:8px 0}
+.bar div{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;overflow:hidden}
+.note{background:var(--bg2);border-left:3px solid var(--accent);padding:10px 12px;font-size:12.5px;color:var(--text2);margin:10px 0;border-radius:0 6px 6px 0}
+.note.warn{border-left-color:var(--gold)} .note.bad{border-left-color:var(--red)} .note.good{border-left-color:var(--green)}
+.sl{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sl label{font-size:12px;color:var(--text2);min-width:118px}
+.sl .out{font-size:13px;font-weight:600;min-width:78px;text-align:right;font-variant-numeric:tabular-nums}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 18px;font-size:13px;z-index:200;display:none;box-shadow:var(--shadow);max-width:90vw}
+.seg{display:inline-flex;background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.seg button{background:none;border:none;color:var(--text2);padding:6px 14px;font-size:12.5px}
+.seg button.on{background:var(--gold);color:#1a1200;font-weight:600}
+.chk{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text2);margin-bottom:8px}
+.chk input{width:auto}
+.tblwrap{overflow-x:auto}
+</style>
+</head>
+<body>
+
+<!-- ===================== GATE ===================== -->
+<div id="gate">
+  <div id="gateCard">
+    <h1>Retirement Contribution Planner</h1>
+    <p class="sub">Command Center · multi-year 401(k) &amp; Roth cap modeling</p>
+
+    <div id="firstRun" class="hidden">
+      <div class="step">
+        <div style="margin-bottom:10px"><span class="num">1</span><strong style="font-size:13px">Verify with Google</strong></div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Authorizes Drive storage for your plan data.</p>
+        <button class="btn primary" style="width:100%" onclick="frGoogle()">Verify with Google</button>
+        <p id="frGStat" style="font-size:11.5px;color:var(--text3);margin-top:8px"></p>
+      </div>
+      <div class="step hidden" id="frStep2">
+        <div style="margin-bottom:10px"><span class="num">2</span><strong style="font-size:13px">Set a password</strong></div>
+        <div class="fld"><label>Password (min 8 characters)</label><input type="password" id="frPw1"></div>
+        <div class="fld"><label>Confirm password</label><input type="password" id="frPw2"></div>
+        <button class="btn primary" style="width:100%" onclick="frSetPw()">Create &amp; Launch</button>
+      </div>
+    </div>
+
+    <div id="loginBox" class="hidden">
+      <div class="fld"><label>Password</label><input type="password" id="lgPw" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn primary" style="width:100%" onclick="doLogin()">Unlock</button>
+      <p id="lgErr" style="color:var(--red);font-size:12px;margin-top:9px"></p>
+      <p style="font-size:11px;color:var(--text3);margin-top:14px">Attempts: <span id="lgAtt">0</span>/10</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app">
+  <div id="topbar">
+    <span class="brand">◆ RETIREMENT PLANNER</span>
+    <span class="ver" id="verLbl"></span>
+    <span class="spacer"></span>
+    <span class="pill" id="drivePill" onclick="connectDrive()">⬤ Drive</span>
+    <select id="yearSel" style="width:auto" onchange="setYear(this.value)"></select>
+    <select id="personSel" style="width:auto" onchange="setPerson(this.value)"></select>
+    <button class="btn sm" onclick="lockApp()">Lock</button>
+  </div>
+
+  <div id="tabs">
+    <button class="tab active" onclick="showTab('dash',this)">Dashboard</button>
+    <button class="tab" onclick="showTab('plan',this)">Planner</button>
+    <button class="tab" onclick="showTab('sched',this)">Pay Schedule</button>
+    <button class="tab" onclick="showTab('setup',this)">Plan Setup</button>
+    <button class="tab" onclick="showTab('limits',this)">IRS Limits</button>
+    <button class="tab" onclick="showTab('set',this)">Settings</button>
+  </div>
+
+  <main>
+    <div id="pg-dash" class="page active"></div>
+    <div id="pg-plan" class="page"></div>
+    <div id="pg-sched" class="page"></div>
+    <div id="pg-setup" class="page"></div>
+    <div id="pg-limits" class="page"></div>
+    <div id="pg-set" class="page"></div>
+  </main>
+</div>
+
+<div id="toast"></div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* =========================================================================
+   Retirement Contribution Planner — Command Center suite
+   v1.0.0
+   ========================================================================= */
+const APP_VERSION='v1.0.0';
+const LS_HASH='rp_pw_hash', LS_SALT='rp_pw_salt', LS_ATT='rp_attempts', LS_DATA='rp_data', LS_FILEID='rp_drive_file_id';
+const DRIVE_FILE_NAME='retirement_planner.json';
+const DRIVE_TOKEN_KEY='rp_drive_token';
+const CLIENT_ID='305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com';
+const SCOPES='https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file';
+
+let appData=null, curYear=2027, curPerson='p1', curTab='dash';
+let driveFileId=localStorage.getItem(LS_FILEID)||null, driveConnected=false, accessToken=null,
+    driveDataLoaded=false, tokenClient=null, frVerified=false;
+
+/* ---------- utils ---------- */
+const $=id=>document.getElementById(id);
+const money=n=>'$'+Math.round(n).toLocaleString();
+const money2=n=>'$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=n=>n.toFixed(2)+'%';
+function toast(m,ms){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',ms||2600);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function dstr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function pd(s){const p=String(s||'').split('-');return new Date(+p[0],(+p[1]||1)-1,+p[2]||1,12,0,0);}
+function fmtDate(s){const d=pd(s);return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});}
+
+/* ---------- auth (PBKDF2) ---------- */
+async function pbkdf2(pw,saltB64){
+  const salt=Uint8Array.from(atob(saltB64),c=>c.charCodeAt(0));
+  const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:210000,hash:'SHA-256'},key,256);
+  return btoa(String.fromCharCode(...new Uint8Array(bits)));
+}
+function newSalt(){return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));}
+
+function bootGate(){
+  if(localStorage.getItem(LS_HASH)){$('loginBox').classList.remove('hidden');$('lgAtt').textContent=localStorage.getItem(LS_ATT)||'0';setTimeout(()=>$('lgPw').focus(),100);}
+  else $('firstRun').classList.remove('hidden');
+}
+function frGoogle(){
+  if(!tokenClient){initGIS();if(!tokenClient){toast('Google library still loading — try again.');return;}}
+  tokenClient.requestAccessToken({prompt:'consent'});
+}
+async function frSetPw(){
+  const a=$('frPw1').value,b=$('frPw2').value;
+  if(a.length<8)return toast('Password must be at least 8 characters.');
+  if(a!==b)return toast('Passwords do not match.');
+  const salt=newSalt();
+  localStorage.setItem(LS_SALT,salt);
+  localStorage.setItem(LS_HASH,await pbkdf2(a,salt));
+  localStorage.setItem(LS_ATT,'0');
+  launch(true);
+}
+async function doLogin(){
+  let att=parseInt(localStorage.getItem(LS_ATT)||'0');
+  if(att>=10){$('lgErr').textContent='Too many attempts. Re-verify with Google to reset.';return;}
+  const h=await pbkdf2($('lgPw').value,localStorage.getItem(LS_SALT));
+  if(h===localStorage.getItem(LS_HASH)){localStorage.setItem(LS_ATT,'0');launch(false);}
+  else{att++;localStorage.setItem(LS_ATT,String(att));$('lgAtt').textContent=att;$('lgErr').textContent='Incorrect password.';$('lgPw').value='';}
+}
+function lockApp(){location.reload();}
+
+function launch(isFirst){
+  loadLocal();
+  $('gate').style.display='none';
+  $('app').style.display='block';
+  $('verLbl').textContent=APP_VERSION;
+  buildSelectors();
+  render();
+  setTimeout(()=>{ if(!driveConnected) connectDriveSilent(); else loadFromDrive(); },300);
+}
+
+/* ---------- seed data ---------- */
+function seedLimits(){
+  return {
+    2026:{base:24500,catchUp:8000,superCatchUp:11250,total415c:72000,compLimit:360000,
+          rothCatchUpWage:150000,hceThreshold:160000,ira:7500,iraCatchUp:1100,estimated:false},
+    2027:{base:25500,catchUp:8000,superCatchUp:11250,total415c:74000,compLimit:370000,
+          rothCatchUpWage:155000,hceThreshold:165000,ira:7500,iraCatchUp:1100,estimated:true}
+  };
+}
+function seedPlan(name){
+  return {planName:name,matchRate:0.50,matchCapPct:6,trueUp:true,fixedContribPct:0,
+          bonusEligible:true,ltipEligible:false,maxDeferralPct:75,rothAvailable:true,
+          afterTaxAvailable:false,spillover:false,separateBonusElection:false};
+}
+function seedYear(salary,firstCheck){
+  return {baseSalary:salary,raisePct:3,raiseDate:(curYear||2027)+'-04-01',payPeriods:26,
+          firstCheckDate:firstCheck,bonusAmount:0,bonusDate:(curYear||2027)+'-04-03',
+          ltipAmount:0,ltipDate:(curYear||2027)+'-04-03',
+          preTaxPct:6,rothPct:0,bonusPreTaxPct:6,bonusRothPct:0,
+          openingPreTax:0,openingRoth:0,openingComp:0,
+          priorYearFicaWages:0,marginalFedPct:32,marginalStatePct:5,
+          iraContrib:0};
+}
+function seedData(){
+  return {
+    version:APP_VERSION,
+    irsLimits:seedLimits(),
+    people:[
+      {id:'p1',name:'Faisal',birthYear:1974,plan:seedPlan('Cox Enterprises 401(k) — Traditional Match'),
+       years:{2027:Object.assign(seedYear(203300,'2027-01-08'),{bonusAmount:56000,ltipAmount:51000,priorYearFicaWages:300000,preTaxPct:6,rothPct:7})}},
+      {id:'p2',name:'Spouse',birthYear:1976,plan:Object.assign(seedPlan('Salto Systems 401(k) — Voya'),{matchRate:1.00,matchCapPct:4,trueUp:false}),
+       years:{2027:seedYear(120000,'2027-01-08')}}
+    ],
+    settings:{backupDays:5}
+  };
+}
+function loadLocal(){
+  try{const raw=localStorage.getItem(LS_DATA);appData=raw?JSON.parse(raw):seedData();}catch(e){appData=seedData();}
+  migrate();
+}
+function migrate(){
+  if(!appData.irsLimits)appData.irsLimits=seedLimits();
+  if(!appData.people||!appData.people.length)appData.people=seedData().people;
+  if(!appData.settings)appData.settings={backupDays:5};
+  appData.people.forEach(p=>{
+    if(!p.plan)p.plan=seedPlan('Plan');
+    if(!p.years)p.years={};
+    Object.keys(p.plan).forEach(()=>{});
+    const dp=seedPlan('x');Object.keys(dp).forEach(k=>{if(p.plan[k]===undefined)p.plan[k]=dp[k];});
+    Object.keys(p.years).forEach(y=>{
+      const dy=seedYear(100000,y+'-01-08');
+      Object.keys(dy).forEach(k=>{if(p.years[y][k]===undefined)p.years[y][k]=dy[k];});
+    });
+  });
+  const yrs=Object.keys(appData.irsLimits).map(Number).sort();
+  if(!appData.irsLimits[curYear])curYear=yrs[yrs.length-1];
+}
+function saveLocal(){appData.version=APP_VERSION;localStorage.setItem(LS_DATA,JSON.stringify(appData));}
+function save(){saveLocal();saveToDrive();}
+
+/* =========================================================================
+   ENGINE — pay-event ledger
+   ========================================================================= */
+function payDates(Y,year){
+  const out=[];
+  if(Number(Y.payPeriods)===24){
+    for(let m=0;m<12;m++){
+      out.push(dstr(new Date(year,m,15,12)));
+      out.push(dstr(new Date(year,m+1,0,12)));
+    }
+  }else{
+    let d=pd(Y.firstCheckDate||(year+'-01-08'));
+    if(d.getFullYear()!==year)d=new Date(year,0,8,12);
+    const n=Number(Y.payPeriods)||26;
+    for(let i=0;i<n;i++){out.push(dstr(d));d=new Date(d.getTime()+14*86400000);}
+  }
+  return out;
+}
+
+function computeSchedule(personId,year){
+  const P=appData.people.find(x=>x.id===personId);
+  const Y=P.years[year]; const PL=P.plan; const L=appData.irsLimits[year];
+  if(!Y||!L)return null;
+
+  const age=year-Number(P.birthYear||0);
+  const cuEligible=age>=50;
+  const isSuper=age>=60&&age<=63;
+  const catchUp=isSuper?Number(L.superCatchUp):(cuEligible?Number(L.catchUp):0);
+  const totalLimit=Number(L.base)+catchUp;
+  const forcedRoth=cuEligible && Number(Y.priorYearFicaWages)>Number(L.rothCatchUpWage);
+  const preTaxCeiling=forcedRoth?Number(L.base):totalLimit;
+
+  // ---- build events ----
+  const salaryNew=Number(Y.baseSalary)*(1+Number(Y.raisePct)/100);
+  const periods=Number(Y.payPeriods)||26;
+  const evs=payDates(Y,year).map(d=>({
+    date:d,type:'salary',
+    gross:(pd(d)>=pd(Y.raiseDate)?salaryNew:Number(Y.baseSalary))/periods
+  }));
+  if(Number(Y.bonusAmount)>0)evs.push({date:Y.bonusDate,type:'bonus',gross:Number(Y.bonusAmount)});
+  if(Number(Y.ltipAmount)>0)evs.push({date:Y.ltipDate,type:'ltip',gross:Number(Y.ltipAmount)});
+  evs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.type==='salary'?-1:1));
+
+  // ---- walk ----
+  let ytdPT=Number(Y.openingPreTax)||0, ytdRT=Number(Y.openingRoth)||0,
+      ytdComp=Number(Y.openingComp)||0, ytdMatch=0, ytdFixed=0, ytdGross=0;
+  let crossPreTax=null, crossCap=null, shutOffFrom=null;
+  const rows=[];
+
+  evs.forEach(ev=>{
+    ytdGross+=ev.gross;
+    let eligible = ev.type==='ltip' ? (PL.ltipEligible?ev.gross:0)
+                 : ev.type==='bonus'? (PL.bonusEligible?ev.gross:0)
+                 : ev.gross;
+
+    let ptPct,rtPct;
+    if(ev.type==='bonus'&&PL.separateBonusElection){ptPct=Number(Y.bonusPreTaxPct);rtPct=Number(Y.bonusRothPct);}
+    else{ptPct=Number(Y.preTaxPct);rtPct=Number(Y.rothPct);}
+    if(Number(ptPct)+Number(rtPct)>Number(PL.maxDeferralPct)){
+      const sc=Number(PL.maxDeferralPct)/(Number(ptPct)+Number(rtPct));ptPct*=sc;rtPct*=sc;
+    }
+
+    const wantPT=eligible*ptPct/100;
+    const wantRT=eligible*rtPct/100;
+
+    const roomTotal=Math.max(0,totalLimit-ytdPT-ytdRT);
+    const roomPT=Math.max(0,Math.min(preTaxCeiling-ytdPT,roomTotal));
+    let pt=Math.min(wantPT,roomPT);
+    let spill=(PL.spillover&&wantPT>pt)?(wantPT-pt):0;
+    let rt=PL.rothAvailable?Math.min(wantRT+spill,Math.max(0,roomTotal-pt)):0;
+    const deferral=pt+rt;
+    const requested=wantPT+wantRT;
+    const blocked=requested-deferral;
+
+    // match — comp counted only up to 401(a)(17)
+    const compForMatch=Math.min(eligible,Math.max(0,Number(L.compLimit)-ytdComp));
+    const matchable=Math.min(deferral,compForMatch*Number(PL.matchCapPct)/100);
+    const match=matchable*Number(PL.matchRate);
+    const fixed=compForMatch*Number(PL.fixedContribPct)/100;
+
+    if(!crossPreTax&&ytdPT<preTaxCeiling&&ytdPT+pt>=preTaxCeiling-0.005)crossPreTax=ev.date;
+    if(!crossCap&&ytdPT+ytdRT+deferral>=totalLimit-0.005)crossCap=ev.date;
+    if(!shutOffFrom&&deferral<=0.005&&requested>0.005)shutOffFrom=ev.date;
+
+    ytdPT+=pt;ytdRT+=rt;ytdComp+=eligible;ytdMatch+=match;ytdFixed+=fixed;
+
+    rows.push({date:ev.date,type:ev.type,gross:ev.gross,eligible,pt,rt,deferral,blocked,
+               match,fixed,cum:ytdPT+ytdRT,cumPT:ytdPT,cumRT:ytdRT});
+  });
+
+  // ---- true-up / forfeiture ----
+  const cappedComp=Math.min(ytdComp,Number(L.compLimit));
+  const fullMatch=cappedComp*Number(PL.matchCapPct)/100*Number(PL.matchRate);
+  const totalDeferral=ytdPT+ytdRT;
+  let trueUp=0, forfeited=0;
+  if(PL.trueUp){
+    if(totalDeferral>=cappedComp*Number(PL.matchCapPct)/100-0.005) trueUp=Math.max(0,fullMatch-ytdMatch);
+    else trueUp=0;
+  }
+  forfeited=Math.max(0,fullMatch-ytdMatch-trueUp);
+
+  const additions=totalDeferral-Math.min(catchUp,Math.max(0,totalDeferral-Number(L.base)))+ytdMatch+trueUp+ytdFixed;
+  const headroom415=Math.max(0,Number(L.total415c)-additions);
+
+  const mRate=(Number(Y.marginalFedPct)+Number(Y.marginalStatePct))/100;
+
+  return {rows,P,Y,PL,L,age,cuEligible,isSuper,catchUp,totalLimit,forcedRoth,preTaxCeiling,
+    ytdPT,ytdRT,totalDeferral,ytdComp,cappedComp,ytdGross,ytdMatch,trueUp,forfeited,fullMatch,
+    ytdFixed,headroom415,additions,crossPreTax,crossCap,shutOffFrom,
+    shortfall:Math.max(0,totalLimit-totalDeferral),
+    taxDeferred:ytdPT*mRate, takeHomeHit:ytdPT*(1-mRate)+ytdRT,
+    compHitsLimit:ytdComp>Number(L.compLimit)};
+}
+
+/* ---------- solver: land exactly on the cap ---------- */
+function solve(personId,year){
+  const P=appData.people.find(x=>x.id===personId);
+  const Y=P.years[year], PL=P.plan, L=appData.irsLimits[year];
+  const age=year-Number(P.birthYear||0);
+  const cu=(age>=60&&age<=63)?Number(L.superCatchUp):(age>=50?Number(L.catchUp):0);
+  const totalLimit=Number(L.base)+cu;
+  const forcedRoth=age>=50&&Number(Y.priorYearFicaWages)>Number(L.rothCatchUpWage);
+  const preTaxCeiling=forcedRoth?Number(L.base):totalLimit;
+
+  // total deferral-eligible comp across the year
+  const salaryNew=Number(Y.baseSalary)*(1+Number(Y.raisePct)/100);
+  const periods=Number(Y.payPeriods)||26;
+  let comp=0;
+  payDates(Y,year).forEach(d=>{comp+=(pd(d)>=pd(Y.raiseDate)?salaryNew:Number(Y.baseSalary))/periods;});
+  if(Number(Y.bonusAmount)>0&&PL.bonusEligible&&!PL.separateBonusElection)comp+=Number(Y.bonusAmount);
+  if(Number(Y.ltipAmount)>0&&PL.ltipEligible)comp+=Number(Y.ltipAmount);
+  if(comp<=0)return null;
+
+  const need=Math.max(0,totalLimit-(Number(Y.openingPreTax)||0)-(Number(Y.openingRoth)||0));
+  const ptNeed=Math.max(0,Math.min(need,preTaxCeiling-(Number(Y.openingPreTax)||0)));
+  const rtNeed=need-ptNeed;
+
+  let ptPct=ptNeed/comp*100, rtPct=rtNeed/comp*100;
+  const cap=Number(PL.maxDeferralPct);
+  let capped=false;
+  if(ptPct+rtPct>cap){const sc=cap/(ptPct+rtPct);ptPct*=sc;rtPct*=sc;capped=true;}
+  return {preTaxPct:Math.round(ptPct*10)/10,rothPct:Math.round(rtPct*10)/10,
+          combined:Math.round((ptPct+rtPct)*10)/10,capped,comp,need};
+}
+
+/* =========================================================================
+   RENDER
+   ========================================================================= */
+function buildSelectors(){
+  const ys=Object.keys(appData.irsLimits).map(Number).sort();
+  $('yearSel').innerHTML=ys.map(y=>`<option value="${y}"${y===curYear?' selected':''}>${y}</option>`).join('');
+  $('personSel').innerHTML=appData.people.map(p=>`<option value="${p.id}"${p.id===curPerson?' selected':''}>${esc(p.name)}</option>`).join('');
+}
+function setYear(y){curYear=Number(y);ensureYear();render();}
+function setPerson(p){curPerson=p;ensureYear();render();}
+function ensureYear(){
+  appData.people.forEach(p=>{
+    if(!p.years[curYear]){
+      const ks=Object.keys(p.years).map(Number).sort();
+      const src=ks.length?p.years[ks[ks.length-1]]:null;
+      p.years[curYear]=src?JSON.parse(JSON.stringify(src)):seedYear(150000,curYear+'-01-08');
+      p.years[curYear].raiseDate=curYear+'-04-01';
+      p.years[curYear].bonusDate=curYear+'-04-03';
+      p.years[curYear].ltipDate=curYear+'-04-03';
+      p.years[curYear].firstCheckDate=curYear+'-01-08';
+      p.years[curYear].openingPreTax=0;p.years[curYear].openingRoth=0;p.years[curYear].openingComp=0;
+    }
+  });
+  saveLocal();
+}
+function showTab(t,el){
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $('pg-'+t).classList.add('active');
+  render();
+}
+function render(){
+  ensureYear();
+  if(curTab==='dash')renderDash();
+  else if(curTab==='plan')renderPlanner();
+  else if(curTab==='sched')renderSched();
+  else if(curTab==='setup')renderSetup();
+  else if(curTab==='limits')renderLimits();
+  else if(curTab==='set')renderSettings();
+}
+
+/* ---------- Dashboard ---------- */
+function renderDash(){
+  const L=appData.irsLimits[curYear];
+  let h=`<h2 class="ph">${curYear} Household Overview</h2>
+    <p class="phs">${L.estimated?'⚠ '+curYear+' IRS limits are estimates — update on the IRS Limits tab when the COLA notice lands.':'IRS limits confirmed for '+curYear+'.'}</p>`;
+
+  appData.people.forEach(p=>{
+    const r=computeSchedule(p.id,curYear);
+    if(!r)return;
+    const onTrack=r.shortfall<1;
+    h+=`<div class="card">
+      <h3>${esc(p.name)} — age ${r.age} · ${esc(r.PL.planName)}</h3>
+      <div class="grid g4">
+        <div class="kpi ${onTrack?'good':'bad'}"><div class="lab">Deferral total</div><div class="val">${money(r.totalDeferral)}</div><div class="sub">of ${money(r.totalLimit)} limit</div></div>
+        <div class="kpi"><div class="lab">Pre-tax</div><div class="val" style="color:var(--accent2)">${money(r.ytdPT)}</div><div class="sub">ceiling ${money(r.preTaxCeiling)}</div></div>
+        <div class="kpi"><div class="lab">Roth</div><div class="val" style="color:var(--green)">${money(r.ytdRT)}</div><div class="sub">${r.forcedRoth?'catch-up forced Roth':'elective'}</div></div>
+        <div class="kpi ${r.forfeited>1?'bad':'good'}"><div class="lab">Employer match</div><div class="val">${money(r.ytdMatch+r.trueUp)}</div><div class="sub">${r.trueUp>1?'incl. true-up '+money(r.trueUp):(r.forfeited>1?money(r.forfeited)+' forfeited':'full match')}</div></div>
+      </div>`;
+    const tot=Math.max(r.totalDeferral,1);
+    h+=`<div class="bar">
+      <div style="width:${r.ytdPT/r.totalLimit*100}%;background:#2f5d9e;color:#cfe2ff">${r.ytdPT>2000?money(r.ytdPT):''}</div>
+      <div style="width:${r.ytdRT/r.totalLimit*100}%;background:#1d7f63;color:#c9f5e6">${r.ytdRT>2000?money(r.ytdRT):''}</div>
+      ${r.shortfall>1?`<div style="width:${r.shortfall/r.totalLimit*100}%;background:#3a2020;color:#f8a0a0">${money(r.shortfall)} unused</div>`:''}
+    </div>`;
+    if(r.shortfall>1){
+      const s=solve(p.id,curYear);
+      h+=`<div class="note bad"><strong>Leaving ${money(r.shortfall)} of qualified space unused.</strong>${s?` Solver says set pre-tax <strong>${s.preTaxPct}%</strong> + Roth <strong>${s.rothPct}%</strong> (${s.combined}% combined).`:''}</div>`;
+    }else{
+      h+=`<div class="note good"><strong>Maxing out.</strong> Cap reached ${r.crossCap?'on '+fmtDate(r.crossCap):'by year end'}.${r.PL.trueUp?' True-up protects the match.':(r.forfeited>1?' <span style="color:var(--red)">No true-up — '+money(r.forfeited)+' of match lost.</span>':'')}</div>`;
+    }
+    h+=`</div>`;
+  });
+
+  // household IRA
+  h+=`<div class="card"><h3>IRA / Backdoor Roth — separate bucket</h3><div class="grid g3">`;
+  appData.people.forEach(p=>{
+    const Y=p.years[curYear];const age=curYear-p.birthYear;
+    const max=Number(L.ira)+(age>=50?Number(L.iraCatchUp):0);
+    const done=Number(Y.iraContrib)||0;
+    h+=`<div class="kpi ${done>=max?'good':'warn'}"><div class="lab">${esc(p.name)}</div><div class="val">${money(done)}</div><div class="sub">of ${money(max)} · ${done>=max?'complete':money(max-done)+' left'}</div></div>`;
+  });
+  h+=`</div><div class="note">IRA limits are independent of the 401(k) cap. Record contributions on the Planner tab.</div></div>`;
+  $('pg-dash').innerHTML=h;
+}
+
+/* ---------- Planner ---------- */
+function renderPlanner(){
+  const p=appData.people.find(x=>x.id===curPerson);
+  const Y=p.years[curYear], PL=p.plan, L=appData.irsLimits[curYear];
+  const r=computeSchedule(curPerson,curYear);
+  const s=solve(curPerson,curYear);
+
+  const sl=(lab,key,min,max,step,suffix)=>`
+    <div class="sl"><label>${lab}</label>
+      <input type="range" min="${min}" max="${max}" step="${step}" value="${Y[key]}"
+        oninput="setY('${key}',this.value,true)">
+      <span class="out" id="out_${key}">${Y[key]}${suffix||''}</span></div>`;
+  const nf=(lab,key,step)=>`<div class="fld"><label>${lab}</label><input type="number" step="${step||'1'}" value="${Y[key]}" onchange="setY('${key}',this.value)"></div>`;
+  const df=(lab,key)=>`<div class="fld"><label>${lab}</label><input type="date" value="${Y[key]}" onchange="setY('${key}',this.value)"></div>`;
+
+  let h=`<h2 class="ph">${esc(p.name)} — ${curYear} Planner</h2>
+    <p class="phs">Age ${r.age} at year end · ${r.cuEligible?(r.isSuper?'super catch-up eligible ('+money(r.catchUp)+')':'catch-up eligible ('+money(r.catchUp)+')'):'not catch-up eligible'} · limit ${money(r.totalLimit)}</p>`;
+
+  h+=`<div class="card"><h3>Deferral elections</h3>
+    ${sl('Pre-tax %','preTaxPct',0,Number(PL.maxDeferralPct),0.1,'%')}
+    ${sl('Roth 401(k) %','rothPct',0,Number(PL.maxDeferralPct),0.1,'%')}
+    <div class="note" style="margin-top:4px">Combined <strong>${(Number(Y.preTaxPct)+Number(Y.rothPct)).toFixed(1)}%</strong> · plan allows up to ${PL.maxDeferralPct}%</div>`;
+  if(PL.separateBonusElection){
+    h+=`<h3 style="margin-top:14px">Bonus-specific election</h3>
+      ${sl('Bonus pre-tax %','bonusPreTaxPct',0,Number(PL.maxDeferralPct),0.1,'%')}
+      ${sl('Bonus Roth %','bonusRothPct',0,Number(PL.maxDeferralPct),0.1,'%')}`;
+  }
+  h+=`<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn primary" onclick="applySolve()">⚡ Solve to cap</button>
+      <button class="btn" onclick="setY('preTaxPct',6);setY('rothPct',0)">Match floor only (6%)</button>
+    </div>`;
+  if(s)h+=`<div class="note${s.capped?' warn':''}">Solver: pre-tax <strong>${s.preTaxPct}%</strong> + Roth <strong>${s.rothPct}%</strong> = ${s.combined}% across ${money(s.comp)} of eligible comp.${s.capped?' ⚠ Requires more than the plan\'s '+PL.maxDeferralPct+'% cap — you cannot reach the limit on this comp.':''}</div>`;
+  h+=`</div>`;
+
+  h+=`<div class="card"><h3>Compensation</h3><div class="grid g3">
+    ${nf('Base salary','baseSalary','100')}
+    ${nf('Raise %','raisePct','0.1')}
+    ${df('Raise effective','raiseDate')}
+    ${nf('Bonus amount','bonusAmount','100')}
+    ${df('Bonus pay date','bonusDate')}
+    ${nf('LTIP amount','ltipAmount','100')}
+    ${df('LTIP pay date','ltipDate')}
+    <div class="fld"><label>Pay periods</label><select onchange="setY('payPeriods',this.value)">
+      <option value="26"${Y.payPeriods==26?' selected':''}>26 — biweekly</option>
+      <option value="24"${Y.payPeriods==24?' selected':''}>24 — semimonthly</option>
+      <option value="27"${Y.payPeriods==27?' selected':''}>27 — biweekly (leap year)</option></select></div>
+    ${df('First check date','firstCheckDate')}
+    ${nf('Prior-year FICA wages','priorYearFicaWages','1000')}
+  </div>
+  <div class="note${r.forcedRoth?' warn':''}">${r.forcedRoth
+    ?`Prior-year FICA wages of ${money(Y.priorYearFicaWages)} exceed the ${money(L.rothCatchUpWage)} threshold — catch-up <strong>must be Roth</strong>. Pre-tax ceiling is ${money(r.preTaxCeiling)}.`
+    :`Prior-year FICA wages below ${money(L.rothCatchUpWage)} — catch-up may be pre-tax. Full ${money(r.totalLimit)} available pre-tax.`}</div>
+  ${r.compHitsLimit?`<div class="note warn">Eligible comp of ${money(r.ytdComp)} exceeds the §401(a)(17) limit of ${money(L.compLimit)} — comp above that earns no match.</div>`:''}
+  </div>`;
+
+  h+=`<div class="card"><h3>Mid-year start (optional)</h3>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Seed year-to-date amounts already contributed, to model a partial year.</p>
+    <div class="grid g3">${nf('Opening pre-tax YTD','openingPreTax','1')}${nf('Opening Roth YTD','openingRoth','1')}${nf('Opening eligible comp YTD','openingComp','1')}</div></div>`;
+
+  h+=`<div class="card"><h3>Outcome</h3><div class="grid g4">
+    <div class="kpi ${r.shortfall<1?'good':'bad'}"><div class="lab">Total deferral</div><div class="val">${money(r.totalDeferral)}</div><div class="sub">${r.shortfall<1?'at limit':money(r.shortfall)+' short'}</div></div>
+    <div class="kpi"><div class="lab">Match + true-up</div><div class="val">${money(r.ytdMatch+r.trueUp)}</div><div class="sub">${r.forfeited>1?money(r.forfeited)+' forfeited':'full'}</div></div>
+    <div class="kpi"><div class="lab">Tax deferred</div><div class="val" style="color:var(--green)">${money(r.taxDeferred)}</div><div class="sub">at ${(Number(Y.marginalFedPct)+Number(Y.marginalStatePct)).toFixed(1)}% marginal</div></div>
+    <div class="kpi"><div class="lab">Take-home hit</div><div class="val" style="color:var(--gold)">${money(r.takeHomeHit)}</div><div class="sub">net of deduction</div></div>
+    <div class="kpi"><div class="lab">§415(c) headroom</div><div class="val">${money(r.headroom415)}</div><div class="sub">${PL.afterTaxAvailable?'after-tax available':'no after-tax source'}</div></div>
+    <div class="kpi"><div class="lab">Pre-tax ceiling hit</div><div class="val" style="font-size:15px">${r.crossPreTax?fmtDate(r.crossPreTax):'—'}</div><div class="sub">forced Roth begins</div></div>
+    <div class="kpi"><div class="lab">Cap reached</div><div class="val" style="font-size:15px">${r.crossCap?fmtDate(r.crossCap):'not reached'}</div><div class="sub">${r.shutOffFrom?'shut off '+fmtDate(r.shutOffFrom):'no shut-off'}</div></div>
+    <div class="kpi"><div class="lab">Eligible comp</div><div class="val" style="font-size:15px">${money(r.ytdComp)}</div><div class="sub">gross ${money(r.ytdGross)}</div></div>
+  </div>
+  <div class="grid g3" style="margin-top:12px">${nf('Marginal federal %','marginalFedPct','0.1')}${nf('Marginal state %','marginalStatePct','0.1')}${nf('IRA / backdoor Roth contributed','iraContrib','100')}</div>
+  ${!PL.afterTaxAvailable?`<div class="note">No after-tax contribution source on this plan, so the §415(c) headroom above is not reachable — mega backdoor Roth is unavailable.</div>`:`<div class="note good">After-tax source available — ${money(r.headroom415)} of mega backdoor Roth space.</div>`}
+  </div>`;
+  $('pg-plan').innerHTML=h;
+}
+function setY(key,val,live){
+  const p=appData.people.find(x=>x.id===curPerson);
+  const Y=p.years[curYear];
+  Y[key]=(key==='raiseDate'||key==='bonusDate'||key==='ltipDate'||key==='firstCheckDate')?val:Number(val);
+  saveLocal();
+  if(live){const o=$('out_'+key);if(o)o.textContent=val+'%';clearTimeout(window._rt);window._rt=setTimeout(()=>{renderPlanner();saveToDrive();},220);}
+  else{render();saveToDrive();}
+}
+function applySolve(){
+  const s=solve(curPerson,curYear);
+  if(!s)return toast('Nothing to solve — check compensation.');
+  const Y=appData.people.find(x=>x.id===curPerson).years[curYear];
+  Y.preTaxPct=s.preTaxPct;Y.rothPct=s.rothPct;
+  save();renderPlanner();
+  toast(`Set to ${s.preTaxPct}% pre-tax + ${s.rothPct}% Roth`);
+}
+
+/* ---------- Pay Schedule ---------- */
+function renderSched(){
+  const r=computeSchedule(curPerson,curYear);
+  const p=r.P;
+  let h=`<h2 class="ph">${esc(p.name)} — ${curYear} Pay Schedule</h2>
+    <p class="phs">Check-by-check ledger. Pre-tax ceiling ${money(r.preTaxCeiling)} · total limit ${money(r.totalLimit)}</p>
+    <div class="card"><div class="tblwrap"><table><thead><tr>
+      <th>Date</th><th>Type</th><th class="num">Gross</th><th class="num">Eligible</th>
+      <th class="num">Pre-tax</th><th class="num">Roth</th><th class="num">Match</th>
+      <th class="num">Cumulative</th><th>Flag</th></tr></thead><tbody>`;
+  r.rows.forEach(x=>{
+    let flag='';
+    if(x.type==='ltip'&&x.eligible===0)flag='<span class="tag ne">excluded</span>';
+    else if(x.blocked>0.5&&x.deferral<=0.005)flag='<span class="tag sp">shut off</span>';
+    else if(x.blocked>0.5)flag='<span class="tag sp">capped</span>';
+    else if(x.pt>0.005&&x.rt>0.005)flag='<span class="tag fr">split</span>';
+    else if(x.rt>0.005&&x.pt<=0.005)flag='<span class="tag rt">roth</span>';
+    else if(x.pt>0.005)flag='<span class="tag pt">pre-tax</span>';
+    h+=`<tr>
+      <td>${fmtDate(x.date)}</td>
+      <td>${x.type==='salary'?'Salary':x.type==='bonus'?'<strong style="color:var(--gold)">Bonus</strong>':'<strong style="color:var(--text3)">LTIP</strong>'}</td>
+      <td class="num">${money(x.gross)}</td><td class="num">${x.eligible?money(x.eligible):'—'}</td>
+      <td class="num" style="color:${x.pt>0.005?'var(--accent2)':'var(--text3)'}">${x.pt>0.005?money2(x.pt):'—'}</td>
+      <td class="num" style="color:${x.rt>0.005?'var(--green)':'var(--text3)'}">${x.rt>0.005?money2(x.rt):'—'}</td>
+      <td class="num">${x.match>0.005?money2(x.match):'—'}</td>
+      <td class="num"><strong>${money(x.cum)}</strong></td><td>${flag}</td></tr>`;
+  });
+  h+=`</tbody><tfoot><tr style="border-top:2px solid var(--border)">
+    <th colspan="4">Totals</th>
+    <th class="num" style="color:var(--accent2)">${money(r.ytdPT)}</th>
+    <th class="num" style="color:var(--green)">${money(r.ytdRT)}</th>
+    <th class="num">${money(r.ytdMatch)}</th>
+    <th class="num">${money(r.totalDeferral)}</th><th></th></tr></tfoot></table></div>`;
+
+  if(r.trueUp>1)h+=`<div class="note good">True-up match of <strong>${money(r.trueUp)}</strong> deposited after year end — per-period match of ${money(r.ytdMatch)} plus true-up equals the full ${money(r.fullMatch)}.</div>`;
+  if(r.forfeited>1)h+=`<div class="note bad">No true-up on this plan. Per-period match totals ${money(r.ytdMatch)} against a possible ${money(r.fullMatch)} — <strong>${money(r.forfeited)} forfeited</strong>. Lower the deferral percentage to spread contributions across every check.</div>`;
+  if(r.ytdFixed>1)h+=`<div class="note">Employer fixed contribution: ${money(r.ytdFixed)} at ${r.PL.fixedContribPct}% of eligible comp.</div>`;
+  h+=`</div>`;
+  $('pg-sched').innerHTML=h;
+}
+
+/* ---------- Plan Setup ---------- */
+function renderSetup(){
+  let h=`<h2 class="ph">Plan Setup</h2><p class="phs">Plan-document facts per person. These drive every calculation — get them from the SPD or benefits team.</p>`;
+  appData.people.forEach((p,i)=>{
+    const PL=p.plan;
+    const t=(lab,key,step)=>`<div class="fld"><label>${lab}</label><input type="number" step="${step||'0.01'}" value="${PL[key]}" onchange="setPL('${p.id}','${key}',this.value)"></div>`;
+    const c=(lab,key,hint)=>`<div class="chk"><input type="checkbox" id="c_${p.id}_${key}" ${PL[key]?'checked':''} onchange="setPL('${p.id}','${key}',this.checked)"><label for="c_${p.id}_${key}" style="margin:0">${lab}${hint?` <span style="color:var(--text3)">— ${hint}</span>`:''}</label></div>`;
+    h+=`<div class="card"><h3>${esc(p.name)}</h3>
+      <div class="grid g3">
+        <div class="fld"><label>Name</label><input type="text" value="${esc(p.name)}" onchange="setPerm('${p.id}','name',this.value)"></div>
+        <div class="fld"><label>Birth year</label><input type="number" value="${p.birthYear}" onchange="setPerm('${p.id}','birthYear',this.value)"></div>
+        <div class="fld"><label>Plan name</label><input type="text" value="${esc(PL.planName)}" onchange="setPL('${p.id}','planName',this.value)"></div>
+        ${t('Match rate (0.50 = 50¢/$)','matchRate','0.01')}
+        ${t('Match cap % of comp','matchCapPct','0.5')}
+        ${t('Employer fixed contribution %','fixedContribPct','0.5')}
+        ${t('Max deferral % allowed','maxDeferralPct','1')}
+      </div>
+      <div style="margin-top:10px">
+        ${c('Annual match true-up','trueUp','protects match if you max early')}
+        ${c('Bonus is eligible compensation','bonusEligible','')}
+        ${c('LTIP is eligible compensation','ltipEligible','usually excluded')}
+        ${c('Roth 401(k) source available','rothAvailable','required for catch-up if wages > threshold')}
+        ${c('After-tax source + in-plan conversion','afterTaxAvailable','enables mega backdoor Roth')}
+        ${c('Spillover to Roth at pre-tax ceiling','spillover','automatic conversion instead of shut-off')}
+        ${c('Separate bonus deferral election','separateBonusElection','distinct % for bonus checks')}
+      </div></div>`;
+  });
+  h+=`<div class="card"><h3>Reference — Cox Enterprises 401(k), January 2026 SPD</h3>
+    <div class="note good">Traditional Match: 50¢ per $1 on the first 6% of eligible comp, 100% vested immediately. True-up paid if YTD contributions reach at least 6% of YTD eligible pay.</div>
+    <div class="note">Eligible comp <strong>includes</strong> base, overtime, bonuses, commissions. <strong>Excludes</strong> LTIP and other extraordinary bonuses, severance, and cashed-out sick pay.</div>
+    <div class="note">Deferral range 1%–75%. Pre-tax and Roth both available. No after-tax (non-Roth) source, so no mega backdoor Roth. In-plan Roth Conversion of existing pre-tax and vested match balances is available and irrevocable.</div>
+    <div class="note warn">Catch-up-restricted employees (prior-year Cox FICA wages above the IRS threshold) are limited to the under-50 IRS limit on a pre-tax basis; the remainder must be Roth. Not automatic — the Roth election must be made affirmatively at Vanguard.</div>
+    <p style="font-size:11.5px;color:var(--text3);margin-top:10px">Vanguard · plan 090535 · 1-800-523-1188 · vanguard.com/retirementplans</p></div>`;
+  $('pg-setup').innerHTML=h;
+}
+function setPL(pid,key,val){
+  const p=appData.people.find(x=>x.id===pid);
+  p.plan[key]=(typeof val==='boolean')?val:(key==='planName'?val:Number(val));
+  save();render();
+}
+function setPerm(pid,key,val){
+  const p=appData.people.find(x=>x.id===pid);
+  p[key]=key==='birthYear'?Number(val):val;
+  save();buildSelectors();render();
+}
+
+/* ---------- IRS Limits ---------- */
+function renderLimits(){
+  const ys=Object.keys(appData.irsLimits).map(Number).sort();
+  const fields=[['base','402(g) base deferral'],['catchUp','Catch-up (50+)'],['superCatchUp','Super catch-up (60–63)'],
+    ['total415c','415(c) total additions'],['compLimit','401(a)(17) comp limit'],['rothCatchUpWage','Roth catch-up wage threshold'],
+    ['hceThreshold','HCE threshold'],['ira','IRA limit'],['iraCatchUp','IRA catch-up']];
+  let h=`<h2 class="ph">IRS Limits by Year</h2>
+    <p class="phs">Every calculation reads from this table. Update each November when the IRS COLA notice publishes, then clear the estimate flag.</p>
+    <div class="card"><div class="tblwrap"><table><thead><tr><th>Limit</th>${ys.map(y=>`<th class="num">${y}${appData.irsLimits[y].estimated?' <span class="tag fr">est</span>':''}</th>`).join('')}</tr></thead><tbody>`;
+  fields.forEach(([k,lab])=>{
+    h+=`<tr><td>${lab}</td>${ys.map(y=>`<td class="num"><input type="number" step="100" value="${appData.irsLimits[y][k]}" onchange="setLim(${y},'${k}',this.value)" style="width:110px;text-align:right"></td>`).join('')}</tr>`;
+  });
+  h+=`<tr><td>Estimated?</td>${ys.map(y=>`<td class="num"><input type="checkbox" ${appData.irsLimits[y].estimated?'checked':''} onchange="setLim(${y},'estimated',this.checked)" style="width:auto"></td>`).join('')}</tr>`;
+  h+=`</tbody></table></div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input type="number" id="newYr" placeholder="Add year" value="${ys[ys.length-1]+1}" style="width:120px">
+      <button class="btn" onclick="addYear()">+ Add year</button>
+      <span style="font-size:12px;color:var(--text3)">Copies the latest year's values as a starting point.</span>
+    </div></div>
+    <div class="card"><h3>Confirmed 2026 values</h3>
+      <div class="note good">Base $24,500 · catch-up $8,000 · super catch-up $11,250 · 415(c) $72,000 · comp limit $360,000 · Roth catch-up wage threshold $150,000 · HCE $160,000 · IRA $7,500 + $1,100 catch-up.</div>
+      <div class="note warn">2027 values seeded as estimates. The IRS typically publishes the following year's limits in mid-November.</div></div>`;
+  $('pg-limits').innerHTML=h;
+}
+function setLim(y,k,v){appData.irsLimits[y][k]=(typeof v==='boolean')?v:Number(v);save();render();}
+function addYear(){
+  const y=Number($('newYr').value);
+  if(!y||appData.irsLimits[y])return toast('Year invalid or already present.');
+  const ys=Object.keys(appData.irsLimits).map(Number).sort();
+  appData.irsLimits[y]=Object.assign({},appData.irsLimits[ys[ys.length-1]],{estimated:true});
+  save();buildSelectors();render();toast('Added '+y);
+}
+
+/* ---------- Settings ---------- */
+function renderSettings(){
+  $('pg-set').innerHTML=`<h2 class="ph">Settings</h2><p class="phs">Storage, backup, and data management.</p>
+    <div class="card"><h3>Google Drive</h3>
+      <p style="font-size:12.5px;color:var(--text2);margin-bottom:10px">Status: <span id="dvStat">${driveConnected?'<span style="color:var(--green)">✓ connected</span>':'<span style="color:var(--gold)">not connected — local only</span>'}</span></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="connectDrive()">${driveConnected?'Reconnect':'Connect Drive'}</button>
+        <button class="btn" onclick="loadFromDrive()">Load from Drive</button>
+        <button class="btn" onclick="saveToDrive()">Save to Drive</button>
+      </div>
+      <p style="font-size:11.5px;color:var(--text3);margin-top:9px">File: ${DRIVE_FILE_NAME} in appDataFolder</p></div>
+    <div class="card"><h3>Data</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="exportJSON()">Export JSON</button>
+        <label class="btn" style="display:inline-block">Import JSON<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
+        <button class="btn danger" onclick="resetAll()">Reset all data</button>
+      </div></div>
+    <div class="card"><h3>Open questions</h3>
+      <div class="note warn">Confirm whether the Cox plan is safe harbor. If not, ADP testing can refund HCE deferrals after year end — likely the reason a 6% HCE deferral cap previously existed.</div>
+      <div class="note warn">Confirm whether Vanguard exposes a separate bonus deferral percentage. If it does, enable it under Plan Setup to model bonus pacing independently.</div>
+      <div class="note warn">Spouse plan (Voya / Salto Systems) is seeded with placeholder values. Replace with real SPD facts under Plan Setup.</div></div>
+    <div class="card"><h3>About</h3>
+      <p style="font-size:12.5px;color:var(--text2)">Retirement Contribution Planner ${APP_VERSION} · part of the Command Center suite.
+      Modeling only — not tax or investment advice. Verify all plan facts against your Summary Plan Description.</p></div>`;
+}
+function resetAll(){
+  if(!confirm('Erase all planner data and reseed defaults? Drive file is not deleted.'))return;
+  appData=seedData();save();buildSelectors();render();toast('Reset complete.');
+}
+function exportJSON(){
+  const d=new Date();
+  const blob=new Blob([JSON.stringify(appData,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=dstr(d)+'-retirement_planner.json';a.click();
+}
+function importJSON(e){
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{try{appData=JSON.parse(rd.result);migrate();save();buildSelectors();render();toast('Imported.');}catch(x){toast('Invalid JSON file.');}};
+  rd.readAsText(f);
+}
+
+/* =========================================================================
+   DRIVE — Pattern 3
+   ========================================================================= */
+function initGIS(){
+  if(!window.google||!google.accounts||!google.accounts.oauth2)return;
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID,scope:SCOPES,
+    callback:async r=>{
+      silentDone=true;
+      if(r.error){toast('Drive auth failed: '+r.error);return;}
+      accessToken=r.access_token;driveConnected=true;
+      sessionStorage.setItem(DRIVE_TOKEN_KEY,accessToken);
+      setPill('⬤ Connected','var(--green)');
+      if($('gate').style.display!=='none'&&!localStorage.getItem(LS_HASH)){
+        frVerified=true;$('frGStat').textContent='✓ Verified — now set a password.';
+        $('frStep2').classList.remove('hidden');return;
+      }
+      await loadFromDrive();
+    }
+  });
+}
+window.addEventListener('load',()=>{if(window.google?.accounts?.oauth2)initGIS();});
+function connectDrive(){
+  if(!tokenClient){initGIS();if(!tokenClient)return toast('Auth library loading — try again shortly.');}
+  tokenClient.requestAccessToken({prompt:''});
+}
+let silentDone=false,silentFlight=false;
+function connectDriveSilent(){
+  if(!tokenClient){initGIS();if(!tokenClient)return;}
+  if(silentFlight)return;
+  silentFlight=true;silentDone=false;
+  setTimeout(()=>{silentFlight=false;if(!silentDone&&!driveConnected)toast('Drive needs re-auth — click the Drive pill in the topbar.',5000);},3000);
+  try{tokenClient.requestAccessToken({prompt:''});}
+  catch(e){silentFlight=false;silentDone=true;}
+}
+function setPill(txt,color){const p=$('drivePill');if(!p)return;p.textContent=txt;p.style.color=color;p.style.borderColor=color;}
+async function saveToDrive(){
+  saveLocal();
+  if(!driveDataLoaded||!driveConnected||!accessToken)return;
+  try{
+    setPill('⬤ Saving…','var(--gold)');
+    const blob=new Blob([JSON.stringify(appData,null,2)],{type:'application/json'});
+    let url,method;
+    if(driveFileId){url=`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`;method='PATCH';}
+    else{url='https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';method='POST';}
+    let body=blob;
+    if(!driveFileId){
+      const form=new FormData();
+      form.append('metadata',new Blob([JSON.stringify({name:DRIVE_FILE_NAME,parents:['appDataFolder']})],{type:'application/json'}));
+      form.append('file',blob);body=form;
+    }
+    const res=await fetch(url,{method,headers:{'Authorization':'Bearer '+accessToken},body});
+    const j=await res.json();
+    if(j.id){driveFileId=j.id;localStorage.setItem(LS_FILEID,driveFileId);}
+    setPill('⬤ Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),'var(--green)');
+  }catch(e){setPill('⬤ Save failed','var(--red)');}
+}
+async function loadFromDrive(){
+  if(!driveConnected||!accessToken)return toast('Connect Drive first.');
+  try{
+    setPill('⬤ Loading…','var(--gold)');
+    if(!driveFileId){
+      const q=encodeURIComponent(`name='${DRIVE_FILE_NAME}'`);
+      const fr=await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id)`,
+        {headers:{'Authorization':'Bearer '+accessToken}});
+      const fj=await fr.json();
+      if(fj.files&&fj.files.length){driveFileId=fj.files[0].id;localStorage.setItem(LS_FILEID,driveFileId);}
+    }
+    if(!driveFileId){driveDataLoaded=true;setPill('⬤ New file','var(--green)');saveToDrive();return;}
+    const res=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
+      {headers:{'Authorization':'Bearer '+accessToken}});
+    const j=await res.json();
+    if(j&&j.people){appData=j;migrate();saveLocal();}
+    driveDataLoaded=true;
+    buildSelectors();render();
+    setPill('⬤ Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),'var(--green)');
+  }catch(e){setPill('⬤ Load failed','var(--red)');toast('Could not load from Drive: '+e.message);}
+}
+
+/* ---------- boot ---------- */
+bootGate();
+</script>
+</body>
+</html>
