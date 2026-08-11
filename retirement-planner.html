@@ -51,6 +51,9 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 .spacer{flex:1}
 .pill{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;white-space:nowrap}
 #idlePill{cursor:default;font-variant-numeric:tabular-nums}
+/* the undo label is variable-length; cap it so it can never displace Log Off */
+#undoBtn{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:1;min-width:0}
+#topbar>button:last-child{flex-shrink:0}
 #tabs{display:flex;gap:2px;padding:0 12px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto}
 .tab{padding:10px 14px;font-size:13px;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none}
 .tab.active{color:var(--gold);border-bottom-color:var(--gold);font-weight:600}
@@ -191,6 +194,39 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
    Retirement Contribution Planner — Command Center suite
    v1.1.0
    CHANGELOG
+   v1.6.0 — Solver reworked. Three related changes.
+            (1) Election increment is now a plan fact (Plan Setup → whole % or tenths,
+            default whole). The solver rounds to it and the deferral sliders step by it,
+            so a returned election is always one the provider's portal will accept —
+            it was hardcoded to tenths and returned figures like 10.5% that could not
+            be entered.
+            (2) The solver now solves for the realized SPLIT rather than for annual
+            percentages. Pre-tax and Roth are deducted from every period concurrently,
+            so the total shuts off on reaching the cap while pre-tax may truncate
+            earlier at its own ceiling — meaning the elected ratio is not the realized
+            ratio. Solving on percentages alone left pre-tax short of its ceiling
+            (~$194 at tenths, up to ~$1,600 at whole percentages). It now simulates the
+            realized split for each candidate election, keeps only those that still
+            reach the cap, and picks the one closest to the pre-tax objective — with the
+            gentlest per-period bite as tie-break. Also guards the case where the cap
+            is unreachable at the plan maximum instead of silently returning a short
+            election.
+            (3) NEW solver objective: Maximize pre-tax (default) pins pre-tax to its
+            ceiling for the largest current-year deduction; Custom mix takes a pre-tax
+            dollar target and lets Roth absorb the remainder to the cap. Deliberately
+            neutral framing — the trade is deduction now against tax-free growth later,
+            and which wins depends on marginal rate now versus in retirement, which is
+            unknowable. Roth stays the absorbing variable in both modes so no setting
+            can leave the cap unmet.
+            The solver note now shows the realized dollar split, what the deduction is
+            worth at the entered marginal rate, and a caution when the chosen election
+            relies on pre-tax truncating while Roth continues — provider-specific
+            behaviour worth confirming.
+   v1.5.3 — FIX a long undo label ("Undo LTIP off for <name>") overflowed the topbar
+            and clipped the Log Off button off the right edge; the label now truncates
+            with an ellipsis and Log Off no longer shrinks. FIX a settled grant's
+            Assumed % input emitted two style attributes, so the browser ignored the
+            dimming — it was disabled but looked active. Now dimmed with a tooltip.
    v1.5.2 — Suite icon adopted: PNG data-URI favicon replacing the placeholder SVG,
             a 112px mark on the login gate, and a 20px mark in the topbar in place of
             the ◆ glyph. The base64 blob is stored once and both <img> slots read the
@@ -295,7 +331,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
             and FICA-wage feed into the forced-Roth determination.
    v1.0.0 — Initial release.
    ========================================================================= */
-const APP_VERSION='v1.5.2';
+const APP_VERSION='v1.6.0';
 const LS_HASH='rp_pw_hash', LS_SALT='rp_pw_salt', LS_ATT='rp_attempts', LS_DATA='rp_data', LS_FILEID='rp_drive_file_id';
 const DRIVE_FILE_NAME='retirement_planner.json';
 const DRIVE_TOKEN_KEY='rp_drive_token';
@@ -465,7 +501,7 @@ function seedLimits(){
 function seedPlan(name){
   return {planName:name,matchRate:0.50,matchCapPct:6,trueUp:true,fixedContribPct:0,
           bonusEligible:true,ltipEligible:false,maxDeferralPct:75,rothAvailable:true,
-          afterTaxAvailable:false,spillover:false,separateBonusElection:false};
+          afterTaxAvailable:false,spillover:false,separateBonusElection:false,pctStep:1};
 }
 function seedYear(salary,year){
   return {baseSalary:salary,raisePct:3,useSalaryOverride:false,newSalary:Math.round(salary*1.03*100)/100,
@@ -478,7 +514,8 @@ function seedYear(salary,year){
           ltipFromGrants:true,ltipAmount:0,ltipDate:year+'-03-15',
           preTaxPct:6,rothPct:0,bonusPreTaxPct:6,bonusRothPct:0,
           openingPreTax:0,openingRoth:0,openingComp:0,openingMatch:0,
-          priorYearFicaWages:0,autoFica:true,marginalFedPct:24,marginalStatePct:5,iraContrib:0};
+          priorYearFicaWages:0,autoFica:true,marginalFedPct:24,marginalStatePct:5,iraContrib:0,
+          solverMode:'maxpretax',solverPreTaxTarget:0};
 }
 /* Neutral placeholders only. Real figures live in the Drive JSON and in your own
    exported backup — never in this file, which is published to a web host. */
@@ -742,18 +779,74 @@ function solve(personId,year){
 
   const op=from?(Number(Y.openingPreTax)||0):0, or=from?(Number(Y.openingRoth)||0):0;
   const need=Math.max(0,totalLimit-op-or);
-  const ptNeed=Math.max(0,Math.min(need,preTaxCeiling-op));
-  let ptPct=ptNeed/comp*100, rtPct=(need-ptNeed)/comp*100;
-  const cap=Number(PL.maxDeferralPct); let capped=false;
-  if(ptPct+rtPct>cap){const sc=cap/(ptPct+rtPct);ptPct*=sc;rtPct*=sc;capped=true;}
-  // Rounding direction depends on whether pre-tax is genuinely ceiling-bound.
-  // When a Roth tier exists, floor pre-tax (can't breach its ceiling) and ceil
-  // Roth (absorbs the remainder, so the total still reaches the cap).
-  // When there is no Roth tier, nothing can absorb a shortfall — so ceil pre-tax.
-  const ptCeilBound = rtPct > 0.0001;
-  const ptR = ptCeilBound ? Math.floor(ptPct*10)/10 : Math.ceil(ptPct*10)/10;
-  const rtR = ptCeilBound ? Math.ceil(rtPct*10)/10  : 0;
-  return {preTaxPct:ptR,rothPct:rtR,combined:Math.round((ptR+rtR)*10)/10,capped,comp,need};
+  if(need<=0)return null;
+  const ptCeilAvail=Math.max(0,preTaxCeiling-op);
+
+  // Objective. maxpretax pins pre-tax to its ceiling for the largest current-year
+  // deduction; custom honours a user dollar target, clamped to what the ceiling and
+  // the remaining need allow. With no Roth source the objective is moot.
+  const custom = Y.solverMode==='custom' && PL.rothAvailable;
+  let ptTarget = Math.min(need, ptCeilAvail);
+  if(custom) ptTarget = Math.max(0, Math.min(ptTarget, Number(Y.solverPreTaxTarget)||0));
+
+  const step  = Number(PL.pctStep)>0 ? Number(PL.pctStep) : 1;
+  const maxPct= Number(PL.maxDeferralPct);
+  const dec   = step<1 ? 2 : 0;
+  const rnd   = v => Number(v.toFixed(dec));
+
+  // Realized split for a candidate election. Both sources are deducted from EVERY
+  // period concurrently, so the total shuts off on reaching `need` while pre-tax may
+  // truncate earlier at its own ceiling — after which Roth carries on alone. This is
+  // why an elected ratio does not equal the realized ratio, and why solving on annual
+  // percentages alone understates pre-tax.
+  const realize=(a,b)=>{
+    if(a+b<=0)return {pre:0,roth:0,total:0};
+    const pre =Math.min(need*a/(a+b), ptCeilAvail, a/100*comp);
+    const roth=Math.min(need-pre, b/100*comp);
+    return {pre,roth,total:pre+roth};
+  };
+
+  // For any combined rate the ideal pre-tax leg is combined x (ptTarget/need), so only
+  // the two step-neighbours of that ideal need testing per combined rate.
+  // Selection is tolerance-then-gentlest, NOT strictly-closest: a higher combined rate
+  // admits finer ratios, so chasing exactness would return absurd elections (a $20,000
+  // pre-tax target resolving to 40%+27% because it hits the dollar precisely). Anything
+  // landing within tolerance of the objective is treated as equivalent, and the gentlest
+  // per-period bite wins. Only if nothing is within tolerance does closest apply.
+  const tol=Math.max(100,need*0.01);
+  let best=null, bestAny=null;
+  const steps=Math.max(1,Math.round(maxPct/step));
+  for(let i=1;i<=steps;i++){
+    const combined=rnd(i*step);
+    const ideal=combined*(ptTarget/need);
+    const cands=PL.rothAvailable
+      ? [rnd(Math.max(0,Math.min(combined,Math.floor(ideal/step)*step))),
+         rnd(Math.max(0,Math.min(combined,Math.ceil (ideal/step)*step)))]
+      : [combined];
+    cands.forEach(a=>{
+      const b=rnd(combined-a);
+      if(a<0||b<0)return;
+      const r=realize(a,b);
+      if(r.total<need-0.5)return;                    // must still reach the cap
+      const miss=Math.abs(r.pre-ptTarget);
+      const cand={preTaxPct:a,rothPct:b,combined,miss,realPre:r.pre,realRoth:r.roth};
+      if(!bestAny||miss<bestAny.miss-0.005)bestAny=cand;
+      if(miss<=tol&&(!best||combined<best.combined))best=cand;
+    });
+  }
+  best=best||bestAny;
+
+  if(!best){
+    // Cap unreachable even at the plan maximum — return the best available effort.
+    const a=rnd(Math.min(maxPct,ptTarget/comp*100));
+    const b=PL.rothAvailable?rnd(maxPct-a):0;
+    const r=realize(a,b);
+    return {preTaxPct:a,rothPct:b,combined:rnd(a+b),capped:true,reaches:false,
+            comp,need,ptTarget,ptCeilAvail,step,realPre:r.pre,realRoth:r.roth,custom};
+  }
+  return {preTaxPct:best.preTaxPct,rothPct:best.rothPct,combined:best.combined,
+          capped:false,reaches:true,comp,need,ptTarget,ptCeilAvail,step,
+          realPre:best.realPre,realRoth:best.realRoth,custom};
 }
 
 /* =========================================================================
@@ -900,16 +993,32 @@ function renderPlanner(){
   </div>`;
 
 
+  const pstep=Number(PL.pctStep)>0?Number(PL.pctStep):1;
+  const pdec=pstep<1?1:0;
+  const isCustom=Y.solverMode==='custom'&&PL.rothAvailable;
+  const mr=(Number(Y.marginalFedPct)+Number(Y.marginalStatePct));
   h+=`<div class="card"><h3>Deferral elections</h3>
-    ${sl('Pre-tax %','preTaxPct',0,Number(PL.maxDeferralPct),0.1)}
-    ${sl('Roth 401(k) %','rothPct',0,Number(PL.maxDeferralPct),0.1)}
-    <div class="note">Combined <strong>${(Number(Y.preTaxPct)+Number(Y.rothPct)).toFixed(1)}%</strong> · plan allows up to ${PL.maxDeferralPct}%</div>
-    ${PL.separateBonusElection?sl('Bonus pre-tax %','bonusPreTaxPct',0,Number(PL.maxDeferralPct),0.1)+sl('Bonus Roth %','bonusRothPct',0,Number(PL.maxDeferralPct),0.1):''}
+    ${sl('Pre-tax %','preTaxPct',0,Number(PL.maxDeferralPct),pstep)}
+    ${sl('Roth 401(k) %','rothPct',0,Number(PL.maxDeferralPct),pstep)}
+    <div class="note">Combined <strong>${(Number(Y.preTaxPct)+Number(Y.rothPct)).toFixed(pdec)}%</strong> · plan allows up to ${PL.maxDeferralPct}%${pstep>=1?' in whole percentages':' in '+pstep+'% increments'}</div>
+    ${PL.separateBonusElection?sl('Bonus pre-tax %','bonusPreTaxPct',0,Number(PL.maxDeferralPct),pstep)+sl('Bonus Roth %','bonusRothPct',0,Number(PL.maxDeferralPct),pstep):''}
+    ${PL.rothAvailable?`<div class="fld" style="margin-top:12px"><label>Solver objective</label>
+      <span class="seg" style="width:100%">
+        <button style="flex:1" class="${!isCustom?'on':''}" onclick="setY('solverMode','maxpretax')">Maximize pre-tax</button>
+        <button style="flex:1" class="${isCustom?'on':''}" onclick="setY('solverMode','custom')">Custom mix</button>
+      </span></div>
+    <div class="note">${!isCustom
+      ? `Fills pre-tax to its ceiling first for the largest current-year deduction; Roth carries the remainder to the cap.`
+      : `Set the pre-tax dollars you want and Roth absorbs the rest to reach the cap. This trades deduction now for tax-free growth later — neither is the better answer, it depends on your rate now versus in retirement.`}</div>
+    ${isCustom?`<div class="grid g3" style="margin-top:8px">${nf('Pre-tax target $','solverPreTaxTarget','500')}</div>`:''}`:''}
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn primary" onclick="applySolve()">⚡ Solve to cap</button>
       <button class="btn" onclick="matchFloorOnly()">Match floor only (${PL.matchCapPct}%)</button>
     </div>
-    ${s?`<div class="note${s.capped?' warn':''}">Solver: <strong>${s.preTaxPct}%</strong> pre-tax + <strong>${s.rothPct}%</strong> Roth across ${money(s.comp)} of eligible comp${s.capped?' — ⚠ exceeds the plan\'s '+PL.maxDeferralPct+'% cap':''}.</div>`:''}
+    ${s?`<div class="note${s.reaches?'':' bad'}">Solver: <strong>${s.preTaxPct}%</strong> pre-tax + <strong>${s.rothPct}%</strong> Roth across ${money(s.comp)} of eligible comp.
+      ${s.reaches
+        ? `Lands ${money(s.realPre)} pre-tax + ${money(s.realRoth)} Roth = <strong>${money(s.realPre+s.realRoth)}</strong>, the full cap. Deduction worth ${money(s.realPre*mr/100)} at ${mr.toFixed(1)}%.${(s.realPre>=s.ptCeilAvail-0.5&&s.ptCeilAvail<s.need)?` Pre-tax truncates at the ${money(s.ptCeilAvail)} ceiling and Roth continues alone — confirm your provider does not halt <em>all</em> deferrals at that point.`:''}`
+        : `⚠ Cannot reach ${money(s.need)} even at the plan's ${PL.maxDeferralPct}% maximum — best effort lands ${money(s.realPre+s.realRoth)}.`}</div>`:''}
     </div>`;
 
   const aBef=annualBefore(Y), aAft=annualAfter(Y), gBef=grossBefore(Y), gAft=grossAfter(Y);
@@ -1038,7 +1147,7 @@ function matchFloorOnly(){
 function setY(key,val,live){
   const Y=appData.people.find(x=>x.id===curPerson).years[curYear];
   const dateKeys=['raiseDate','bonusDate','ltipDate','firstCheckDate','modelFromDate'];
-  const strKeys=['bonusMode','salaryEntryMode'];
+  const strKeys=['bonusMode','salaryEntryMode','solverMode'];
   Y[key]=(typeof val==='boolean')?val:(dateKeys.includes(key)||strKeys.includes(key))?val:Number(val);
   saveLocal();
   if(live){clearTimeout(window._rt);window._rt=setTimeout(()=>{renderPlanner();renderCtx();saveToDrive();},220);}
@@ -1062,7 +1171,9 @@ function applySolve(){
   const Y=appData.people.find(x=>x.id===curPerson).years[curYear];
   pushUndo(`solve (was ${Y.preTaxPct}/${Y.rothPct})`);
   Y.preTaxPct=s.preTaxPct;Y.rothPct=s.rothPct;save();render();
-  toast(`Set to ${s.preTaxPct}% pre-tax + ${s.rothPct}% Roth`);
+  toast(s.reaches
+    ? `${s.preTaxPct}% pre-tax + ${s.rothPct}% Roth → ${money(s.realPre)} / ${money(s.realRoth)}`
+    : `⚠ ${s.preTaxPct}%/${s.rothPct}% is the plan maximum — still ${money(s.need-s.realPre-s.realRoth)} short of the cap`);
 }
 
 function renderSched(){
@@ -1142,7 +1253,7 @@ function renderLtip(){
       <td style="color:var(--text3)">${g.grantYear}–${Number(g.grantYear)+2}</td>
       <td class="num"><input type="number" value="${g.payYear}" onchange="setG('${g.id}','payYear',this.value)" style="width:70px;text-align:right"></td>
       <td class="num"><input type="number" value="${g.floorPct==null?'':g.floorPct}" placeholder="none" onchange="setG('${g.id}','floorPct',this.value)" style="width:70px;text-align:right"></td>
-      <td class="num"><input type="number" value="${g.assumedPct}" onchange="setG('${g.id}','assumedPct',this.value)" style="width:70px;text-align:right" ${P.settled?'disabled style="width:70px;text-align:right;opacity:.4"':''}></td>
+      <td class="num"><input type="number" value="${g.assumedPct}" onchange="setG('${g.id}','assumedPct',this.value)" ${P.settled?'disabled title="Ignored — this grant has an actual payout recorded"':''} style="width:70px;text-align:right${P.settled?';opacity:.35':''}"></td>
       <td class="num"><input type="number" step="0.01" value="${g.actual==null?'':g.actual}" placeholder="—" onchange="setG('${g.id}','actual',this.value)" style="width:100px;text-align:right"></td>
       <td class="num" style="min-width:150px">${P.settled
         ? `<div style="font-weight:700;color:var(--green)">${money(P.assumed)}</div><div style="font-size:10px;color:var(--text3)">settled — actual</div>`
@@ -1237,6 +1348,12 @@ function renderSetup(){
         ${t('Match cap % of comp','matchCapPct','0.5')}
         ${t('Employer fixed contribution %','fixedContribPct','0.5')}
         ${t('Max deferral % allowed','maxDeferralPct','1')}
+        <div class="fld"><label>Election increment</label>
+          <select onchange="setPL('${p.id}','pctStep',this.value)">
+            <option value="1"${Number(PL.pctStep)!==0.1?' selected':''}>Whole % only</option>
+            <option value="0.1"${Number(PL.pctStep)===0.1?' selected':''}>Tenths of a %</option>
+          </select>
+          <span style="font-size:11px;color:var(--text3)">what the provider's portal accepts</span></div>
       </div><div style="margin-top:10px">
         ${c('Annual match true-up','trueUp','protects match if you max early')}
         ${c('Bonus is eligible compensation','bonusEligible','')}
