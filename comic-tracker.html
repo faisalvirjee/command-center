@@ -1,4 +1,4 @@
-<!-- Blades of Chaos — Comic Tracker | v1.10.2 | 2026-08-22 -->
+<!-- Blades of Chaos — Comic Tracker | v1.10.3 | 2026-08-22 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2263,7 +2263,7 @@ body.printing-insurance-report #insurance-report-print { display:block !importan
 <script>
 
 // VERSION
-const APP_VERSION = 'v1.10.2';
+const APP_VERSION = 'v1.10.3';
 const APP_BUILD   = '2026-04-30';
 document.addEventListener('DOMContentLoaded', () => {
   const lv = document.getElementById('cst-login-version');
@@ -5272,13 +5272,19 @@ function saveEdit() {
 // the closest match anywhere on the web, including that vendor's site when one
 // exists, rather than hard-failing when the domain's page text doesn't literally
 // contain every word of the query.
+// v1.10.3: appended &udm=14 to the Google-routed lookups — forces Google's
+// "Web" results mode (classic link list), skipping AI Overview, People Also
+// Ask, and shopping carousels, so the tab opens straight to actual comps/pages
+// instead of a generated summary. Not an official Google API, just a
+// documented URL parameter — could stop working if Google changes it, in
+// which case the search still runs fine, just with the AI box back on top.
 function buildLookupUrl(source, query) {
   const q = encodeURIComponent(query);
   switch (source) {
     case 'eBay sold comp':   return 'https://www.ebay.com/sch/i.html?_nkw=' + q + '&LH_Sold=1&LH_Complete=1';
-    case 'GoCollect':        return 'https://www.google.com/search?q=' + encodeURIComponent(query + ' gocollect price guide');
-    case 'CGC census/FMV':   return 'https://www.google.com/search?q=' + encodeURIComponent(query + ' cgc census value');
-    case 'ComicsPriceGuide': return 'https://www.google.com/search?q=' + encodeURIComponent(query + ' comicspriceguide');
+    case 'GoCollect':        return 'https://www.google.com/search?q=' + encodeURIComponent(query + ' gocollect price guide') + '&udm=14';
+    case 'CGC census/FMV':   return 'https://www.google.com/search?q=' + encodeURIComponent(query + ' cgc census value') + '&udm=14';
+    case 'ComicsPriceGuide': return 'https://www.google.com/search?q=' + encodeURIComponent(query + ' comicspriceguide') + '&udm=14';
     default:                 return '';
   }
 }
