@@ -1,4 +1,4 @@
-<!-- Blades of Chaos — Comic Tracker | v1.10.0 | 2026-08-22 -->
+<!-- Blades of Chaos — Comic Tracker | v1.10.1 | 2026-08-22 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2263,7 +2263,7 @@ body.printing-insurance-report #insurance-report-print { display:block !importan
 <script>
 
 // VERSION
-const APP_VERSION = 'v1.10.0';
+const APP_VERSION = 'v1.10.1';
 const APP_BUILD   = '2026-04-30';
 document.addEventListener('DOMContentLoaded', () => {
   const lv = document.getElementById('cst-login-version');
@@ -3538,9 +3538,15 @@ function renderDashboard() {
   // v1.10.0: insured value covers all unsold items — resale AND personal collection —
   // since personal-collection pieces are often exactly what needs insuring. Sold items
   // are excluded; they've already got a realized sale price.
-  const itemsValued       = unsold.filter(i => i.value != null && i.value > 0).length;
-  const totalInsuredValue = unsold.reduce((s, i) => s + (Number(i.value) || 0), 0);
-  const unrealizedGain    = totalInsuredValue - (totalCost + personalCost);
+  // v1.10.1: bugfix — unrealized gain must only compare value-vs-cost for the
+  // items that actually HAVE a value set. Comparing insured value against the
+  // full unsold cost basis meant an unvalued collection showed a large false
+  // "loss" equal to its entire cost, before a single item had been priced.
+  const valuedItems       = unsold.filter(i => i.value != null && i.value > 0);
+  const itemsValued       = valuedItems.length;
+  const totalInsuredValue = valuedItems.reduce((s, i) => s + (Number(i.value) || 0), 0);
+  const valuedCostBasis   = valuedItems.reduce((s, i) => s + (Number(i.myCost) || 0), 0);
+  const unrealizedGain    = totalInsuredValue - valuedCostBasis;
 
   $('stats-grid').innerHTML = `
     <div class="stat-card green">
@@ -3573,6 +3579,7 @@ function renderDashboard() {
     <div class="stat-card orange">
       <div class="stat-label">Unrealized Gain</div>
       <div class="stat-value ${unrealizedGain >= 0 ? 'profit' : 'loss'}">${unrealizedGain >= 0 ? '+' : ''}${fmt(unrealizedGain)}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px">${itemsValued > 0 ? `vs. ${fmt(valuedCostBasis)} cost, on ${itemsValued} valued item${itemsValued===1?'':'s'}` : 'no items valued yet'}</div>
     </div>
     <div class="stat-card orange">
       <div class="stat-label">eBay Est. Profit (Resale)</div>
