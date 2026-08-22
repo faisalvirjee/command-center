@@ -1,4 +1,4 @@
-<!-- Blades of Chaos — Comic Tracker | v1.9.10 | 2026-07-26 -->
+<!-- Blades of Chaos — Comic Tracker | v1.10.0 | 2026-08-22 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -833,9 +833,42 @@ tr.bulk-selected > td:first-child { box-shadow: inset 3px 0 0 #4aa8e0; backgroun
 #inv-table.hide-col-source    th:nth-child(20), #inv-table.hide-col-source    td:nth-child(20) { display:none; }
 #inv-table.hide-col-dateadded   th:nth-child(21), #inv-table.hide-col-dateadded   td:nth-child(21) { display:none; }
 #inv-table.hide-col-dateupdated th:nth-child(22), #inv-table.hide-col-dateupdated td:nth-child(22) { display:none; }
+/* v1.10.0: appended at the end (23-25) so no existing nth-child position above shifts */
+#inv-table.hide-col-value       th:nth-child(23), #inv-table.hide-col-value       td:nth-child(23) { display:none; }
+#inv-table.hide-col-valueasof   th:nth-child(24), #inv-table.hide-col-valueasof   td:nth-child(24) { display:none; }
+#inv-table.hide-col-valuesource th:nth-child(25), #inv-table.hide-col-valuesource td:nth-child(25) { display:none; }
 
 /* MODAL SECTION DIVIDER */
 .modal-section-divider { grid-column:1/-1; border-top:1px solid var(--border); padding-top:12px; margin-top:4px; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.7px; }
+
+/* v1.10.0: VALUATION + MARKET REFERENCE LOG */
+.reflog-wrap { border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.reflog-wrap table { font-size:12px; }
+.reflog-wrap th { font-size:9px; }
+.reflog-wrap td { font-size:12px; }
+.reflog-add-row { display:flex; gap:8px; padding:10px 14px; border-top:1px solid var(--border); flex-wrap:wrap; align-items:center; }
+.reflog-add-row input, .reflog-add-row select {
+  padding:7px 10px; border:1px solid var(--border); border-radius:6px; font-size:12px;
+  font-family:'DM Mono',monospace; background:var(--cream); color:var(--ink);
+}
+.reflog-del { cursor:pointer; color:var(--muted); text-align:center; }
+.reflog-del:hover { color:var(--accent); }
+.btn[disabled] { opacity:0.4 !important; cursor:not-allowed !important; }
+
+/* v1.10.0: INSURANCE REPORT — light/print-friendly regardless of app theme */
+#insurance-report-print { display:none; }
+.ir-doc { background:#fff; color:#1c1c1c; padding:32px 8px; font-family:'DM Sans',sans-serif; max-width:900px; margin:0 auto; }
+.ir-doc h1 { font-family:'Cinzel',serif; font-size:20px; letter-spacing:1px; margin:0; }
+.ir-doc .ir-sub { font-size:12px; color:#666; margin:4px 0 20px; }
+.ir-doc table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:14px; }
+.ir-doc thead { background:#fff; border-bottom:none; }
+.ir-doc th { text-align:left; padding:8px 6px; border-bottom:2px solid #1c1c1c; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#444; }
+.ir-doc td { padding:8px 6px; border-bottom:1px solid #ddd; color:#1c1c1c; }
+.ir-doc .ir-total { text-align:right; font-size:13px; padding:8px 6px 16px; border-top:2px solid #1c1c1c; }
+.ir-doc .ir-methodology { font-size:11px; color:#555; line-height:1.6; border-top:1px solid #ddd; padding-top:12px; }
+.ir-doc .ir-methodology strong { color:#1c1c1c; }
+body.printing-insurance-report > *:not(#insurance-report-print) { display:none !important; }
+body.printing-insurance-report #insurance-report-print { display:block !important; }
 
 /* SOLD TABLE column hide rules — sold col order:
    1=Item, 2=Cost, 3=Sold For, 4=Actual Profit, 5=Profit%,
@@ -1059,9 +1092,13 @@ tr.bulk-selected > td:first-child { box-shadow: inset 3px 0 0 #4aa8e0; backgroun
         <div><strong style="font-size:14px">Export to Excel (XLS)</strong><p style="font-size:12px;color:var(--muted);margin-top:2px">Download inventory + sold as formatted spreadsheet</p></div>
         <button onclick="exportXLS()" style="padding:7px 16px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Export XLS</button>
       </div>
-      <div style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
+      <div style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
         <div><strong style="font-size:14px">Print / Save as PDF</strong><p style="font-size:12px;color:var(--muted);margin-top:2px">Print current view to PDF</p></div>
         <button onclick="window.print()" style="padding:7px 16px;background:transparent;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--ink)">Print</button>
+      </div>
+      <div style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
+        <div><strong style="font-size:14px">Insurance Report</strong><p style="font-size:12px;color:var(--muted);margin-top:2px">Printable/exportable inventory report with values, for insurance purposes</p></div>
+        <button onclick="openInsuranceReportModal()" style="padding:7px 16px;background:#2980b9;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🛡 Generate Report</button>
       </div>
     </div>
 
@@ -1227,6 +1264,9 @@ tr.bulk-selected > td:first-child { box-shadow: inset 3px 0 0 #4aa8e0; backgroun
         <label class="col-check"><input type="checkbox" onchange="toggleCol('source',this)">Source</label>
         <label class="col-check"><input type="checkbox" onchange="toggleCol('dateadded',this)">Date Added</label>
         <label class="col-check"><input type="checkbox" onchange="toggleCol('dateupdated',this)">Last Updated</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('value',this)">Value</label>
+        <label class="col-check"><input type="checkbox" checked onchange="toggleCol('valueasof',this)">Value As Of</label>
+        <label class="col-check"><input type="checkbox" onchange="toggleCol('valuesource',this)">Valuation Source</label>
       </div>
     </div>
     <button class="btn btn-primary" onclick="openAddModal()">+ Add Item</button>
@@ -1305,6 +1345,9 @@ tr.bulk-selected > td:first-child { box-shadow: inset 3px 0 0 #4aa8e0; backgroun
           <th class="sortable" onclick="sortByCol('source')">Source</th>
           <th class="sortable" onclick="sortByCol('dateadded')">Date Added</th>
           <th class="sortable" onclick="sortByCol('dateupdated')">Last Updated</th>
+          <th class="sortable" onclick="sortByCol('value')">Value</th>
+          <th class="sortable" onclick="sortByCol('valueasof')">Value As Of</th>
+          <th>Valuation Source</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -1717,6 +1760,38 @@ tr.bulk-selected > td:first-child { box-shadow: inset 3px 0 0 #4aa8e0; backgroun
           <input type="text" id="m-signed-by" placeholder="e.g. Todd McFarlane, Stan Lee">
         </div>
       </div>
+
+      <!-- v1.10.0: VALUATION SECTION — insurance value tracking -->
+      <div class="modal-section-divider">Valuation</div>
+      <div class="full" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+        <div class="field-group">
+          <label>Current Value ($)</label>
+          <input type="number" id="m-value" step="0.01" placeholder="0.00">
+        </div>
+        <div class="field-group">
+          <label>Value As Of</label>
+          <input type="date" id="m-value-asof">
+        </div>
+        <div class="field-group" style="grid-column:span 2">
+          <label>Valuation Source</label>
+          <div style="display:flex;gap:6px">
+            <select id="m-value-source" style="flex:1" onchange="updateLookupBtn('m')">
+              <option value="">— Select —</option>
+              <option>GoCollect</option>
+              <option>eBay sold comp</option>
+              <option>CGC census/FMV</option>
+              <option>ComicsPriceGuide</option>
+              <option>Personal appraisal</option>
+              <option>Other</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-ghost" id="m-value-lookup" onclick="lookupValue('m')" disabled style="white-space:nowrap">Look up ↗</button>
+          </div>
+        </div>
+      </div>
+      <div class="field-group full">
+        <label>Valuation Note</label>
+        <input type="text" id="m-value-note" placeholder="e.g. 9.8 FMV avg across 3 recent comps">
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeAddModal()">Cancel</button>
@@ -1972,6 +2047,62 @@ tr.bulk-selected > td:first-child { box-shadow: inset 3px 0 0 #4aa8e0; backgroun
           <input type="text" id="e-signed-by" placeholder="e.g. Todd McFarlane, Stan Lee">
         </div>
       </div>
+
+      <!-- v1.10.0: VALUATION SECTION — insurance value tracking -->
+      <div class="modal-section-divider">Valuation</div>
+      <div class="full" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+        <div class="field-group">
+          <label>Current Value ($)</label>
+          <input type="number" id="e-value" step="0.01" placeholder="0.00">
+        </div>
+        <div class="field-group">
+          <label>Value As Of</label>
+          <input type="date" id="e-value-asof">
+        </div>
+        <div class="field-group" style="grid-column:span 2">
+          <label>Valuation Source</label>
+          <div style="display:flex;gap:6px">
+            <select id="e-value-source" style="flex:1" onchange="updateLookupBtn('e')">
+              <option value="">— Select —</option>
+              <option>GoCollect</option>
+              <option>eBay sold comp</option>
+              <option>CGC census/FMV</option>
+              <option>ComicsPriceGuide</option>
+              <option>Personal appraisal</option>
+              <option>Other</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-ghost" id="e-value-lookup" onclick="lookupValue('e')" disabled style="white-space:nowrap">Look up ↗</button>
+          </div>
+        </div>
+      </div>
+      <div class="field-group full">
+        <label>Valuation Note</label>
+        <input type="text" id="e-value-note" placeholder="e.g. 9.8 FMV avg across 3 recent comps">
+      </div>
+
+      <!-- v1.10.0: MARKET REFERENCE LOG — comps you've checked, kept separate from the official Value above -->
+      <div class="modal-section-divider">Market Reference Log</div>
+      <div class="full reflog-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Source</th><th>Value</th><th>Note</th><th></th></tr></thead>
+          <tbody id="e-reflog-body"></tbody>
+        </table>
+        <div class="reflog-add-row">
+          <input type="date" id="e-reflog-date" style="max-width:130px">
+          <select id="e-reflog-source" style="max-width:150px">
+            <option value="">Source…</option>
+            <option>GoCollect</option>
+            <option>eBay sold comp</option>
+            <option>CGC census/FMV</option>
+            <option>ComicsPriceGuide</option>
+            <option>Personal appraisal</option>
+            <option>Other</option>
+          </select>
+          <input type="number" id="e-reflog-value" step="0.01" placeholder="Value $" style="max-width:100px">
+          <input type="text" id="e-reflog-note" placeholder="Note (optional)" style="flex:1;min-width:140px">
+          <button type="button" class="btn btn-sm btn-ghost" onclick="addRefLogEntry()">+ Add reference</button>
+        </div>
+      </div>
     </div>
 
     <!-- Live profit preview -->
@@ -2036,6 +2167,50 @@ tr.bulk-selected > td:first-child { box-shadow: inset 3px 0 0 #4aa8e0; backgroun
   </div>
 </div>
 
+<!-- v1.10.0: INSURANCE REPORT MODAL — field picker, scope, and output -->
+<div class="modal-overlay" id="insurance-report-modal">
+  <div class="modal" style="max-width:600px">
+    <h2>🛡 Generate Insurance Report</h2>
+    <div class="modal-grid">
+      <div class="modal-section-divider">Fields to include</div>
+      <div class="full" style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px">
+        <label class="col-check"><input type="checkbox" checked disabled>Item Name</label>
+        <label class="col-check"><input type="checkbox" checked id="ir-f-cost">My Cost</label>
+        <label class="col-check"><input type="checkbox" checked id="ir-f-value">Current Value</label>
+        <label class="col-check"><input type="checkbox" checked id="ir-f-valueasof">Value As Of</label>
+        <label class="col-check"><input type="checkbox" checked id="ir-f-valuesource">Valuation Source</label>
+        <label class="col-check"><input type="checkbox" checked id="ir-f-grading">Grading Co / Grade</label>
+        <label class="col-check"><input type="checkbox" id="ir-f-signed">Signed / Signed By</label>
+        <label class="col-check"><input type="checkbox" id="ir-f-source">Source / Purchased From</label>
+        <label class="col-check"><input type="checkbox" id="ir-f-notes">Notes</label>
+      </div>
+
+      <div class="modal-section-divider">Scope</div>
+      <div class="full" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);cursor:pointer">
+          <input type="radio" name="ir-scope" value="all" checked onchange="updateInsuranceReportCount()"> All inventory
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);cursor:pointer">
+          <input type="radio" name="ir-scope" value="personal" onchange="updateInsuranceReportCount()"> Personal Collection only
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);cursor:pointer">
+          <input type="radio" name="ir-scope" value="filtered" onchange="updateInsuranceReportCount()"> Current filtered view
+        </label>
+      </div>
+      <div class="full" id="ir-scope-count" style="font-size:12px;color:var(--muted)"></div>
+    </div>
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="closeInsuranceReportModal()">Cancel</button>
+      <button class="btn btn-sm btn-ghost" onclick="exportInsuranceReportCSV()">⬇ CSV</button>
+      <button class="btn btn-sm btn-ghost" onclick="exportInsuranceReportXLS()">⬇ XLSX</button>
+      <button class="btn btn-primary" onclick="printInsuranceReport()">🖨 Print / Save PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- v1.10.0: hidden container — populated and shown only during print, scoped via body.printing-insurance-report -->
+<div id="insurance-report-print"></div>
+
 <!-- CSV IMPORT MODAL -->
 <div class="modal-overlay" id="csv-import-modal">
   <div class="modal" style="max-width:760px;width:95vw">
@@ -2088,7 +2263,7 @@ tr.bulk-selected > td:first-child { box-shadow: inset 3px 0 0 #4aa8e0; backgroun
 <script>
 
 // VERSION
-const APP_VERSION = 'v1.9.10';
+const APP_VERSION = 'v1.10.0';
 const APP_BUILD   = '2026-04-30';
 document.addEventListener('DOMContentLoaded', () => {
   const lv = document.getElementById('cst-login-version');
@@ -3251,6 +3426,15 @@ const fmtDate = ts => {
   const yr = String(d.getFullYear()).slice(-2);
   return `${mo}/${dy}/${yr}`;
 };
+// v1.10.0: valueAsOf / reference-log dates are plain 'YYYY-MM-DD' strings (from <input type="date">).
+// Slicing directly avoids the same UTC-rollover issue soldDateParts was written to fix — see v1.9.8 note above.
+const fmtPlainDate = dateStr => {
+  if (!dateStr) return '—';
+  const sd = String(dateStr).slice(0, 10);
+  const parts = sd.split('-');
+  if (parts.length !== 3) return sd;
+  return `${parts[1]}/${parts[2]}/${parts[0].slice(-2)}`;
+};
 
 function statusBadge(s) {
   if (!s) return '<span class="badge badge-unknown">—</span>';
@@ -3351,6 +3535,12 @@ function renderDashboard() {
   const ebayProfit      = unsoldResale.reduce((s, i) => s + calcEbayProfit(i), 0);
   const fbProfit        = unsoldResale.reduce((s, i) => s + ((i.salePrice||0) - (i.myCost||0)), 0);
   const lowProfit       = unsoldResale.filter(i => calcEbayProfit(i) < 5 && i.myCost > 0).length;
+  // v1.10.0: insured value covers all unsold items — resale AND personal collection —
+  // since personal-collection pieces are often exactly what needs insuring. Sold items
+  // are excluded; they've already got a realized sale price.
+  const itemsValued       = unsold.filter(i => i.value != null && i.value > 0).length;
+  const totalInsuredValue = unsold.reduce((s, i) => s + (Number(i.value) || 0), 0);
+  const unrealizedGain    = totalInsuredValue - (totalCost + personalCost);
 
   $('stats-grid').innerHTML = `
     <div class="stat-card green">
@@ -3374,6 +3564,15 @@ function renderDashboard() {
       <div class="stat-label">Cost in Resale Inventory</div>
       <div class="stat-value">${fmt(totalCost)}</div>
       ${personalCost > 0 ? `<div style="font-size:10px;color:var(--muted);margin-top:3px">${fmt(personalCost)} in personal collection</div>` : ''}
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Total Insured Value</div>
+      <div class="stat-value">${fmt(totalInsuredValue)}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px">${itemsValued} of ${unsold.length} items valued</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">Unrealized Gain</div>
+      <div class="stat-value ${unrealizedGain >= 0 ? 'profit' : 'loss'}">${unrealizedGain >= 0 ? '+' : ''}${fmt(unrealizedGain)}</div>
     </div>
     <div class="stat-card orange">
       <div class="stat-label">eBay Est. Profit (Resale)</div>
@@ -3680,6 +3879,8 @@ function renderInvTable() {
       if (colSortKey === 'source')    return ((a.source||'').localeCompare(b.source||'')) * dir;
       if (colSortKey === 'dateadded')   return ((a.addedAt||0) - (b.addedAt||0)) * dir;
       if (colSortKey === 'dateupdated') return ((a.updatedAt||0) - (b.updatedAt||0)) * dir;
+      if (colSortKey === 'value')       return ((a.value||0) - (b.value||0)) * dir;
+      if (colSortKey === 'valueasof')   return ((a.valueAsOf||'').localeCompare(b.valueAsOf||'')) * dir;
     }
     // Default: newest first
     return (b.addedAt||b.id||0) - (a.addedAt||a.id||0);
@@ -3739,6 +3940,9 @@ function renderInvTable() {
       <td data-label="Source" style="font-size:12px;color:var(--muted)">${i.source || '—'}</td>
       <td data-label="Date Added" class="mono" style="font-size:11px;color:var(--muted);white-space:nowrap">${fmtDate(i.addedAt)}</td>
       <td data-label="Last Updated" class="mono" style="font-size:11px;color:var(--muted);white-space:nowrap">${fmtDate(i.updatedAt)}</td>
+      <td data-label="Value" class="mono" style="color:var(--green)">${i.value != null ? fmt(i.value) : '—'}</td>
+      <td data-label="Value As Of" style="font-size:11px;color:var(--muted);white-space:nowrap">${fmtPlainDate(i.valueAsOf)}</td>
+      <td data-label="Valuation Source" style="font-size:12px;color:var(--muted)">${i.valueSource || '—'}</td>
       <td class="no-label"><div class="action-cell">
         <button class="btn-edit" onclick="openEditModal(${i.id})">✏️ Edit</button>
         <button class="btn-edit" onclick="copyToPredictor(${i.id})" title="Load into eBay Predictor" style="background:rgba(30,122,191,0.12);border-color:rgba(30,122,191,0.35);color:#4aa8e0">📊</button>
@@ -4248,6 +4452,168 @@ function exportFilteredXLS(filtered) {
   showToast('📥 Exported ' + filtered.length + ' items', 'success');
 }
 
+// ─── INSURANCE REPORT (v1.10.0) ────────────────────────────────────────────────
+function openInsuranceReportModal() {
+  updateInsuranceReportCount();
+  $('insurance-report-modal').classList.add('open');
+}
+function closeInsuranceReportModal() {
+  $('insurance-report-modal').classList.remove('open');
+}
+
+// Non-sold items only — sold comics already have a realized sale price, so
+// "insured value" doesn't apply to them.
+function getInsuranceReportItems() {
+  const scope = document.querySelector('input[name="ir-scope"]:checked')?.value || 'all';
+  const nonSold = items.filter(i => (i.currentStatus || '').toLowerCase() !== 'sold');
+  if (scope === 'personal') return nonSold.filter(i => i.personalCollection);
+  if (scope === 'filtered') {
+    const base = window._lastFilteredInv || nonSold;
+    return base.filter(i => (i.currentStatus || '').toLowerCase() !== 'sold');
+  }
+  return nonSold;
+}
+
+function updateInsuranceReportCount() {
+  const n = getInsuranceReportItems().length;
+  const el = $('ir-scope-count');
+  if (el) el.textContent = `${n} item${n === 1 ? '' : 's'} in this report`;
+}
+
+function getInsuranceReportFields() {
+  return {
+    cost:        !!$('ir-f-cost')?.checked,
+    value:       !!$('ir-f-value')?.checked,
+    valueAsOf:   !!$('ir-f-valueasof')?.checked,
+    valueSource: !!$('ir-f-valuesource')?.checked,
+    grading:     !!$('ir-f-grading')?.checked,
+    signed:      !!$('ir-f-signed')?.checked,
+    source:      !!$('ir-f-source')?.checked,
+    notes:       !!$('ir-f-notes')?.checked
+  };
+}
+
+function buildInsuranceReportHTML(list, f) {
+  const cols = [{ key: 'item', label: 'Item' }];
+  if (f.grading)     cols.push({ key: 'grading',     label: 'Grading' });
+  if (f.cost)        cols.push({ key: 'cost',         label: 'My Cost' });
+  if (f.value)       cols.push({ key: 'value',        label: 'Current Value' });
+  if (f.valueAsOf)   cols.push({ key: 'valueAsOf',    label: 'Value As Of' });
+  if (f.valueSource) cols.push({ key: 'valueSource',  label: 'Source' });
+  if (f.signed)      cols.push({ key: 'signed',       label: 'Signed' });
+  if (f.source)      cols.push({ key: 'source',       label: 'Purchased From' });
+  if (f.notes)       cols.push({ key: 'notes',        label: 'Notes' });
+
+  const rowVal = (i, key) => {
+    switch (key) {
+      case 'item':        return (i.item || '').trim();
+      case 'grading':     return i.gradingCo ? (i.gradingCo + (i.grade ? ' ' + i.grade : '')) : 'Raw';
+      case 'cost':        return fmt(i.myCost || 0);
+      case 'value':       return i.value != null ? fmt(i.value) : '—';
+      case 'valueAsOf':   return fmtPlainDate(i.valueAsOf);
+      case 'valueSource': return i.valueSource || '—';
+      case 'signed':      return i.signed === 'Signed' ? ('Signed' + (i.signedBy ? ' — ' + i.signedBy : '')) : '—';
+      case 'source':      return i.source || '—';
+      case 'notes':       return i.notes || '';
+      default:            return '';
+    }
+  };
+
+  const totalValue = f.value ? list.reduce((s, i) => s + (Number(i.value) || 0), 0) : null;
+  const genDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  return `
+    <div class="ir-doc">
+      <h1>Blades of Chaos — Comic Collection</h1>
+      <div class="ir-sub">Insurance inventory report · Generated ${genDate} · ${list.length} item${list.length === 1 ? '' : 's'}</div>
+      <table>
+        <thead><tr>${cols.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${list.map(i => `<tr>${cols.map(c => `<td>${rowVal(i, c.key)}</td>`).join('')}</tr>`).join('')}
+        </tbody>
+      </table>
+      ${totalValue != null ? `<div class="ir-total">Total insured value: <strong>${fmt(totalValue)}</strong></div>` : ''}
+      <div class="ir-methodology">
+        <strong>Valuation methodology.</strong> Values reflect estimated fair market value as of the date noted for each item, based on documented comparables — GoCollect fair-market-value data, verified eBay sold listings for the matching issue and grade, and CGC census/market data where applicable. Where no recent comparable sale exists, value reflects the owner's assessment based on grade, rarity, and pricing for equivalent copies in the current market.
+      </div>
+    </div>`;
+}
+
+// Scoped via a body class rather than a blanket @media print rule, so the app's
+// existing generic "Print / Save as PDF" button (plain window.print() on whatever
+// tab is visible) keeps working exactly as before when this class isn't present.
+function printInsuranceReport() {
+  const list = getInsuranceReportItems();
+  if (!list.length) { showToast('No items match the selected scope', 'warn'); return; }
+  const fields = getInsuranceReportFields();
+  $('insurance-report-print').innerHTML = buildInsuranceReportHTML(list, fields);
+  document.body.classList.add('printing-insurance-report');
+  window.print();
+}
+window.addEventListener('afterprint', () => {
+  document.body.classList.remove('printing-insurance-report');
+});
+
+function insuranceReportRowsForExport(list, f) {
+  const headers = ['Item'];
+  if (f.grading)     headers.push('Grading Co', 'Grade');
+  if (f.cost)        headers.push('My Cost');
+  if (f.value)       headers.push('Current Value');
+  if (f.valueAsOf)   headers.push('Value As Of');
+  if (f.valueSource) headers.push('Valuation Source');
+  if (f.signed)      headers.push('Signed', 'Signed By');
+  if (f.source)      headers.push('Source');
+  if (f.notes)       headers.push('Notes');
+
+  const rows = list.map(i => {
+    const row = [(i.item || '').trim()];
+    if (f.grading)     row.push(i.gradingCo || '', i.grade || '');
+    if (f.cost)        row.push(i.myCost || 0);
+    if (f.value)       row.push(i.value != null ? i.value : '');
+    if (f.valueAsOf)   row.push(i.valueAsOf || '');
+    if (f.valueSource) row.push(i.valueSource || '');
+    if (f.signed)      row.push(i.signed || '', i.signedBy || '');
+    if (f.source)      row.push(i.source || '');
+    if (f.notes)       row.push(i.notes || '');
+    return row;
+  });
+  return { headers, rows };
+}
+
+function exportInsuranceReportCSV() {
+  const list = getInsuranceReportItems();
+  if (!list.length) { showToast('No items match the selected scope', 'warn'); return; }
+  const { headers, rows } = insuranceReportRowsForExport(list, getInsuranceReportFields());
+  const csvSafe = v => { const s = (v == null ? '' : String(v)); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const csv = headers.map(csvSafe).join(',') + '\n' + rows.map(r => r.map(csvSafe).join(',')).join('\n') + '\n';
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
+  const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  a.href = url; a.download = 'comic-tracker_insurance-report_' + dateStr + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('📥 Exported ' + list.length + ' items', 'success');
+}
+
+function exportInsuranceReportXLS() {
+  const list = getInsuranceReportItems();
+  if (!list.length) { showToast('No items match the selected scope', 'warn'); return; }
+  if (typeof XLSX === 'undefined') {
+    showToast('XLSX library not loaded — using CSV', 'warn');
+    exportInsuranceReportCSV();
+    return;
+  }
+  const { headers, rows } = insuranceReportRowsForExport(list, getInsuranceReportFields());
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Insurance Report');
+  const d = new Date();
+  const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  XLSX.writeFile(wb, 'comic-tracker_insurance-report_' + dateStr + '.xlsx');
+  showToast('📥 Exported ' + list.length + ' items', 'success');
+}
+
 function filterLowProfit() {
   // Switch to inventory tab
   document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
@@ -4476,6 +4842,8 @@ function openAddModal() {
   // v1.9.0: ensure variant section starts clean and preview reflects current name
   resetVariantSection('m');
   updateAddPreview();
+  // v1.10.0: lookup button starts disabled until a source is picked
+  updateLookupBtn('m');
 }
 function closeAddModal() { $('add-modal').classList.remove('open'); }
 function addItem() {
@@ -4532,6 +4900,12 @@ function addItem() {
   const ebayStatusOverride = ($('m-ebay-status')?.value || '').trim();
   const fbStatusOverride   = ($('m-fb-status')?.value || '').trim();
   const actualProfitRaw    = ($('m-actual-profit')?.value || '').trim();
+  // v1.10.0: valuation fields
+  const valueRaw    = ($('m-value')?.value || '').trim();
+  const value       = valueRaw === '' ? null : parseFloat(valueRaw);
+  const valueAsOf   = ($('m-value-asof')?.value || '') || null;
+  const valueSource = ($('m-value-source')?.value || '').trim();
+  const valueNote   = ($('m-value-note')?.value || '').trim();
 
   const total = price + shipC;                  // matches saveEdit; tax tracked separately
   const feeBasis = total + tax;                  // eBay FVF on item + shipping + tax (correct per eBay policy)
@@ -4577,6 +4951,11 @@ function addItem() {
     signed,
     signedBy,
     personalCollection: personalCollection,  // v1.8.0
+    value,               // v1.10.0
+    valueAsOf,           // v1.10.0
+    valueSource,         // v1.10.0
+    valueNote,           // v1.10.0
+    valueRefs: [],       // v1.10.0
     addedAt: Date.now(),
     updatedAt: null
   });
@@ -4606,6 +4985,12 @@ function addItem() {
   if ($('m-source'))        $('m-source').value = '';
   if ($('m-signed'))        $('m-signed').value = '';
   if ($('m-signed-by'))     $('m-signed-by').value = '';
+  // v1.10.0: clear valuation fields for next add
+  if ($('m-value'))        $('m-value').value = '';
+  if ($('m-value-asof'))   $('m-value-asof').value = '';
+  if ($('m-value-source')) $('m-value-source').value = '';
+  if ($('m-value-note'))   $('m-value-note').value = '';
+  updateLookupBtn('m');
   // v1.9.0: clear variant section for next add
   resetVariantSection('m');
   updateAddPreview();
@@ -4646,6 +5031,14 @@ function openEditModal(id) {
   $('e-signed').value = item.signed || '';
   $('e-signed-by').value = item.signedBy || '';
   if ($('e-personal')) $('e-personal').checked = !!item.personalCollection;  // v1.8.0
+  // v1.10.0: valuation fields + reference log
+  if ($('e-value'))        $('e-value').value = item.value != null ? item.value : '';
+  if ($('e-value-asof'))   $('e-value-asof').value = item.valueAsOf || '';
+  if ($('e-value-source')) $('e-value-source').value = item.valueSource || '';
+  if ($('e-value-note'))   $('e-value-note').value = item.valueNote || '';
+  updateLookupBtn('e');
+  if (!item.valueRefs) item.valueRefs = [];
+  renderRefLog();
 
   // Clear any previous warning
   const w = $('e-platform-warning');
@@ -4842,6 +5235,13 @@ function saveEdit() {
   item.signed          = $('e-signed').value;
   item.signedBy        = $('e-signed-by').value.trim();
   item.personalCollection = $('e-personal') ? !!$('e-personal').checked : !!item.personalCollection;  // v1.8.0
+  // v1.10.0: valuation fields (valueRefs is edited live in the modal via addRefLogEntry/deleteRefLogEntry
+  // and already saved at that point — not re-read here)
+  const valueRaw = $('e-value') ? $('e-value').value.trim() : '';
+  item.value       = valueRaw === '' ? null : parseFloat(valueRaw);
+  item.valueAsOf   = $('e-value-asof') ? ($('e-value-asof').value || null) : item.valueAsOf;
+  item.valueSource = $('e-value-source') ? $('e-value-source').value.trim() : item.valueSource;
+  item.valueNote   = $('e-value-note') ? $('e-value-note').value.trim() : item.valueNote;
   item.updatedAt       = Date.now();
 
   closeEditModal();
@@ -4849,6 +5249,88 @@ function saveEdit() {
   saveAll();
   if (currentTab === 'dashboard') renderDashboard();
   if (currentTab === 'sold') renderSold();
+}
+
+// ─── VALUATION / MARKET REFERENCE LOG (v1.10.0) ───────────────────────────────
+// "Look up" only builds a search URL and opens it in a new tab — it never fetches
+// or auto-fills anything. GoCollect/CGC/ComicsPriceGuide don't publish a stable
+// public search endpoint, so we route through a Google site-search, which is
+// reliable regardless of how each vendor's own search is implemented. eBay's
+// sold-listings URL params (LH_Sold/LH_Complete) are documented and stable, so
+// that one links directly.
+function buildLookupUrl(source, query) {
+  const q = encodeURIComponent(query);
+  switch (source) {
+    case 'eBay sold comp':   return 'https://www.ebay.com/sch/i.html?_nkw=' + q + '&LH_Sold=1&LH_Complete=1';
+    case 'GoCollect':        return 'https://www.google.com/search?q=' + encodeURIComponent('site:gocollect.com ' + query);
+    case 'CGC census/FMV':   return 'https://www.google.com/search?q=' + encodeURIComponent('site:cgccomics.com ' + query);
+    case 'ComicsPriceGuide': return 'https://www.google.com/search?q=' + encodeURIComponent('site:comicspriceguide.com ' + query);
+    default:                 return '';
+  }
+}
+function updateLookupBtn(prefix) {
+  const source = ($(prefix + '-value-source')?.value || '');
+  const btn = $(prefix + '-value-lookup');
+  if (!btn) return;
+  const disabled = !source || source === 'Personal appraisal' || source === 'Other';
+  btn.disabled = disabled;
+}
+function lookupValue(prefix) {
+  const source = ($(prefix + '-value-source')?.value || '');
+  const name = ($(prefix + '-name')?.value || '').trim();
+  if (!source || source === 'Personal appraisal' || source === 'Other') return;
+  if (!name) { alert('Enter an item name first.'); return; }
+  const url = buildLookupUrl(source, name);
+  if (url) window.open(url, '_blank', 'noopener');
+}
+
+function renderRefLog() {
+  const item = items.find(i => i.id === editingId);
+  const body = $('e-reflog-body');
+  if (!item || !body) return;
+  const refs = item.valueRefs || [];
+  if (!refs.length) {
+    body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);font-style:italic;padding:12px">No reference checks logged yet</td></tr>`;
+    return;
+  }
+  // newest first for display, but keep original array indices for delete
+  const order = refs.map((r, idx) => ({ r, idx })).sort((a, b) => (b.r.date || '').localeCompare(a.r.date || ''));
+  body.innerHTML = order.map(({ r, idx }) => `<tr>
+      <td>${fmtPlainDate(r.date)}</td>
+      <td>${r.source || '—'}</td>
+      <td class="mono">${fmt(r.value)}</td>
+      <td>${r.note || ''}</td>
+      <td class="reflog-del" onclick="deleteRefLogEntry(${idx})" title="Delete">✕</td>
+    </tr>`).join('');
+}
+
+function addRefLogEntry() {
+  const item = items.find(i => i.id === editingId);
+  if (!item) return;
+  const date   = $('e-reflog-date').value;
+  const source = $('e-reflog-source').value;
+  const valueRaw = $('e-reflog-value').value;
+  const value  = parseFloat(valueRaw);
+  const note   = $('e-reflog-note').value.trim();
+  if (!date)   { alert('Pick a date for this reference.'); return; }
+  if (!source) { alert('Pick a source for this reference.'); return; }
+  if (valueRaw === '' || isNaN(value)) { alert('Enter a value for this reference.'); return; }
+  if (!item.valueRefs) item.valueRefs = [];
+  item.valueRefs.push({ date, source, value, note });
+  $('e-reflog-date').value = '';
+  $('e-reflog-source').value = '';
+  $('e-reflog-value').value = '';
+  $('e-reflog-note').value = '';
+  renderRefLog();
+  saveAll();
+}
+
+function deleteRefLogEntry(idx) {
+  const item = items.find(i => i.id === editingId);
+  if (!item || !item.valueRefs) return;
+  item.valueRefs.splice(idx, 1);
+  renderRefLog();
+  saveAll();
 }
 
 function deleteItem(id) {
@@ -5473,10 +5955,14 @@ function setDasondYear(year) {
 
 // ─── COLUMN TOGGLE ────────────────────────────────────────────────────────────
 const NEW_COLS = ['grading','grade','signed','signedby','source','dateadded','dateupdated'];
+// v1.10.0: only valuesource joins the hidden-by-default set on migration — value/valueAsOf
+// ship visible since surfacing them is the whole point of this release.
+const NEW_COLS_V110 = ['valuesource'];
 const _savedCols = JSON.parse(localStorage.getItem('cst_hidden_cols') || 'null');
 // Always ensure new columns are hidden by default even if old saved state exists
 const _baseCols = _savedCols !== null ? _savedCols : ['grading','grade','signed','signedby','source','dateadded','dateupdated'];
 NEW_COLS.forEach(c => { if (_savedCols !== null && !_savedCols.includes(c)) _baseCols.push(c); });
+NEW_COLS_V110.forEach(c => { if (_savedCols !== null && !_savedCols.includes(c)) _baseCols.push(c); });
 const hiddenCols = new Set(_baseCols);
 
 // Sold page has its own hidden cols
@@ -5489,7 +5975,7 @@ if (_savedSoldCols !== null) {
 const soldHiddenCols = new Set(_baseSoldCols);
 
 function applyColVisibility() {
-  const allCols = ['status','ebay','fb','cost','price','enet','eprofit','margin','fbnet','promo','purchaser','notes','breakeven','grading','grade','signed','signedby','source','dateadded','dateupdated'];
+  const allCols = ['status','ebay','fb','cost','price','enet','eprofit','margin','fbnet','promo','purchaser','notes','breakeven','grading','grade','signed','signedby','source','dateadded','dateupdated','value','valueasof','valuesource'];
   // Apply to inventory table
   const invTable = document.getElementById('inv-table');
   if (invTable) {
