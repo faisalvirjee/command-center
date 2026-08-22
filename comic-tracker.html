@@ -1,4 +1,4 @@
-<!-- Blades of Chaos — Comic Tracker | v1.10.1 | 2026-08-22 -->
+<!-- Blades of Chaos — Comic Tracker | v1.10.2 | 2026-08-22 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2263,7 +2263,7 @@ body.printing-insurance-report #insurance-report-print { display:block !importan
 <script>
 
 // VERSION
-const APP_VERSION = 'v1.10.1';
+const APP_VERSION = 'v1.10.2';
 const APP_BUILD   = '2026-04-30';
 document.addEventListener('DOMContentLoaded', () => {
   const lv = document.getElementById('cst-login-version');
@@ -5260,18 +5260,25 @@ function saveEdit() {
 
 // ─── VALUATION / MARKET REFERENCE LOG (v1.10.0) ───────────────────────────────
 // "Look up" only builds a search URL and opens it in a new tab — it never fetches
-// or auto-fills anything. GoCollect/CGC/ComicsPriceGuide don't publish a stable
-// public search endpoint, so we route through a Google site-search, which is
-// reliable regardless of how each vendor's own search is implemented. eBay's
-// sold-listings URL params (LH_Sold/LH_Complete) are documented and stable, so
-// that one links directly.
+// or auto-fills anything. eBay's sold-listings URL params (LH_Sold/LH_Complete)
+// are documented and stable, so that one links directly into eBay's own search.
+// GoCollect/CGC/ComicsPriceGuide don't publish a stable public search endpoint.
+// v1.10.2: these were originally routed through a Google `site:` search, but
+// that operator requires a near-exact match against that one domain's indexed
+// text — long, specific titles (con-exclusive codes, print-run counts, etc.)
+// essentially never appear verbatim on a price-guide page, so it reliably
+// returned zero results. Switched to a normal (unscoped) Google search with the
+// vendor name folded in as a keyword instead — Google's relevance ranking finds
+// the closest match anywhere on the web, including that vendor's site when one
+// exists, rather than hard-failing when the domain's page text doesn't literally
+// contain every word of the query.
 function buildLookupUrl(source, query) {
   const q = encodeURIComponent(query);
   switch (source) {
     case 'eBay sold comp':   return 'https://www.ebay.com/sch/i.html?_nkw=' + q + '&LH_Sold=1&LH_Complete=1';
-    case 'GoCollect':        return 'https://www.google.com/search?q=' + encodeURIComponent('site:gocollect.com ' + query);
-    case 'CGC census/FMV':   return 'https://www.google.com/search?q=' + encodeURIComponent('site:cgccomics.com ' + query);
-    case 'ComicsPriceGuide': return 'https://www.google.com/search?q=' + encodeURIComponent('site:comicspriceguide.com ' + query);
+    case 'GoCollect':        return 'https://www.google.com/search?q=' + encodeURIComponent(query + ' gocollect price guide');
+    case 'CGC census/FMV':   return 'https://www.google.com/search?q=' + encodeURIComponent(query + ' cgc census value');
+    case 'ComicsPriceGuide': return 'https://www.google.com/search?q=' + encodeURIComponent(query + ' comicspriceguide');
     default:                 return '';
   }
 }
