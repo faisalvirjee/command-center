@@ -263,6 +263,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
         <div class="snap-label fresh" id="topbar-ts-label"></div>
       </div>
       <span class="ro-badge">READ ONLY</span>
+      <button class="lock-btn" id="refresh-btn" onclick="doRefresh()" title="Check for a newer snapshot from CPM">↻ Refresh</button>
       <button class="lock-btn" onclick="doLock()">🔒 Lock</button>
     </div>
   </div>
@@ -303,7 +304,8 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 
 <script>
 // ── CONFIG ──
-const VIEWER_VERSION    = 'v2.1.8';
+const VIEWER_VERSION    = 'v2.2.4';
+const MATH_SYNCED_FROM  = 'CPM v2.15.14';  // v2.2.0 — math block lifted verbatim from this CPM version
 // If accessing via URL param (?folder=ID), that overrides the default
 const DEFAULT_FOLDER_ID = '1zaQBENpzmLk1YSEvP2mR5iwIFyMUL3Z-';
 const DEFAULT_FILE_ID   = '1Am9LRzRLLykZl7ggPA8sL0gCPF05kq2K'; // cpm_shared.json
@@ -312,6 +314,13 @@ const SHARED_FILE_NAME  = 'cpm_shared.json';
 // ── STATE ──
 let viewerData = null;
 let currentProj = null;
+// v2.2.2 FIX: the lifted math block (VD2 — kept verbatim, never edited) references CPM's
+// global `currentProject` as a fallback, and calcUpgradeMargin() reads it directly with no
+// proj arg. The viewer's global is `currentProj`. Rather than edit the verbatim block, we
+// keep `currentProject` as a live alias, reassigned in lockstep wherever currentProj changes
+// (see setCurrentProj). Blank Finance/Dashboard tabs were this throwing ReferenceError.
+let currentProject = null;
+function setCurrentProj(p){ currentProj = p; currentProject = p; }
 let currentTab  = 'dashboard';
 
 // ── HELPERS ──
@@ -395,6 +404,10 @@ async function fetchSharedData(password){
 }
 
 // ── LOGIN ──
+// v2.2.4 — password retained in memory after a successful login so Refresh can re-fetch
+// the latest snapshot without a full re-login. Cleared on Lock. Never persisted anywhere.
+let _sessionPw = null;
+
 async function doLogin(){
   const pw = document.getElementById('login-pw').value;
   const err = document.getElementById('login-err');
@@ -407,27 +420,14 @@ async function doLogin(){
 
   try{
     const {data, exportedAt} = await fetchSharedData(pw);
+    _sessionPw = pw;
     viewerData = data;
 
     // Show app
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'block';
 
-    // Timestamp — prominent topbar block with relative age
-    const ts = exportedAt ? new Date(exportedAt).toLocaleString() : 'Unknown';
-    const {label, stale} = fmtRelativeAge(exportedAt);
-    const dateEl = document.getElementById('topbar-ts-date');
-    const labelEl = document.getElementById('topbar-ts-label');
-    const blockEl = document.getElementById('topbar-ts-block');
-    if(dateEl) dateEl.textContent = ts;
-    if(labelEl){
-      labelEl.textContent = label;
-      labelEl.className = 'snap-label ' + (stale ? 'stale' : 'fresh');
-    }
-    if(blockEl) blockEl.style.display = 'flex';
-    document.getElementById('footer-credit').textContent =
-      `CPM Viewer ${VIEWER_VERSION} — Snapshot: ${ts} · Read-only`;
-
+    applyLoadedData(exportedAt);
     buildProjectSelector();
     if(viewerData.projects && viewerData.projects.length > 0){
       selectProject(viewerData.projects[0].id);
@@ -441,8 +441,49 @@ async function doLogin(){
   }
 }
 
+// v2.2.4 — shared by doLogin and doRefresh: update the snapshot timestamp block + footer.
+function applyLoadedData(exportedAt){
+  const ts = exportedAt ? new Date(exportedAt).toLocaleString() : 'Unknown';
+  const {label, stale} = fmtRelativeAge(exportedAt);
+  const dateEl = document.getElementById('topbar-ts-date');
+  const labelEl = document.getElementById('topbar-ts-label');
+  const blockEl = document.getElementById('topbar-ts-block');
+  if(dateEl) dateEl.textContent = ts;
+  if(labelEl){
+    labelEl.textContent = label;
+    labelEl.className = 'snap-label ' + (stale ? 'stale' : 'fresh');
+  }
+  if(blockEl) blockEl.style.display = 'flex';
+  document.getElementById('footer-credit').textContent =
+    `CPM Viewer ${VIEWER_VERSION} — Snapshot: ${ts} · Math synced from ${MATH_SYNCED_FROM} · Read-only`;
+}
+
+// v2.2.4 — re-fetch the latest snapshot without a full re-login, preserving the selected
+// project when it still exists in the new data. Uses the retained session password.
+async function doRefresh(){
+  if(!_sessionPw){ return; } // shouldn't happen while app-screen is up, but guard anyway
+  const btn = document.getElementById('refresh-btn');
+  const prevSel = currentProj ? currentProj.id : null;
+  if(btn){ btn.textContent = '↻ …'; btn.disabled = true; }
+  try{
+    const {data, exportedAt} = await fetchSharedData(_sessionPw);
+    viewerData = data;
+    applyLoadedData(exportedAt);
+    buildProjectSelector();
+    // Keep the same project selected if it's still present; else fall back to first.
+    const still = prevSel && (viewerData.projects||[]).some(p=>p.id===prevSel);
+    if(still) selectProject(prevSel);
+    else if((viewerData.projects||[]).length) selectProject(viewerData.projects[0].id);
+    if(btn){ btn.textContent = '✓ Updated'; setTimeout(()=>{ btn.textContent='↻ Refresh'; btn.disabled=false; }, 1500); }
+  } catch(e){
+    if(btn){ btn.textContent = '↻ Failed'; setTimeout(()=>{ btn.textContent='↻ Refresh'; btn.disabled=false; }, 2000); }
+    console.error('[CPM Viewer] refresh failed:', e.message);
+  }
+}
+
 function doLock(){
-  viewerData = null; currentProj = null;
+  viewerData = null; setCurrentProj(null);
+  _sessionPw = null; // v2.2.4 — drop retained password on lock
   document.getElementById('login-pw').value = '';
   document.getElementById('login-err').textContent = '';
   document.querySelector('.login-btn').textContent = 'View Projects →';
@@ -463,7 +504,7 @@ function buildProjectSelector(){
     const reportBtn = pdfMeta
       ? `<button class="proj-item-report" onclick="event.stopPropagation();openReportModal('${p.id}')">📄 Report</button>`
       : '';
-    return `<div class="proj-dropdown-item" data-id="${p.id}" onclick="selectProject('${p.id}');closeProjDropdown()">
+    return `<div class="proj-dropdown-item" data-id="${p.id}" onclick="selectProject('${p.id}')">
       <span class="proj-item-dot ${status}"></span>
       <span class="proj-item-name">${p.name}</span>
       <span class="proj-item-company">${p.info?.company||''}</span>
@@ -481,15 +522,21 @@ function toggleProjDropdown(){
   else {
     menu.classList.add('open');
     btn.classList.add('open');
-    // Close on outside click
-    setTimeout(()=>document.addEventListener('click', _closeProjOnOutside, {once:true}), 0);
   }
 }
 
-function _closeProjOnOutside(e){
+// v2.2.0 FIX (pre-existing bug): the old close-handler used addEventListener with
+// {once:true}, but clicking a dropdown ITEM is inside .proj-dropdown-wrap — so the
+// handler fired, saw the click was inside, did NOT close, yet the {once:true} listener
+// was already spent. Result: menu stuck open with no listener left to close it. Now a
+// single persistent listener is installed once at startup and closes the menu on any
+// click outside the wrap (item clicks close it explicitly via closeProjDropdown()).
+document.addEventListener('click', function(e){
+  const menu = document.getElementById('proj-dropdown-menu');
+  if(!menu || !menu.classList.contains('open')) return;
   const wrap = document.querySelector('.proj-dropdown-wrap');
   if(wrap && !wrap.contains(e.target)) closeProjDropdown();
-}
+});
 
 function closeProjDropdown(){
   document.getElementById('proj-dropdown-menu')?.classList.remove('open');
@@ -497,8 +544,9 @@ function closeProjDropdown(){
 }
 
 function selectProject(id){
-  currentProj = viewerData.projects.find(p => p.id === id);
-  if(!currentProj) return;
+  const _sel = viewerData.projects.find(p => p.id === id);
+  if(!_sel) return;
+  setCurrentProj(_sel);
   // Update dropdown button label
   const label = document.getElementById('proj-dropdown-label');
   if(label) label.textContent = currentProj.name;
@@ -506,6 +554,7 @@ function selectProject(id){
   document.querySelectorAll('.proj-dropdown-item').forEach(el => {
     el.classList.toggle('active', el.dataset.id === id);
   });
+  closeProjDropdown();
   renderAll();
 }
 
@@ -536,6 +585,9 @@ function renderTab(tab){
 
 // ── PHASES LABELS ──
 // Must match CPM's PHASE_LABELS exactly so published data renders correctly
+// v2.2.3 — kept identical to CPM's PHASE_LABELS. Was missing `contingency` (showed the
+// raw id in phase-budget lists) and had `mgmt` as 'GC Management Fee' where CPM says
+// 'Management Fees'. Re-synced to match CPM exactly.
 const PHASE_LABELS = {
   land:'Land Acquisition',
   phase1:'Pre-Construction',
@@ -544,8 +596,20 @@ const PHASE_LABELS = {
   phase4:'Interior & Exterior Finishes',
   phase5:'Site Completion',
   phase6:'Close Out',
-  mgmt:'GC Management Fee'
+  contingency:'Reserve fund',
+  mgmt:'Management Fees'
 };
+
+// v2.2.2 FIX: the Bank Ledger uses category keys beyond the build phases — capital,
+// construction_loan, general_admin — which PHASE_LABELS lacks, so the viewer showed raw
+// keys ("capital", "general_admin"). Mirror CPM's LEDGER_PHASES labels exactly. CPM labels
+// mgmt as "Management Fees" consistently (PHASES / LEDGER_PHASES / PHASE_LABELS all agree),
+// so PHASE_LABELS' mgmt value carries through correctly — no override needed.
+const LEDGER_PHASE_LABELS = Object.assign({}, PHASE_LABELS, {
+  capital:'Capital',
+  construction_loan:'Construction Loan',
+  general_admin:'General/Admin'
+});
 
 const STATUS_ORDER = ['complete','in-progress','in_progress','pending','blocked'];
 
@@ -580,6 +644,303 @@ function calcPhaseProgress(proj, phaseId){
   return {done, total:tasks.length, pct:done/tasks.length};
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   MATH LIFTED VERBATIM FROM cpm.html v2.15.14 — DO NOT EDIT HERE.
+   If CPM's math changes, re-lift this whole block and bump the version
+   above. The viewer must always agree with CPM to the dollar. The
+   functions below accept an explicit (proj) argument; the viewer always
+   passes currentProj, so the currentProject fallback is never hit here.
+   ════════════════════════════════════════════════════════════════════ */
+const FEE_KEYS=['builderFee','constructionMgmtFee','adminFee','projectMgmtFee'];
+const DEFAULT_FEE_TIMING={builderFee:'construction',constructionMgmtFee:'construction',adminFee:'closing',projectMgmtFee:'closing'};
+function localDate(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+
+function monthsBetween(fromISO,toISO){
+  if(!fromISO||!toISO) return 0;
+  const a=new Date(fromISO), b=new Date(toISO);
+  if(isNaN(a)||isNaN(b)) return 0;
+  // v2.15.0 D9 — was `?0:-0`; -0 is 0, so the day-of-month adjustment was a no-op since
+  // introduction. Fixed to -1 (locked per the original spec's own validation matrix,
+  // which already tested the integer fix, not the day-count alternative it also offered).
+  return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth())+(b.getDate()>=a.getDate()?0:-1);
+}
+
+function feeIsConstructionTimed(f,key){
+  // T3 — absent timing defaults per-field, preserving v2.13.1 behavior
+  const t=(f[key+'Timing']||DEFAULT_FEE_TIMING[key]);
+  return t==='construction';
+}
+
+function calcBuildCostCore(f){
+  let sum=(f.landCost||0)+(f.constructionBudget||0)+(f.contingency||0);
+  for(const k of FEE_KEYS){
+    if(feeIsConstructionTimed(f,k))sum+=(f[k]||0);
+  }
+  return sum;
+}
+
+function calcDealExpensesCore(f,salePrice){
+  const commission=(salePrice||0)*(f.commissionPct||6)/100;
+  let sum=commission+(f.sellerConcessions||0)+(f.saleClosingCost||0);
+  for(const k of FEE_KEYS){
+    if(!feeIsConstructionTimed(f,k))sum+=(f[k]||0);
+  }
+  return sum;
+}
+
+function calcUpgradeMargin(){
+  // v2.6.0 — Buyer-funded upgrades. Margin = buyerCharge - cost across scope==='upgrade' tasks.
+  // Buyer funds the cost (no investor capital consumed), so margin adds to distributable profit
+  // while Build Cost (ROI denominator) stays flat -> ROI lifts. Negative => buyer charge < cost (flagged red).
+  const tasks=(currentProject&&currentProject.tasks)||[];
+  return tasks.filter(t=>t.scope==='upgrade').reduce((sm,t)=>sm+((t.buyerCharge||0)-(t.cost||0)),0);
+}
+
+function hasLockedOffer(proj){
+  const f=(proj||currentProject).finance||{};
+  return !!(f.lockedOfferActive && (f.lockedOfferPrice||0)>0);
+}
+
+function loanIsActive(proj){
+  const p=proj||currentProject; if(!p)return false;
+  return !!(p.finance&&p.finance.loanActive) || calcLoanDrawn(p)>0;
+}
+
+function calcLoanDrawn(proj){
+  const p=proj||currentProject; if(!p||!p.ledger)return 0;
+  return p.ledger.filter(e=>e.type==='Loan Draw'&&!e.reversed).reduce((s,e)=>s+(e.deposit||0),0);
+}
+
+function calcLoanBalance(proj){
+  return calcLoanDrawn(proj)-calcLoanPrincipalPaid(proj);
+}
+
+function calcLoanInterestPaid(proj){
+  const p=proj||currentProject; if(!p||!p.ledger)return 0;
+  return p.ledger.filter(e=>e.type==='Loan Payment'&&!e.reversed).reduce((s,e)=>s+((e.withdrawal||0)-(e.principal||0)),0);
+}
+
+function calcLoanPrincipalPaid(proj){
+  const p=proj||currentProject; if(!p||!p.ledger)return 0;
+  return p.ledger.filter(e=>e.type==='Loan Payment'&&!e.reversed).reduce((s,e)=>s+(e.principal||0),0);
+}
+
+function calcInjections(proj,kind){
+  // kind: 'Capital Call' | 'Sponsor Advance' | undefined(=both). Money fronted to keep the deal afloat.
+  const p=proj||currentProject; if(!p||!p.ledger) return 0;
+  return p.ledger.filter(e=>e.type==='Injection'&&!e.reversed&&(!kind||e.injectionKind===kind))
+    .reduce((s,e)=>s+(e.deposit||0),0);
+}
+
+function calcInjectionsRepaid(proj,kind){
+  const p=proj||currentProject; if(!p||!p.ledger) return 0;
+  return p.ledger.filter(e=>e.type==='Injection Repay'&&!e.reversed&&(!kind||e.injectionKind===kind))
+    .reduce((s,e)=>s+(e.withdrawal||0),0);
+}
+
+function calcInjectionOutstanding(proj,kind){
+  return calcInjections(proj,kind)-calcInjectionsRepaid(proj,kind);
+}
+
+function planBaseline(proj){
+  const p=proj||currentProject;
+  return (p&&p.finance&&p.finance.planBaseline)||null;
+}
+
+function allocatePennies(total,weights){
+  // v2.6.1 — Largest-remainder cent-exact split so per-investor shares sum to EXACTLY total.
+  // Sign-safe (handles negative margin). Floors to the cent, then hands leftover pennies to the
+  // largest fractional remainders (deterministic tie-break by index).
+  // v2.13.1 — degenerate-weight guard. The old `||1` fallback on sumW was the bug: with an empty
+  // investor list (brand-new project) or every equityPct at 0, sumW fell back to 1, every exact
+  // share computed to 0, so remainder became the FULL cent count while `order` had only 0..n
+  // entries — the fill loop ran off the end and threw "Cannot read properties of undefined ('i')".
+  const w=Array.isArray(weights)?weights:[];
+  if(!w.length)return [];              // no investors -> nothing to allocate
+  const sign=total<0?-1:1;
+  const cents=Math.round(Math.abs(total)*100);
+  const sumW=w.reduce((a,b)=>a+(b||0),0);
+  if(!(sumW>0))return w.map(()=>0);    // no equity defined yet -> zero shares, never throw
+  const exact=w.map(x=>cents*(x||0)/sumW);
+  const floored=exact.map(x=>Math.floor(x));
+  let remainder=cents-floored.reduce((a,b)=>a+b,0);
+  const order=exact.map((x,i)=>({i,frac:x-Math.floor(x)})).sort((a,b)=>b.frac-a.frac||a.i-b.i);
+  remainder=Math.max(0,Math.min(remainder,order.length)); // belt-and-braces: can't outrun the array
+  for(let k=0;k<remainder;k++)floored[order[k].i]++;
+  return floored.map(c=>sign*c/100||0); // ||0 normalizes -0 on zero-weight rows in negative splits
+}
+
+function calcLoanCarry(proj){
+  const p=proj||currentProject;
+  const f=p.finance||{};
+  const loan=f.loan||{};
+  const commitment=loan.commitment||0;
+  const rate=(loan.rate||0)/100;
+  const carryMonthly=commitment*rate/12;
+  const startDate=loan.startDate||(p.info||{}).startDate||'';
+  const today=localDate();
+  let monthsElapsed=monthsBetween(startDate,today);
+  if(monthsElapsed<0)monthsElapsed=0;
+  // D3 — projected exit defaults to startDate+12 when targetExitMonth isn't set.
+  const targetExitMonth=(loan.targetExitMonth!=null&&loan.targetExitMonth>0)?loan.targetExitMonth:12;
+  const carryHorizonMonth=Math.min(targetExitMonth,13); // D6 — hard cap at the obligation ceiling
+  const ceiling=carryMonthly*carryHorizonMonth;
+  const actualToDate=Math.min(carryMonthly*monthsElapsed,ceiling);
+  const monthsRemaining=Math.max(0,carryHorizonMonth-monthsElapsed);
+  const projected=Math.min(actualToDate+carryMonthly*monthsRemaining,ceiling);
+  const financingClosingPct=loan.financingClosingPct!=null?loan.financingClosingPct:0.5;
+  const closing=commitment*financingClosingPct/100;
+  return {carryMonthly,carryHorizonMonth,ceiling,actualToDate,projected,closing,totalFinancing:projected+closing};
+}
+
+function calcInvestorWaterfall(proj){
+  const p=proj||currentProject;
+  const f=p.finance||{};
+  const salePrice=hasLockedOffer(p)?(f.lockedOfferPrice||0):(f.estSalePrice||0);
+  // v2.14.0 — delegate to the shared fee-timing core (calcBuildCostCore/calcDealExpensesCore)
+  // instead of a second copy of the fee-bucket loop, so this can never diverge from
+  // calcBuildCost()/calcDealExpenses() the way calcFinancingProjected() diverged in v2.11.2.
+  const buildCost=calcBuildCostCore(f);
+  const dealExp=calcDealExpensesCore(f,salePrice);
+  const commission=salePrice*(f.commissionPct||6)/100;
+  const upMargin=(p.tasks||[]).filter(t=>t.scope==='upgrade').reduce((s,t)=>s+((t.buyerCharge||0)-(t.cost||0)),0);
+  const loanPayoff=loanIsActive(p)?calcLoanBalance(p):0;
+  const injCallOut=calcInjectionOutstanding(p,'Capital Call');
+  const injSponsorOut=calcInjectionOutstanding(p,'Sponsor Advance');
+  const injTotal=injCallOut+injSponsorOut;
+  // v2.15.0 §7 — third consumer of calcLoanCarry(), closing the gap CPM-HANDOFF-v2.md §3
+  // flagged (carry previously hit calcEstProfit()/calcProjectedNetProfit() but not this).
+  const totalFinancing=calcLoanCarry(p).totalFinancing;
+
+  // ── step 1 — hurdle-test profit. W12: includes upgrade margin, matching what
+  // lockPlanBaseline() freezes via calcEstProfitTotal(). W13: uses THIS function's own
+  // sale-price basis (locked else estimate) — not calcProjectedNetProfit()'s baseline-held
+  // basis. Stated explicitly rather than left to drift, per the v2.11.2/2a lesson. ──
+  const hurdleTestProfit=salePrice-buildCost-dealExp+upMargin-totalFinancing;
+
+  // ── step 2 — computed promote, floored at zero. W1: basis by dealModel. W2: Cash Built
+  // hurdle is the locked Plan A baseline profit, frozen at lock time and not re-derived
+  // here. Baseline never locked -> hurdleLocked null -> promote suppressed entirely
+  // (validation #21), never computed off zero. ──
+  const promoteCfg=f.promote||{};
+  const promoteBasis=promoteCfg.basis||(f.dealModel==='financed'?'flat_profit_pct':'upside_share');
+  const promoteRate=promoteCfg.rate!=null?promoteCfg.rate:(promoteBasis==='flat_profit_pct'?0.10:0.50);
+  const hurdleLocked=promoteCfg.hurdleLocked;
+  let computedPromote=0;
+  if(promoteBasis==='flat_profit_pct'){
+    computedPromote=Math.max(0,hurdleTestProfit*promoteRate);
+  } else if(hurdleLocked!=null){
+    computedPromote=Math.max(0,(hurdleTestProfit-hurdleLocked)*promoteRate);
+  }
+
+  // ── step 3 — senior pool. Same formula v2.14.0 fixed (buildCost never subtracted — see
+  // the note that used to live here, preserved in spirit above), now also netting out
+  // carry (D1: below-the-line, never a build-cost component). ──
+  const seniorPool=salePrice-dealExp+upMargin-loanPayoff-injTotal-totalFinancing;
+  const totalCapital=(p.investors||[]).reduce((s,i)=>s+(i.amount||0),0);
+
+  // ── step 4 — W11: capital return is senior to the promote. A capital-vs-build-cost gap
+  // (3322's real $1,884.96, on record) could otherwise let a nominally-earned promote eat
+  // into investor principal — nothing in the old spec tested this because 3312/Spink have
+  // no such gap. Capping here costs nothing on a deal with no gap (verified against 3312's
+  // three price points and Spink's five sensitivity months) and protects the one that has one. ──
+  const actualPromotePaid=Math.min(computedPromote,Math.max(0,seniorPool-totalCapital));
+
+  // ── step 5 — distribution pool the existing zone logic (step 6) runs against. ──
+  const investorPool=seniorPool-actualPromotePaid;
+
+  const profitSurplus=investorPool-totalCapital;
+  const eqWeights=(p.investors||[]).map(i=>i.equityPct||0);
+  let returnedArr, profitShareArr, sponsorShortfall=0, zone;
+  if(investorPool<=0){
+    returnedArr=(p.investors||[]).map(()=>0);
+    profitShareArr=(p.investors||[]).map(()=>0);
+    sponsorShortfall=investorPool;
+    zone='wipeout';
+  } else if(profitSurplus>=0){
+    profitShareArr=allocatePennies(profitSurplus,eqWeights);
+    returnedArr=(p.investors||[]).map((i,idx)=>(i.amount||0)+profitShareArr[idx]);
+    zone='profit';
+  } else {
+    returnedArr=allocatePennies(investorPool,eqWeights);
+    profitShareArr=(p.investors||[]).map(()=>0);
+    zone='partial';
+  }
+
+  // ── step 7 — sponsor's promote sits on top of their pro-rata share, never inside the
+  // equity-weighted split (W9: the premium/promote isn't itself equity-weighted). ──
+  const sponsorIdx=(p.investors||[]).findIndex(i=>i.isSponsor);
+  if(sponsorIdx>=0 && actualPromotePaid>0){
+    returnedArr=returnedArr.slice();
+    returnedArr[sponsorIdx]=(returnedArr[sponsorIdx]||0)+actualPromotePaid;
+  }
+
+  const totalReturned=returnedArr.reduce((s,v)=>s+v,0);
+  const totalResultD=totalReturned-totalCapital;
+  const totalResultP=totalCapital>0?(totalResultD/totalCapital*100):0;
+  return {salePrice,commission,dealExp,buildCost,upMargin,loanPayoff,injCallOut,injSponsorOut,injTotal,
+          totalFinancing,hurdleTestProfit,computedPromote,actualPromotePaid,seniorPool,
+          investorPool,totalCapital,profitSurplus,returnedArr,profitShareArr,sponsorIdx,
+          sponsorShortfall,zone,totalReturned,totalResultD,totalResultP,hasLocked:hasLockedOffer(p)};
+}
+
+function calcNonSponsorROI(proj){
+  const p=proj||currentProject;
+  const W=calcInvestorWaterfall(p);
+  const investors=p.investors||[];
+  let capital=0,profitShare=0;
+  investors.forEach((inv,idx)=>{
+    if(idx===W.sponsorIdx)return;
+    capital+=inv.amount||0;
+    profitShare+=W.profitShareArr[idx]||0;
+  });
+  return {capital,profitShare,roi:capital>0?profitShare/capital:0};
+}
+
+function calcPlanCPayout(proj){
+  const p=proj||currentProject;
+  const f=p.finance||{};
+  const planC=f.planC||{};
+  const pct=planC.agreedPct!=null?planC.agreedPct:(planC.guaranteePct!=null?planC.guaranteePct:10);
+  const investors=p.investors||[];
+  let nonSponsorCapital=0;
+  investors.forEach(inv=>{ if(!inv.isSponsor) nonSponsorCapital+=inv.amount||0; });
+  return {nonSponsorCapital,pct,payout:nonSponsorCapital*(1+pct/100)};
+}
+
+function calcIndifferencePrice(proj){
+  const p=proj||currentProject;
+  const f=p.finance||{};
+  const investors=p.investors||[];
+  let nonSponsorCapital=0;
+  investors.forEach(inv=>{ if(!inv.isSponsor) nonSponsorCapital+=inv.amount||0; });
+  const planC=calcPlanCPayout(p);
+  const premiumTarget=planC.payout-nonSponsorCapital; // the profit-share Plan A must match
+  if(nonSponsorCapital<=0)return null;
+  const origEst=f.estSalePrice, origLockedActive=f.lockedOfferActive;
+  function nonSponsorShareAt(price){
+    f.estSalePrice=price; f.lockedOfferActive=false;
+    return calcNonSponsorROI(p).profitShare;
+  }
+  let price=null;
+  try{
+    let lo=0, hi=Math.max((origEst||0)*3,1000000), guard=0;
+    while(nonSponsorShareAt(hi)<premiumTarget && guard<40){ hi*=1.5; guard++; }
+    for(let i=0;i<60;i++){
+      const mid=(lo+hi)/2;
+      if(nonSponsorShareAt(mid)<premiumTarget) lo=mid; else hi=mid;
+    }
+    price=(lo+hi)/2;
+  } finally {
+    f.estSalePrice=origEst; f.lockedOfferActive=origLockedActive;
+  }
+  return {price,premiumTarget,planCPayout:planC.payout,nonSponsorCapital};
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   END LIFTED MATH BLOCK
+   ════════════════════════════════════════════════════════════════════ */
+
 // ── DASHBOARD ──
 function renderDashboard(){
   const p = currentProj; if(!p) return;
@@ -587,14 +948,17 @@ function renderDashboard(){
   const f = p.finance || {};
   const {balance, totalOut} = calcLedger(p);
   const {done, total, pct} = calcTasks(p);
-  // Match CPM exactly: totalBudget includes contingency
-  const totalBudget = (f.landCost||0)+(f.constructionBudget||0)+(f.builderMgmtFee||0)+(f.contingency||0);
+  // v2.2.0 — dashboard KPIs from the lifted CPM math (was reading dead
+  // builderMgmtFee/mgmtAdminFees fields). Budget-used is spend vs. total build cost.
+  const totalBudget = calcBuildCostCore(f);
   const pctBudget = totalBudget > 0 ? totalOut/totalBudget : 0;
   const invCap = (p.investors||[]).reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
-  const salePrice = f.estSalePrice||0;
+  const salePrice = hasLockedOffer(p)?(f.lockedOfferPrice||0):(f.estSalePrice||0);
   const noSale = !salePrice;
-  const commission = salePrice*(f.commissionPct||6)/100;
-  const grossProfit = salePrice - totalBudget - commission - (f.sellerConcessions||0) - (f.mgmtAdminFees||0);
+  const dealExp = calcDealExpensesCore(f, salePrice);
+  const carryDash = calcLoanCarry(p);
+  const upMarginDash = (typeof calcUpgradeMargin==='function')?calcUpgradeMargin(p):0;
+  const grossProfit = salePrice - totalBudget - dealExp - carryDash.totalFinancing + upMarginDash;
   const roi = totalBudget > 0 ? grossProfit/totalBudget : 0;
 
   // Phase progress summary
@@ -672,6 +1036,12 @@ function renderPhases(){
     const rows = tasks.map(t => {
       const st = t.status||'pending';
       const badge = `<span class="status-badge ${st==='in-progress'||st==='in_progress'?'in-progress':st}">${st.replace('_','-')}</span>`;
+      const noteRow = (t.notes && t.notes.trim())
+        ? `<tr><td colspan="8" style="padding:2px 12px 8px 24px;border-top:none">
+             <span style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--amber);font-weight:600">Field Notes</span>
+             <span style="font-size:12px;color:var(--text2);margin-left:8px;white-space:pre-wrap">${t.notes.replace(/</g,'&lt;')}</span>
+           </td></tr>`
+        : '';
       return `<tr>
         <td>${t.name}</td>
         <td>${badge}</td>
@@ -681,7 +1051,7 @@ function renderPhases(){
         <td>${fmtDate(t.actualStart)}</td>
         <td>${fmtDate(t.actualEnd)}</td>
         <td style="color:var(--red)">${t.blocker||''}</td>
-      </tr>`;
+      </tr>${noteRow}`;
     }).join('');
     const barClass = parseInt(pct) >= 100 ? 'complete' : parseInt(pct) > 0 ? 'partial' : 'empty';
     return `<div class="phase-section">
@@ -719,11 +1089,12 @@ function renderLedger(){
     const amt = isDeposit ? dep : wd;
     const reversed = !!e.reversed;
     running += dep - wd;
-    const phaseLabel = PHASE_LABELS[e.phase] || e.phase || '—';
+    const phaseLabel = LEDGER_PHASE_LABELS[e.phase] || e.phase || '—';
+    const descText = (e.payee?`<span style="color:var(--amber2);font-weight:600">${e.payee}</span> — `:'')+(e.description||'—');
     const rowStyle = reversed ? 'opacity:0.45;text-decoration:line-through' : '';
     return `<tr style="${rowStyle}">
       <td style="white-space:nowrap">${fmtDate(e.date)}</td>
-      <td>${e.description||'—'}${reversed?' <span style="color:var(--red);font-size:10px">[REVERSED]</span>':''}</td>
+      <td>${descText}${reversed?' <span style="color:var(--red);font-size:10px">[REVERSED]</span>':''}</td>
       <td><span class="ledger-phase-tag">${phaseLabel}</span></td>
       <td class="${isDeposit?'ledger-credit':'ledger-debit'}">${isDeposit?'+':'-'}${fmt$(amt)}</td>
       <td style="font-family:var(--mono);font-size:11px">${fmt$(running)}</td>
@@ -751,38 +1122,98 @@ function renderInvestors(){
   const p = currentProj; if(!p) return;
   const el = document.getElementById('tab-investors');
   const inv = p.investors||[];
-  const totalCap = inv.reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
   const f = p.finance||{};
-  const salePrice = f.estSalePrice||0;
-  const commission = salePrice*(f.commissionPct||6)/100;
-  const totalBudget = (f.landCost||0)+(f.constructionBudget||0)+(f.builderMgmtFee||0)+(f.contingency||0);
-  const grossProfit = salePrice - totalBudget - commission - (f.sellerConcessions||0) - (f.mgmtAdminFees||0);
+  const hasSale = (f.estSalePrice>0)||hasLockedOffer(p);
+  const totalCap = inv.reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
+
+  if(!inv.length){ el.innerHTML='<div class="card"><div style="color:var(--text3);padding:20px;text-align:center">No investors on this project.</div></div>'; return; }
+
+  // v2.2.0 — real waterfall from the lifted CPM math. Each investor's return is
+  // capital returned + profit share; the sponsor's promote is added on the sponsor row.
+  const W = hasSale ? calcInvestorWaterfall(p) : null;
+  const promoteCfg = f.promote||{};
+  const basis = promoteCfg.basis||(f.dealModel==='financed'?'flat_profit_pct':'upside_share');
+  const rate = promoteCfg.rate!=null?promoteCfg.rate:(basis==='flat_profit_pct'?0.10:0.50);
+  const label = promoteCfg.label||'Management Profit Share';
+
+  const invRows = inv.map((i,idx)=>{
+    const ret = W ? (W.returnedArr[idx]||0) : null;
+    const isSp = W && W.sponsorIdx===idx;
+    return `<div class="inv-row">
+      <div class="inv-name">${i.name}${isSp?' <span style="font-size:10px;color:var(--amber)">· sponsor</span>':''}</div>
+      <div class="inv-amt">${fmt$(i.amount)}</div>
+      <div class="inv-pct">${i.equityPct}%</div>
+      <div class="inv-amt ${ret===null?'':ret>=(i.amount||0)?'pos':'neg'}">${ret===null?'—':fmt$(ret)}</div>
+    </div>`;
+  }).join('');
+
+  const nsROI = W ? calcNonSponsorROI(p) : null;
+
+  // ── DETAIL (collapsible): promote structure + Plan C + indifference ──
+  let detail = '';
+  if(W){
+    // Promote
+    let promoteBlock;
+    if(basis==='upside_share' && promoteCfg.hurdleLocked==null){
+      promoteBlock = `<div style="font-size:12px;color:var(--text3)">Promote suppressed — no Plan A baseline locked yet.</div>`;
+    } else {
+      const basisText = basis==='upside_share'
+        ? `${label} — 50% of profit above the locked hurdle of ${fmt$(promoteCfg.hurdleLocked||0)}.`
+        : `${label} — ${(rate*100).toFixed(0)}% of net profit.`;
+      promoteBlock = `<div style="font-size:12px;color:var(--text2);margin-bottom:10px">${basisText}</div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span style="color:var(--text3)">Hurdle-test profit</span><span style="font-family:var(--mono)">${fmt$(W.hurdleTestProfit)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span style="color:var(--text3)">Management promote${W.actualPromotePaid<W.computedPromote-0.5?' (capped — capital return senior)':''}</span><span style="font-family:var(--mono);color:var(--amber)">${fmt$(W.actualPromotePaid)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-top:1px solid var(--border)"><span style="color:var(--text3)">Residual split by equity</span><span style="font-family:var(--mono)">${fmt$(W.profitSurplus)}</span></div>`;
+    }
+    // Plan C
+    const planC = f.planC||{};
+    let planCBlock;
+    const pcData = calcPlanCPayout(p);
+    if(planC.executed){
+      planCBlock = `<div style="font-size:12px;color:var(--text2)">Buyout executed ${planC.executed.date||''} (initiated by ${planC.executed.initiator||'—'}) at ${(planC.executed.agreedPct!=null?planC.executed.agreedPct:(planC.guaranteePct||10))}%. Cap table collapsed to the sponsor.</div>`;
+    } else if(pcData.nonSponsorCapital>0){
+      const indiff = calcIndifferencePrice(p);
+      const cur = hasLockedOffer(p)?(f.lockedOfferPrice||0):(f.estSalePrice||0);
+      const competitive = indiff && cur<indiff.price;
+      planCBlock = `<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Investors may be offered a buyout at capital plus up to ${pcData.pct}%, and may decline. From month ${(planC.investorRightFromMonth!=null?planC.investorRightFromMonth:13)}, investors may require it.</div>
+        <div style="display:flex;justify-content:space-between;padding:6px 10px;background:var(--card2);border-radius:6px;font-size:12px;margin-bottom:8px"><span style="color:var(--text3)">Non-sponsor capital × ${(1+pcData.pct/100).toFixed(2)}</span><span style="font-family:var(--mono);font-weight:700">${fmt$(pcData.payout)}</span></div>
+        ${indiff?`<div style="font-size:11px;color:var(--text3)"><strong style="color:var(--text2)">Indifference price:</strong> ${fmt$(indiff.price)}. At the current ${fmt$(cur)}, Plan A ${competitive?'projects less than Plan C — a buyout would likely be accepted':'is ahead of Plan C — a buyout offer would likely be refused'}.</div>`:''}`;
+    } else {
+      planCBlock = `<div style="font-size:12px;color:var(--text3)">No non-sponsor capital — Plan C not applicable.</div>`;
+    }
+
+    detail = `
+      <div class="card" style="margin-top:16px">
+        <div class="card-title" style="cursor:pointer" onclick="toggleVDetail('vinv-detail',this)">▸ Distribution Detail <span style="font-weight:400;font-size:11px;color:var(--text3)">— promote, Plan C, indifference price</span></div>
+        <div id="vinv-detail" style="display:none;margin-top:12px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:600;margin-bottom:8px">Management Promote</div>
+          ${promoteBlock}
+          ${nsROI?`<div style="display:flex;justify-content:space-between;padding:6px 0;margin-top:8px;font-size:12px;border-top:1px solid var(--border)"><span style="color:var(--text3)">Non-sponsor investor ROI</span><span style="font-family:var(--mono)">${(nsROI.roi*100).toFixed(2)}%</span></div>`:''}
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:600;margin:16px 0 8px">Plan C — Investor Buyout Right</div>
+          ${planCBlock}
+        </div>
+      </div>`;
+  }
 
   el.innerHTML = `
     <div class="card">
-      <div class="card-title">Investor Summary</div>
+      <div class="card-title">Investor Summary${W?'':' <span style="font-size:11px;font-weight:400;color:var(--text3)">— set a sale price to see projected returns</span>'}</div>
       <div class="inv-row" style="border-bottom:2px solid var(--border);padding-bottom:10px;margin-bottom:4px">
         <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Investor</span>
         <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Invested</span>
         <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Equity</span>
         <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Est. Return</span>
       </div>
-      ${inv.map(i=>{
-        const share = salePrice>0 ? grossProfit*(i.equityPct/100) : null;
-        return `<div class="inv-row">
-          <div class="inv-name">${i.name}</div>
-          <div class="inv-amt">${fmt$(i.amount)}</div>
-          <div class="inv-pct">${i.equityPct}%</div>
-          <div class="inv-amt ${share===null?'':share>=0?'pos':'neg'}">${share===null?'—':fmt$(share)}</div>
-        </div>`;
-      }).join('')}
+      ${invRows}
       <div class="inv-row" style="border-top:2px solid var(--border);margin-top:4px;padding-top:10px">
         <div style="font-weight:700;color:var(--text)">TOTAL</div>
         <div style="font-family:var(--mono);font-weight:700">${fmt$(totalCap)}</div>
         <div style="font-family:var(--mono);color:var(--amber)">100%</div>
-        <div style="font-family:var(--mono);color:${grossProfit>=0?'var(--green)':'var(--red)'};font-weight:700">${salePrice>0?fmt$(grossProfit):'—'}</div>
+        <div style="font-family:var(--mono);color:${W&&W.totalResultD>=0?'var(--green)':'var(--red)'};font-weight:700">${W?fmt$(W.totalReturned):'—'}</div>
       </div>
+      ${W?`<div style="text-align:right;font-size:11px;color:var(--text3);margin-top:6px">Result: <span style="color:${W.totalResultD>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${W.totalResultP>=0?'+':''}${W.totalResultP.toFixed(1)}%</span> · ${W.hasLocked?'locked offer':'projected'}</div>`:''}
     </div>
+    ${detail}
     ${p.investmentTerms?`<div class="card"><div class="card-title">Investment Terms</div><div style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${p.investmentTerms}</div></div>`:''}`;
 }
 
@@ -791,42 +1222,111 @@ function renderFinance(){
   const p = currentProj; if(!p) return;
   const el = document.getElementById('tab-finance');
   const f = p.finance||{};
-  const salePrice = f.estSalePrice||0;
+  const salePrice = hasLockedOffer(p)?(f.lockedOfferPrice||0):(f.estSalePrice||0);
+  // v2.2.0 — all figures from the lifted CPM math block. Build cost / deal expenses honor
+  // fee timing; carry is a below-the-line deduction; ROI base is build cost.
+  const buildCost = calcBuildCostCore(f);
+  const dealExp = calcDealExpensesCore(f, salePrice);
+  const carry = calcLoanCarry(p);
+  const loanOn = loanIsActive(p);
+  const upMargin = calcUpgradeMargin ? (typeof calcUpgradeMargin==='function' ? calcUpgradeMargin(p) : 0) : 0;
+  const netProfit = salePrice - buildCost - dealExp - carry.totalFinancing + upMargin;
+  const roi = buildCost>0 ? netProfit/buildCost : 0;
   const commission = salePrice*(f.commissionPct||6)/100;
-  const totalBudget = (f.landCost||0)+(f.constructionBudget||0)+(f.builderMgmtFee||0)+(f.contingency||0);
-  const totalClosing = commission+(f.sellerConcessions||0);
-  const grossProfit = salePrice - totalBudget - totalClosing - (f.mgmtAdminFees||0);
-  const totalCost = totalBudget + totalClosing + (f.mgmtAdminFees||0);
-  const roi = totalBudget > 0 ? grossProfit/totalBudget : 0;
+  const dealModel = f.dealModel||'cash';
+  const timingTag = k => feeIsConstructionTimed(f,k) ? '<span style="font-size:9px;color:var(--text3)"> · build</span>' : '<span style="font-size:9px;color:var(--text3)"> · closing</span>';
 
-  const row=(label,val,cls='')=>`<tr><td style="color:var(--text3);padding:10px 12px">${label}</td><td class="${cls}" style="font-family:var(--mono);text-align:right;padding:10px 12px">${val}</td></tr>`;
+  const row=(label,val,cls='')=>`<tr><td style="color:var(--text3);padding:9px 12px">${label}</td><td class="${cls}" style="font-family:var(--mono);text-align:right;padding:9px 12px">${val}</td></tr>`;
+  const drow=(label,val,neg)=>`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px"><span style="color:var(--text3)">${label}</span><span style="font-family:var(--mono);color:${neg?'var(--text2)':'var(--text2)'}">${val}</span></div>`;
+
+  // ── DETAIL (collapsible): carry breakdown + exit horizon + term sensitivity ──
+  let detail = '';
+  if(loanOn){
+    const loan = f.loan||{};
+    const startDate = loan.startDate||(p.info||{}).startDate||'';
+    const carryMonthly = carry.carryMonthly;
+    const drawn = calcLoanDrawn(p);
+    const noDraws = drawn<=0;
+    // milestone dates (static, display-only)
+    const addMonths=(iso,n)=>{ if(!iso||n==null)return '—'; const d=new Date(iso+'T12:00:00'); if(isNaN(d))return '—'; const w=Math.floor(n),fr=n-w; d.setMonth(d.getMonth()+w); if(fr>0)d.setDate(d.getDate()+Math.round(fr*30)); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+    const io = loan.interestOnlyMonths!=null?loan.interestOnlyMonths:12;
+    const reserveMonths = carryMonthly>0 ? (loan.interestReserve||0)/carryMonthly : null;
+    const sens = [8,9,10,12,13].map(mo=>{
+      const probe = JSON.parse(JSON.stringify(p)); probe.finance.loan.targetExitMonth = mo;
+      const c2 = calcLoanCarry(probe); const W2 = calcInvestorWaterfall(probe);
+      let nsCap=0,nsShare=0; (probe.investors||[]).forEach((iv,ix)=>{ if(W2.sponsorIdx===ix)return; nsCap+=iv.amount||0; nsShare+=W2.profitShareArr[ix]||0; });
+      return {mo, carry:c2.projected, net:W2.hurdleTestProfit, promote:W2.actualPromotePaid, toInv:W2.hurdleTestProfit-W2.actualPromotePaid, roi:nsCap>0?nsShare/nsCap:0};
+    });
+    detail = `
+      <div class="card" style="margin-top:16px">
+        <div class="card-title" style="cursor:pointer" onclick="toggleVDetail('vfin-detail',this)">▸ Financing Detail <span style="font-weight:400;font-size:11px;color:var(--text3)">— carry, exit horizon, term sensitivity</span></div>
+        <div id="vfin-detail" style="display:none;margin-top:12px">
+          ${noDraws?`<div style="border:1px solid var(--amber);background:var(--amber-dim);color:var(--amber);border-radius:6px;padding:8px 10px;margin-bottom:12px;font-size:11px;font-weight:600">⚠ Loan enabled, but no draws logged yet — loan payoff reads $0, so investor figures overstate the return until draws are recorded.</div>`:''}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div>
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:600;margin-bottom:8px">Carry (on full commitment)</div>
+              ${drow('Monthly carry',fmt$(carryMonthly))}
+              ${drow('Ceiling (to mo. '+carry.carryHorizonMonth+')',fmt$(carry.ceiling))}
+              ${drow('Incurred to date',fmt$(carry.actualToDate))}
+              ${drow('Projected',fmt$(carry.projected))}
+              ${drow('Financing closing',fmt$(carry.closing))}
+            </div>
+            <div>
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:600;margin-bottom:8px">Exit Horizon</div>
+              ${drow('Reserve exhausts',reserveMonths!=null?('Mo. '+reserveMonths.toFixed(1)+' · '+addMonths(startDate,reserveMonths)):'—')}
+              ${drow('Loan matures',('Mo. '+io+' · '+addMonths(startDate,io)))}
+              ${drow('Buyout right opens',('Mo. 13 · '+addMonths(startDate,13)))}
+            </div>
+          </div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:600;margin:16px 0 6px">Exit Month Sensitivity</div>
+          <table class="data-table" style="width:100%;font-size:12px">
+            <tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:10px">MONTH</th><th style="text-align:right;padding:6px 8px;color:var(--text3);font-size:10px">CARRY</th><th style="text-align:right;padding:6px 8px;color:var(--text3);font-size:10px">NET PROFIT</th><th style="text-align:right;padding:6px 8px;color:var(--text3);font-size:10px">PROMOTE</th><th style="text-align:right;padding:6px 8px;color:var(--text3);font-size:10px">TO INVESTORS</th><th style="text-align:right;padding:6px 8px;color:var(--text3);font-size:10px">ROI</th></tr>
+            ${sens.map(r=>{const flag=r.mo===12?' <span style="font-size:9px;color:var(--amber)">WALL</span>':r.mo===13?' <span style="font-size:9px;color:var(--red)">CEILING</span>':'';const bg=r.mo===12?'background:var(--amber-dim)':r.mo===13?'background:var(--red-dim)':'';return `<tr style="${bg}"><td style="padding:6px 8px">${r.mo}${flag}</td><td style="text-align:right;font-family:var(--mono);padding:6px 8px">${fmt$(r.carry)}</td><td style="text-align:right;font-family:var(--mono);padding:6px 8px">${fmt$(r.net)}</td><td style="text-align:right;font-family:var(--mono);padding:6px 8px">${fmt$(r.promote)}</td><td style="text-align:right;font-family:var(--mono);padding:6px 8px">${fmt$(r.toInv)}</td><td style="text-align:right;font-family:var(--mono);padding:6px 8px">${(r.roi*100).toFixed(2)}%</td></tr>`;}).join('')}
+          </table>
+        </div>
+      </div>`;
+  }
 
   el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-size:12px;color:var(--text3)">Deal model: <strong style="color:var(--text2)">${dealModel==='financed'?'Finance Built':'Cash Built'}</strong></span>
+      ${hasLockedOffer(p)?`<span style="font-size:11px;color:var(--green)">✓ Locked sale offer</span>`:`<span style="font-size:11px;color:var(--text3)">Estimated sale price (no locked offer)</span>`}
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div class="card">
         <div class="card-title">Project Costs</div>
         <table class="data-table">
-          ${row('Land Cost',fmt$(f.landCost))}
+          ${row('Land Acquisition',fmt$(f.landCost))}
           ${row('Construction Budget',fmt$(f.constructionBudget))}
-          ${row('Builder / Mgmt Fee',fmt$(f.builderMgmtFee))}
+          ${row('Builder Fee'+timingTag('builderFee'),fmt$(f.builderFee))}
+          ${row('Construction Mgmt Fee'+timingTag('constructionMgmtFee'),fmt$(f.constructionMgmtFee))}
           ${row('Contingency',fmt$(f.contingency))}
+          <tr style="border-top:2px solid var(--border)"><td style="font-weight:700;padding:9px 12px">Total Build Cost <span style="font-size:9px;color:var(--text3)">· ROI base</span></td><td style="font-family:var(--mono);font-weight:700;text-align:right;padding:9px 12px">${fmt$(buildCost)}</td></tr>
+        </table>
+        <div class="card-title" style="margin-top:14px">Deal Expenses</div>
+        <table class="data-table">
           ${row('Commission ('+fmtPct((f.commissionPct||6)/100)+')',fmt$(commission))}
           ${row('Seller Concessions',fmt$(f.sellerConcessions))}
-          ${row('Mgmt & Admin Fees',fmt$(f.mgmtAdminFees))}
-          <tr style="border-top:2px solid var(--border)"><td style="font-weight:700;padding:10px 12px">Total Cost</td><td style="font-family:var(--mono);font-weight:700;text-align:right;padding:10px 12px">${fmt$(totalCost)}</td></tr>
+          ${row('Sale Closing Cost',fmt$(f.saleClosingCost))}
+          ${row('Admin Fee'+timingTag('adminFee'),fmt$(f.adminFee))}
+          ${row('Project Mgmt Fee'+timingTag('projectMgmtFee'),fmt$(f.projectMgmtFee))}
+          <tr style="border-top:2px solid var(--border)"><td style="font-weight:700;padding:9px 12px">Total Deal Expenses</td><td style="font-family:var(--mono);font-weight:700;text-align:right;padding:9px 12px">${fmt$(dealExp)}</td></tr>
         </table>
       </div>
       <div class="card">
-        <div class="card-title">Projected Returns</div>
+        <div class="card-title">Bottom Line</div>
         <table class="data-table">
-          ${row('Est. Sale Price',fmt$(salePrice))}
-          ${row('Total Cost',fmt$(totalCost))}
+          ${row('Sale Price',fmt$(salePrice))}
+          ${row('Total Build Cost',fmt$(-buildCost))}
+          ${row('Total Deal Expenses',fmt$(-dealExp))}
+          ${loanOn?row('Financing Carry',fmt$(-carry.totalFinancing)):''}
+          ${upMargin?row('Buyer-Upgrade Margin',fmt$(upMargin)):''}
           <tr style="border-top:2px solid var(--border)">
-            <td style="font-weight:700;padding:10px 12px">Est. Gross Profit</td>
-            <td style="font-family:var(--mono);font-weight:700;text-align:right;padding:10px 12px;color:${grossProfit>=0?'var(--green)':'var(--red)'}">${fmt$(grossProfit)}</td>
+            <td style="font-weight:700;padding:9px 12px">Est. Net Profit</td>
+            <td style="font-family:var(--mono);font-weight:700;text-align:right;padding:9px 12px;color:${netProfit>=0?'var(--green)':'var(--red)'}">${fmt$(netProfit)}</td>
           </tr>
-          <tr><td style="font-weight:700;padding:10px 12px">Est. ROI</td>
-            <td style="font-family:var(--mono);font-weight:700;text-align:right;padding:10px 12px;color:${roi>=0?'var(--green)':'var(--red)'}">${fmtPct(roi)}</td>
+          <tr><td style="font-weight:700;padding:9px 12px">Est. ROI <span style="font-size:9px;color:var(--text3)">· on build cost</span></td>
+            <td style="font-family:var(--mono);font-weight:700;text-align:right;padding:9px 12px;color:${roi>=0?'var(--green)':'var(--red)'}">${fmtPct(roi)}</td>
           </tr>
         </table>
         <div style="margin-top:14px;padding:12px;background:var(--card2);border-radius:8px">
@@ -838,7 +1338,14 @@ function renderFinance(){
             </div>`).join('')}
         </div>
       </div>
-    </div>`;
+    </div>
+    ${detail}`;
+}
+function toggleVDetail(id, hdr){
+  const el=document.getElementById(id); if(!el)return;
+  const open = el.style.display==='none';
+  el.style.display = open?'block':'none';
+  if(hdr) hdr.innerHTML = hdr.innerHTML.replace(open?'▸':'▾', open?'▾':'▸');
 }
 
 // ── GANTT — PHASE DEFINITIONS ──
