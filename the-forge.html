@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- The Forge v2.16.7 | Command Center Suite | v2.16.7 = corsproxy.io keyless-URL retirement fix (5 code edits + 7 label edits). ▸ ROOT CAUSE (external, not a Forge bug): corsproxy.io retired its anonymous "keyless legacy" proxy form (https://corsproxy.io/?<encoded-url>) ~Sep 15 2026 and now answers it with HTTP 403 {"error":"keyless_legacy_url"} directing callers to the keyed CORSPROXY API (?key=…&url=…). Forge built exactly that dead shape at three fetch sites, so every Yahoo call that did NOT go through the Worker began failing 403. Faisal's live break: osgApiFetch('yahoo',…) — hardcoded corsproxy, never Worker — which backs osgFetchOHLC (/v8/finance/chart/<sym>?range=1y, the NAIL 403 in the diagnostic), osgFetchVIX path-1 (^VIX), and stksResolveName (company names). ▸ FIX: (1) osgApiFetch rewritten from single-URL to an ordered candidate chain: for yahoo it now prefers the Forge Worker's /chart route (${proxyUrl}/chart?path=<encoded Yahoo path>) when a proxy URL is configured and session-consent is off — /v8/finance/chart is a PUBLIC endpoint (no crumb auth), so it can ride the Worker like /options and /intraday already do — then falls back to allorigins.win query1 then query2 (the same keyless fallback osgFetchVIX has trusted since v2.5.8; slower, best-effort). First ok wins; every candidate exhausted → single _forgeFmReport with the last outcome. reportMeta.viaWorker now reflects which candidate actually answered (was hardcoded false). Finnhub path unchanged (single candidate through the same loop). (2) osgFetchChain + (3) osgFetchIntraday: their no-Worker fallback URL swapped from the dead corsproxy keyless form to allorigins.win — these still need Worker crumb auth for real chains (allorigins will 401 at Yahoo just as corsproxy did, but no longer eats a guaranteed proxy-side 403). ▸ REQUIRES for the fast path: add a /chart route to the forge-proxy Worker (guard: path.startsWith('/v8/finance/chart/'); passthrough to query1.finance.yahoo.com; return with CORS + 60s cache) and redeploy. Until then chart/VIX/name calls transparently ride allorigins (functional; may occasionally exceed the 8s OSG_FETCH_TIMEOUT_MS — same risk VIX already carried). ▸ LABELS: 7 user-visible "corsproxy.io" strings relabeled to "allorigins.win" (viaLabel, both dynamic fallback buttons + tooltips, consent toast, static modal button + tooltip, revert-button tooltip). The _forgeFmCorsproxyConsentSession identifier and Help-section prose (hlp-keys/hlp-data unlocks tables, CSP comment) still say corsproxy — deferred to a doc pass. CSP unchanged (api.allorigins.win + *.workers.dev already allowlisted). KNOWN PRE-EXISTING (not touched): stksResolveName passes 4 positional args to osgApiFetch's 3-arg (provider,endpoint,opts) signature, so its intended 30-day name-cache TTL is silently dropped (defaults to 60s) — flagged, out of scope. node --check passes on extracted inline JS; APP_VERSION 2.16.6 → 2.16.7 + lock-screen. -->
 <!-- The Forge v2.16.6 | Command Center Suite | v2.16.6 = Options tab repaints on renderAll (1 edit). Follow-up to v2.16.5: CSP moneyness chips were CORRECT (probe confirmed osgFetchChain returns underlyingPrice 20.0625, Worker forwards result.quote.regularMarketPrice exactly) but intermittently showed "pending" depending on click order. Root cause: renderAll() — fired on Live Prices completion (line ~11482), imports, and edits — repainted renderDashboard() + renderFidTab() but never renderOptsTab(). The Options tab only re-rendered on nav-switch (line ~6512). So Live Prices while sitting ON the Options tab populated _dashOptMarks.spots but never repainted the cards, which kept their stale "pending" draw; navigating away+back fixed it (that is why login->LivePrices->open-Options worked but on-Options->LivePrices did not). Fix: renderAll() now also calls renderOptsTab() (pure render, no fetch — mirrors the renderFidTab call beside it), so Live Prices / import / edit refresh every _dashOptMarks-dependent Options display at once: moneyness chips, roll-ledger Unrealized/Mark-now, and open-card live marks. node --check passes; APP_VERSION 2.16.5 -> 2.16.6 + lock-screen. -->
 <!-- The Forge v2.16.5 | Command Center Suite | v2.16.5 = CSP moneyness chips (3 edits). Cash-secured-put open cards showed "pending" instead of an ITM/NTM/OTM chip, while covered calls classified fine. Root cause: optsClassifyPosition (~line 13589) sources the underlying price ONLY from held schwab.stocks/etfs — a covered call has its underlying held (NFLX), a CSP does not (ZETA, NAIL), so the classifier got no price and returned tier:unknown → "pending". The spot was already being fetched and discarded: osgFetchChain reads result.options[0] for puts/calls but ignored result.quote, where Yahoo carries the underlying spot (regularMarketPrice). Fix: (1) osgFetchChain now returns underlyingPrice from result.quote.regularMarketPrice (?? regularMarketPreviousClose ?? null). (2) dashFetchOptionMarks captures the discovery chain spot into a per-underlying spots{} map (discovery always runs once per underlying, so it is the reliable capture point) stored as _dashOptMarks.spots. (3) optsClassifyPosition falls back to _dashOptMarks.spots[sym] after the held stock/ETF lookup — held positions stay PRIMARY so covered calls keep matching their stock-card price; the chain spot only fills non-held CSP underlyings. No new fetches/API surface — just stop discarding a value already pulled on every Live Prices click; chip freshness = last Live Prices click. FIELD-CONFIRM NOTE: result.quote.regularMarketPrice is the standard Yahoo optionChain shape (same result[0] the code already trusts for options/expirationDates) but was not verifiable against the live Worker at build time — guarded with prev-close fallback + null-safety; if a chip stays blank on reload, log result.quote and adjust the field. node --check passes; APP_VERSION 2.16.4 -> 2.16.5 + lock-screen. -->
 <!-- The Forge v2.16.4 | Command Center Suite | v2.16.4 = Dashboard cash hooked to the reconciliation engine (1 edit). Bug: `dashKpiTotals` (line ~8817) computed cash as `s.cash.seed + f.cash.balance` — the raw May-10 seed anchor ($22,024.29), never reading `lastReconciledCash`. So the Total Account Value tile + Cash tile showed seed+Fidelity (~$22,027) regardless of what the reconciliation engine computed — inflating TAV by ~$6,814 vs Schwab+Fidelity reality. The engine itself was correct: `runReconciliation` walks seed + post-seed transactions and auto-stores the user-confirmed live balance to `lastReconciledCash` after every clean import (it held $15,210.33 dated 06/12, matching Schwab to the penny). The dashboard was simply never hooked to it — the v1.9.6-era note at ~line 21411 ("v1.9.6 will hook the same runReconciliation()") flagged this hookup as planned but it never landed. Fix: dashboard cash now prefers `lastReconciledCash` (the verified-clean balance) and falls back to `seed` only if never reconciled. Display-only — no data change, no re-import; the corrected value was already stored in Drive. Diagnosis trail: live TAV screenshot ($43,425 / cash $22,027) reconciled line-by-line against Schwab ($33,993) + Fidelity ($2,733) — stocks/ETFs/options matched to ~$100, entire gap was cash; export confirmed seed 22,024.29 + post-May-10 CSV walk (−6,813.96) = 15,210.33 to the cent; post-import JSON confirmed lastReconciledCash 15,210.33 yet dashboard still showed seed → isolated to the read path at 8817. node --check passes; APP_VERSION 2.16.3 → 2.16.4 + lock-screen. -->
@@ -5299,7 +5300,7 @@
 /* ════════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════════ */
-const APP_VERSION = "2.16.6";
+const APP_VERSION = "2.16.7";
 const CLIENT_ID   = "305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com";
 const SCOPES      = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_FILE  = "forge_data.json";
@@ -17829,10 +17830,10 @@ function _forgeFmSignature(provider, viaWorker, mode, status){
 /* Route label for modal copy. Three known routes:
    - finnhub  → 'direct' (osgApiFetch hits finnhub.io with no proxy)
    - yahoo + worker → 'via Worker'
-   - yahoo + corsproxy → 'via corsproxy.io' */
+   - yahoo + fallback proxy → 'via allorigins.win' (v2.16.7; was corsproxy.io) */
 function _forgeFmViaLabel(burst){
   if (burst.provider === 'finnhub') return 'direct';
-  return burst.viaWorker ? 'via Worker' : 'via corsproxy.io';
+  return burst.viaWorker ? 'via Worker' : 'via allorigins.win';
 }
 
 /* v2.12.0 · Mask sensitive query params before rendering or copying.
@@ -17968,8 +17969,8 @@ function _forgeFmOpenModal(){
       retryBtn.onclick = () => { _forgeFmCloseModal(); if (typeof switchTab === 'function') switchTab('settings'); };
     }
     if (fallbackBtn) {
-      fallbackBtn.textContent = 'Use corsproxy.io · VIX/quotes only';
-      fallbackBtn.title = "corsproxy.io can't authenticate Yahoo's options/intraday chain endpoints — those will still fail 401.";
+      fallbackBtn.textContent = 'Use allorigins.win · VIX/quotes only';
+      fallbackBtn.title = "allorigins.win can't authenticate Yahoo's options/intraday chain endpoints — those will still fail 401.";
       fallbackBtn.style.display = '';
     }
   } else if (burst.provider === 'yahoo' && burst.viaWorker) {
@@ -17978,8 +17979,8 @@ function _forgeFmOpenModal(){
       retryBtn.onclick = _forgeFmRetry;
     }
     if (fallbackBtn) {
-      fallbackBtn.textContent = 'Fall back to corsproxy.io · VIX/quotes only';
-      fallbackBtn.title = "corsproxy.io can't authenticate Yahoo's options/intraday chain endpoints — those will still fail 401.";
+      fallbackBtn.textContent = 'Fall back to allorigins.win · VIX/quotes only';
+      fallbackBtn.title = "allorigins.win can't authenticate Yahoo's options/intraday chain endpoints — those will still fail 401.";
       fallbackBtn.style.display = '';
     }
   } else {
@@ -18067,7 +18068,7 @@ async function _forgeFmRetry(){
 
 function _forgeFmFallback(){
   _forgeFmCorsproxyConsentSession = true;
-  if (typeof toast === 'function') toast('Using corsproxy.io for Yahoo this session', 'info');
+  if (typeof toast === 'function') toast('Using allorigins.win for Yahoo this session', 'info');
   _forgeFmCloseModal();
 }
 
@@ -18546,45 +18547,65 @@ async function osgApiFetch(provider, endpoint, opts) {
     return { ok: true, data: cached.data, fromCache: true, ageMs: now - cached.fetchedAt };
   }
 
-  let url;
+  // v2.16.7 · Build an ordered list of proxy candidates and try each until one
+  // returns ok. corsproxy.io retired its keyless legacy URL form (403
+  // keyless_legacy_url, Sep 2026), so the old `corsproxy.io/?<encoded>` path is
+  // dead. /v8/finance/chart is a PUBLIC Yahoo endpoint (no crumb auth), so it can
+  // go through the Forge Worker's /chart route when a proxy URL is configured
+  // (fast, edge-cached, origin-gated), falling back to allorigins.win query1 then
+  // query2 (the same proven VIX fallback — slower, best-effort, keyless).
+  const candidates = [];
   if (provider === 'finnhub') {
-    url = `https://finnhub.io/api/v1${endpoint}`;
+    candidates.push({ url: `https://finnhub.io/api/v1${endpoint}`, viaWorker: false });
   } else if (provider === 'yahoo') {
-    // Yahoo doesn't return CORS headers — proxy via corsproxy.io.
-    // Provider abstraction means consumers don't care about the proxy.
-    const target = `https://query1.finance.yahoo.com${endpoint}`;
-    url = `https://corsproxy.io/?${encodeURIComponent(target)}`;
+    const proxyUrl = osgGetProxyUrl();
+    if (proxyUrl && !_forgeFmCorsproxyConsentSession) {
+      candidates.push({ url: `${proxyUrl}/chart?path=${encodeURIComponent(endpoint)}`, viaWorker: true });
+    }
+    candidates.push({ url: `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query1.finance.yahoo.com' + endpoint)}`, viaWorker: false });
+    candidates.push({ url: `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query2.finance.yahoo.com' + endpoint)}`, viaWorker: false });
   } else {
     return { ok: false, error: 'Unknown provider: ' + provider };
   }
 
   // v2.12.0 · meta for failure-modal reporter
   // silent: true on opts → suppress modal dispatch (call site handles failure gracefully)
-  const reportMeta = {
+  const mkReportMeta = (viaWorker) => ({
     provider,
-    viaWorker: false,
+    viaWorker,
     endpoint,
     silent: opts.silent === true,
     retryFn: () => osgApiFetch(provider, endpoint, opts)
-  };
+  });
 
-  try {
-    const resp = await fetch(url, { signal: AbortSignal.timeout(OSG_FETCH_TIMEOUT_MS) });
-    if (!resp.ok) {
-      let snippet = '';
-      try { snippet = (await resp.text()).slice(0, 240); } catch(_){}
-      _forgeFmReport({ ...reportMeta, ok: false, error: 'HTTP ' + resp.status, status: resp.status, responseSnippet: snippet });
-      return { ok: false, error: 'HTTP ' + resp.status, status: resp.status };
+  // Walk candidates in order; first ok wins. Non-ok / throw → try next.
+  let lastError = null, lastStatus = null, lastSnippet = '', lastViaWorker = false;
+  for (const cand of candidates) {
+    lastViaWorker = cand.viaWorker;
+    try {
+      const resp = await fetch(cand.url, { signal: AbortSignal.timeout(OSG_FETCH_TIMEOUT_MS) });
+      if (!resp.ok) {
+        lastStatus = resp.status;
+        lastError = 'HTTP ' + resp.status;
+        lastSnippet = '';
+        try { lastSnippet = (await resp.text()).slice(0, 240); } catch(_){}
+        continue;
+      }
+      const data = await resp.json();
+      _osgCache.set(cacheKey, { data, fetchedAt: now });
+      _forgeFmReport({ ...mkReportMeta(cand.viaWorker), ok: true });
+      return { ok: true, data, fromCache: false, ageMs: 0 };
+    } catch (e) {
+      lastError = (e && e.message) || String(e);
+      lastStatus = null;
+      lastSnippet = '';
+      continue;
     }
-    const data = await resp.json();
-    _osgCache.set(cacheKey, { data, fetchedAt: now });
-    _forgeFmReport({ ...reportMeta, ok: true });
-    return { ok: true, data, fromCache: false, ageMs: 0 };
-  } catch (e) {
-    const msg = (e && e.message) || String(e);
-    _forgeFmReport({ ...reportMeta, ok: false, error: msg });
-    return { ok: false, error: msg };
   }
+
+  // Every candidate failed — report the last outcome for the failure modal.
+  _forgeFmReport({ ...mkReportMeta(lastViaWorker), ok: false, error: lastError, status: lastStatus, responseSnippet: lastSnippet });
+  return { ok: false, error: lastError, status: lastStatus };
 }
 
 /* Fetch active-symbol price via Finnhub /quote.
@@ -19046,8 +19067,11 @@ async function osgFetchChain(sym, expiryDate) {
   } else {
     let path = `/v7/finance/options/${encoded}`;
     if (dateParam != null) path += `?date=${dateParam}`;
+    // v2.16.7 · corsproxy.io keyless URLs retired (403). Options need Yahoo crumb
+    // auth that no keyless proxy provides — this fallback will 401 at Yahoo, but at
+    // least it's not a guaranteed proxy-side 403. Configure the Worker for real chains.
     const target = `https://query2.finance.yahoo.com${path}`;
-    url = `https://corsproxy.io/?${encodeURIComponent(target)}`;
+    url = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`;
     displayPath = path;
   }
 
@@ -19138,8 +19162,9 @@ async function osgFetchIntraday(sym) {
     displayPath = `/intraday/${encoded}`;
   } else {
     displayPath = `/v8/finance/chart/${encoded}?interval=1m&range=1d`;
+    // v2.16.7 · corsproxy.io keyless URLs retired (403) → allorigins.win fallback.
     const target = `https://query2.finance.yahoo.com${displayPath}`;
-    url = `https://corsproxy.io/?${encodeURIComponent(target)}`;
+    url = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`;
   }
 
   // v2.12.0 · reporter meta for failure-modal dispatch
@@ -22328,8 +22353,8 @@ function ddRenderEquityCurve_v18_svg(){
       <pre id="forgeFmDiag" class="forge-fm-diag"></pre>
       <div class="forge-fm-actions">
         <button id="forgeFmRetryBtn" class="btn-pri" onclick="forgeFmRetry()">Retry failed calls</button>
-        <button id="forgeFmFallbackBtn" class="btn-sec" onclick="forgeFmFallback()" title="corsproxy.io can't authenticate Yahoo's options/intraday chain endpoints — those will still fail 401.">Fall back to corsproxy.io · VIX/quotes only</button>
-        <button id="forgeFmRevertBtn" class="btn-sec" onclick="forgeFmRevertFallback()" style="display:none" title="Clears the session corsproxy consent — future Yahoo calls will route through the Worker again.">Disable fallback · resume Worker routing</button>
+        <button id="forgeFmFallbackBtn" class="btn-sec" onclick="forgeFmFallback()" title="allorigins.win can't authenticate Yahoo's options/intraday chain endpoints — those will still fail 401.">Fall back to allorigins.win · VIX/quotes only</button>
+        <button id="forgeFmRevertBtn" class="btn-sec" onclick="forgeFmRevertFallback()" style="display:none" title="Clears the session fallback consent — future Yahoo calls will route through the Worker again.">Disable fallback · resume Worker routing</button>
         <button class="btn-sec" onclick="forgeFmDismiss()">Dismiss · continue without retry</button>
       </div>
       <div class="forge-fm-copy-row">
