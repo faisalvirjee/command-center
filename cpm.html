@@ -1,4 +1,4 @@
-<!-- CPM — Construction Project Management | v2.15.15 | 2026-09-17 -->
+<!-- CPM — Construction Project Management | v2.15.16 | 2026-09-17 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1987,7 +1987,7 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION = 'v2.15.15';
+const APP_VERSION = 'v2.15.16';
 const APP_NAME = 'CPM';
 const LS_KEY = 'cpm_data';
 const PW_KEY = 'cpm_pass';
@@ -7426,7 +7426,12 @@ function renderReports(){
         <button onclick="applyExecSummarySuggestion()" class="btn-secondary" style="font-size:11px;padding:5px 12px" title="Generate a suggested summary from the project's current state. Appends to existing text with a blank-line separator.">✨ Generate Suggestion</button>
       </div>
       <div style="font-size:13px;color:var(--text3);margin-bottom:14px;font-style:italic">Dear Partners,</div>
-      <textarea class="form-input" rows="${Math.max(4,Math.ceil((currentProject.executiveSummary||'').length/85))}" style="width:100%;font-size:13px;line-height:1.7;font-family:Georgia,serif" 
+      <!-- v2.15.16 — rows calc walks each line separately (chars/85 per line) instead
+           of dividing total char count by 85. The old formula ignored explicit newlines
+           in the exec summary body — e.g. an ASCII table with short lines was scored as
+           a single long paragraph, undercounted rows, and the last line clipped in the
+           printed Investor Report. +2 row buffer covers print-engine auto-grow quirks. -->
+      <textarea class="form-input" rows="${(()=>{const t=currentProject.executiveSummary||'';const lines=t.split('\n');const needed=lines.reduce((s,l)=>s+Math.max(1,Math.ceil(l.length/85)),0);return Math.max(4,needed+2);})()}" style="width:100%;font-size:13px;line-height:1.7;font-family:Georgia,serif" 
         placeholder="Write your executive summary here. Describe project progress, key milestones, financial highlights, and outlook for the coming period..." 
         oninput="currentProject.executiveSummary=this.value;scheduleSave()">${currentProject.executiveSummary||''}</textarea>
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
