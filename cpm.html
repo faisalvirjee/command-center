@@ -1,4 +1,4 @@
-<!-- CPM — Construction Project Management | v2.15.14 | 2026-08-30 -->
+<!-- CPM — Construction Project Management | v2.15.15 | 2026-09-17 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1987,7 +1987,7 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION = 'v2.15.14';
+const APP_VERSION = 'v2.15.15';
 const APP_NAME = 'CPM';
 const LS_KEY = 'cpm_data';
 const PW_KEY = 'cpm_pass';
@@ -4826,7 +4826,9 @@ function saveLedgerEntry(){
     currentProject.ledger.push(entry);
   }
   currentProject.ledger.sort((a,b)=>a.date.localeCompare(b.date));
-  closeModal('modal-ledger');scheduleSave();renderLedger();renderDashboard();renderPhaseBudgetTable();renderCharts();
+  // v2.15.15 — add renderPhases()/renderFinance() so Phases & Tasks and Finance tabs
+  // reflect ledger mutations without a tab-switch round trip (matched deleteLedgerEntry).
+  closeModal('modal-ledger');scheduleSave();renderLedger();renderDashboard();renderPhases();renderFinance();renderPhaseBudgetTable();renderCharts();
   toast('Entry saved','success');
 }
 
