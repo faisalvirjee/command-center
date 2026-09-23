@@ -1,7 +1,4 @@
 <!DOCTYPE html>
-<!-- The Forge v2.19.0 | Command Center Suite | v2.19.0 = Exit Strategy · Stocks engine (the second asset class). The Stocks sub-tab is now a real engine (renderExitStocks), replacing the v2.18.0 design-preview (old renderExitStocksPreview/exitStockStats remain as dead code, unused). Covers BOTH schwab.stocks and fidelity.positions. Pure/testable engine: exitStockLotSplit (per-lot LT/ST classification via 1yr-from-purchase, days-to-LT for the nearest ST lot, per-lot gain/loss, most-recent-buy age), exitStockVerdict, exitStockCompute, exitStockComputeAll. LENSES: (1) position math — unrealized $/%, term (ST/LT/MIXED with share split), days-to-long-term; (2) tax — ROC-free basis, per-type harvest asset (ST loss x ST rate, LT loss x LT rate) or cost-to-exit, at taxes.rates (ST ~41% / LT ~24%); (3) WASH-SALE GUARD — flags a loss position with any buy within 30 days (its potential asset is EXCLUDED from the roll-up harvest total, since the loss would be disallowed); (4) technical (additive/async) — trend vs 50d MA + RSI label via osgFetchOHLC/osgCalcRSI, downtrend strengthens a HARVEST; never blocks the verdict. VERDICTS (STOCK_RULES, tunable): HARVEST (material loss >=8% and >=$75), WAIT-FOR-LT (winner with a MATERIAL ST gain — >=$25, calibrated to ignore fractional-share dust — within 45d of crossover), LET-RUN (winner, no tax reason), HOLD (small loss / flat), TRIM reserved. Roll-up: positions, unrealized, harvestable loss, tax asset if harvested (excl. wash-flagged), wash-sale flag count. DEEP-TESTED headless vs live JSON: 8 positions, unrl -$1,293, harvestable loss -$2,377, tax asset +$657, 1 wash flag. Verdicts: NFLX/JMKE HARVEST (ST losses, assets +$469/+$188), NAIL HARVEST + WASH-SALE flag (bought 5d ago -> its ~$318 excluded), SPY/TSLA/AMZN/NVDA/PLTR LET-RUN. All position numbers reconcile to the Dashboard to the dollar. New CSS: .exit-rail/.exit-badge .wait (blue) + .hold-n (neutral). node --check passes (3 blocks). APP_VERSION 2.18.0 -> 2.19.0 + lock-screen. NEXT: the Potential Tax Impact planner on the Taxes tab (nets these ETF + stock harvest candidates against your ACTUAL ~$7,291 YTD gains in IRS order, wash-sale-aware) — the capstone Faisal asked for; then Options consolidation of Auto-Roll, readability, knobs. -->
-<!-- The Forge v2.18.0 | Command Center Suite | v2.18.0 = Exit Strategy becomes a multi-asset hub. Restructured tc-exit into three sub-tabs (YieldMax ETFs | Stocks | Options) via exitSwitchSub(); the switchTab('exit') hook now restores the last sub (default etfs). YieldMax ETFs tab = the unchanged v2.17.x engine (renderExitTab into #exitMount inside #exitSub-etfs) — zero logic change, just relocated under the first sub-tab. Stocks + Options tabs = honest design-preview panels (renderExitStocksPreview / renderExitOptionsPreview) that lay out the planned per-class lenses and verdict spectrum and show a REAL data peek (no fake verdicts): exitStockStats() reports held/underwater/green counts across Schwab + Fidelity (live: 3 Schwab, all 3 underwater, 5 Fidelity); exitOptionStats() reports open/total from optionTrades (live: 7 open of 146). Rationale (theory-craft): the exit MINDSET transfers but each class needs its own engine — stocks are cut/hold/harvest/wait (unrealized%, days-to-LT, tax-loss harvest, wash-sale guard, technicals) not income-vs-decay; options are tactical close/roll and largely already exist as the Auto-Roll engine, so that tab will CONSOLIDATE Auto-Roll rather than duplicate it. New scoped CSS (.ex-tabs/.ex-stab/.ex-panel/.ex-preview/.ex-lens/.ex-verdicts/.ex-peek). No new deps. node --check passes (3 blocks). APP_VERSION 2.17.1 → 2.18.0 + lock-screen. NEXT (pending Faisal align): build the Stocks exit engine (highest-value — all data exists), then the Options consolidation of Auto-Roll; plus the still-queued readability pass and threshold knobs. -->
-<!-- The Forge v2.17.1 | Command Center Suite | v2.17.1 = Exit Strategy market-lens fix. The per-card Underlying trend fell to its bare-symbol fallback (screenshot showed "COIN"/"TSLA"/"AMD" with no %) because exitEnrichMarket read osgFetchOHLC as {closes|data} — the real shape is {ok, bars:[{c,h,l}], currentPrice, fiftyTwoWeekHigh}. Rewrote the underlying branch to map bars→closes, use currentPrice as the latest and fiftyTwoWeekHigh for the off-high calc, label ~1y (osgFetchOHLC pulls range=1y, not 6mo), and fire the "extended" ⚠ flag (capped-upside risk) when within 3% of the 52w high after a >50% run — which lights AMDY (AMD ~+208%, at ATH). VIX path was already working (14.2, low→headwind). Still fully additive/guarded: on !ok or thin data the cell shows the bare symbol, verdict unaffected. Verified the branch logic headless for AMD (extended ⚠) / TSLA (no flag) / COIN / fetch-failure. node --check passes (3 blocks). APP_VERSION 2.17.0 → 2.17.1 + lock-screen. -->
 <!-- The Forge v2.17.0 | Command Center Suite | v2.17.0 = Exit Strategy sub-tab — the income-ETF exit-decision engine built on the v2.16.11 lot plumbing. NEW SIDEBAR TAB (Analysis section, 🚦, between Taxes and the Tools section) → tc-exit panel; switchTab hook calls renderExitTab(). THREE-LENS RULES ENGINE (all in one new JS block, architected pure so it is unit-testable headless): (1) Pure math — per ETF: net (value+distros−cost), capital-recovery %, per-pay income trend (recent-6 vs early-6 avg, cadence-inferred annualized run-rate + yield-on-value), net cushion. (2) Tax — ROC-adjusted: taxable = value − _schwabAdjustedCost; LT/ST decided per-lot from the v2.16.11 lots (all four proven LT); loss → harvest asset, gain → cost-to-exit, at (fedLT|fedST + gaState + NII) from taxes.rates. (3) Market (additive, best-effort, never blocks the verdict) — reverse-split flag from lot splits (offline), plus live VIX regime + underlying 6mo trend via osgFetchVIX/osgFetchOHLC through the Worker; on pending/failed fetch the card shows the symbol/‘pending’, verdict already stands. VERDICT (EXIT/TRIM/HOLD) from centralized EXIT_RULES thresholds (collapse −70%, fade −40%, cushion 0.20, recovery 80/100%, lowVix 16) — knobs UI deferred per plan. Rules: net<0 → EXIT; house-money & income not collapsed → HOLD; faded/collapsed → TRIM if cushion≥20% & recovery≥80% else EXIT. RENDER: portfolio roll-up strip (sleeve net, recovered %, freed-if-exit, net tax effect, VIX) + per-ETF verdict cards (color rail, badge, 5-metric grid, transparent ‘why’, tax line) matching the approved mockup; scoped #tc-exit CSS. DEEP-TESTED HEADLESS against live JSON before ship: roll-up net +$3,468 / recovered 82% / freed $5,887 / net tax asset +$538, and verdicts CONY EXIT · ULTY EXIT · TSLY TRIM · AMDY HOLD — all match the hand-analysis to the dollar; full shim→engine pipeline confirms lots populate, LT proven from lots, reverse-split flag lights on all four. Decision-support only, not advice (stated in-panel). node --check passes on all 3 inline JS blocks; scripts 5/5; div balance unchanged from v2.16.11 baseline (pre-existing 1-off in a string/comment, not introduced here). APP_VERSION 2.16.11 → 2.17.0 + lock-screen. NEXT: readability pass (closed-position summary cards + lot history via the new lots) and the Exit Strategy ‘knobs’ (threshold tuning UI). -->
 <!-- The Forge v2.16.11 | Command Center Suite | v2.16.11 = ETF lot plumbing (foundation for Exit Strategy + lots readability). No UI change yet; purely additive data. CONTEXT: ETFs are seeded blended-only (shares/costPerShare/totalCost + ROC fields) by the canonical generator, and the in-app CSV importer only ever writes s.stocks — it has no ETF path (which is also why NAIL, a 3x leveraged ETF, correctly lives in stocks; the ETF bucket is specifically the option-income funds that need coverage/house-money/exit machinery). So ETFs had no per-lot detail and thus no per-lot holding period. FIX (in-app shim): new etfsMigrateLots() + ETF_SEED_LOTS table, called at the end of stksMigrate(). For each income ETF lacking a lots[], it builds a split-adjusted lots[] from verified Schwab buy history (TSLY 4 lots/1:5 split, ULTY 3/1:10, AMDY 2/1:5, CONY 2/1:10) — every lot dated 2024-2025, all PRE-2026 seed, all long-term. Each lot: {id, date, source, shares (split-adjusted), costPerShare (split-adjusted), cost, origPrice, preSplitShares, splits[]}. SAFETY (mirrors the originalShares backfill): idempotent — skips any ETF that already has lots (so generator-emitted lots always win); additive — nothing else reads etf.lots, so coverage/house-money/NAV math and blended fields are untouched; self-verifying — attaches ONLY if Σ(lot cost)==totalCost and Σ(lot shares)==shares (±$0.02 / 0.01sh), else logs and SKIPS without changing data. Verified against live JSON: all four reconcile to the penny and share. DURABLE COUNTERPART: canonical_json_generator v1.9.6 (shipped alongside) now emits the same lots[] shape from finalize_etfs, so future regenerations and future income ETFs carry lots natively and this shim no-ops. Adding a future income ETF = add a row to ETF_SEED_LOTS here AND to the generator's YIELDMAX_ETFS + ETF_NAMES. node --check passes on all 3 inline JS blocks; APP_VERSION 2.16.10 → 2.16.11 + lock-screen. NEXT: Exit Strategy sub-tab (v2.17.0) consuming these lots for proven-LT tax overlay; lots also feed the Stocks/ETF history readability work. -->
 <!-- The Forge v2.16.10 | Command Center Suite | v2.16.10 = Transactions unified-log sync fixes (2 code edits). Both surfaced when a freshly imported SPCX sell showed correctly in the Stocks tab but was missing from the Transactions log. (1) Stale flat-cache after import [primary bug] · the Transactions log doesn't read appData live — trnGetFlat() flattens the broker's stocks/sells/options/divs/interest into a row[] once and caches it in trnState._cachedFlat, returning the cache until trnInvalidate() clears it. trnInvalidate() was only called in trnSetBroker (Schwab↔Fidelity toggle) and the per-row delete handler — NOT after a CSV import (impCommit) or a lot reassignment. So if the user had viewed the log earlier in the session, the cache persisted across the import and newly imported rows (the SPCX 09/21 sell + its buys + journals — 5 events) stayed hidden until a manual broker toggle or reload. Confirmed live: toggling Fidelity→Schwab rebuilt the flat and the sell appeared, TOTAL EVENTS 571→576. Fix: added `if(typeof trnInvalidate === 'function') trnInvalidate();` as the first line inside renderAll()'s try block. renderAll fires after impCommit (line ~17000), applyReassignment, edits, and Live Prices, so the log can no longer drift from appData. Lazy by design — trnInvalidate only nulls the cache; the actual reflatten happens on the next trnGetFlat(), i.e. only when the Transactions tab renders, so there's no cost on renders that don't show the log. (2) Imported stock sells showed AMOUNT $0.00 in the log [related bug] · impBuildSellRecord stores sale proceeds under `proceeds` (there is no `proceedsNet` or `amount` field on imported sells). trnFlattenSchwab's amount expression for CURRENT-position stock sells (…? proceedsNet : (sell.amount || 0)) and the Fidelity flatten's equivalent both skipped `sell.proceeds`, so imported current-position sells rendered $0.00 in the amount column — the SPCX sell showed $0.00 despite $3,120.14 proceeds. Only the historicalStocks branch already read sell.proceeds, which is why fully-closed positions were unaffected. Fix: both branches now use `(sell.proceeds || sell.amount || 0)`, matching the historical branch — all three stock-sell flatten paths are now identical. No effect on the Stocks tab, realized G/L, or any tax number — display-only in the event log. node --check passes on all 3 inline JS blocks; APP_VERSION 2.16.9 → 2.16.10 + lock-screen. Backlog in changelog-forge.md. -->
@@ -3687,10 +3684,6 @@
           #tc-exit .exit-badge.exit{color:#e5675e;border-color:rgba(229,103,94,.5);background:rgba(229,103,94,.10)}
           #tc-exit .exit-badge.trim{color:#e0a63a;border-color:rgba(224,166,58,.5);background:rgba(224,166,58,.10)}
           #tc-exit .exit-badge.hold{color:#4ec77d;border-color:rgba(78,199,125,.5);background:rgba(78,199,125,.10)}
-          #tc-exit .exit-rail.wait{background:#5b8db8}
-          #tc-exit .exit-rail.hold-n{background:#8b8b83}
-          #tc-exit .exit-badge.wait{color:#7db0d8;border-color:rgba(91,141,184,.5);background:rgba(91,141,184,.12)}
-          #tc-exit .exit-badge.hold-n{color:#b7b7ae;border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05)}
           #tc-exit .exit-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:2px 14px;margin-bottom:10px}
           #tc-exit .exit-m .ml{font-family:var(--mono,monospace);font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--dim,#6a6a63);margin-bottom:3px}
           #tc-exit .exit-m .mv{font-family:var(--mono,monospace);font-size:13.5px;font-weight:600}
@@ -3700,33 +3693,10 @@
           #tc-exit .exit-foot{color:var(--dim,#6a6a63);font-size:11px;margin-top:18px;border-top:1px solid rgba(255,255,255,.07);padding-top:11px;font-family:var(--mono,monospace)}
           #tc-exit .exit-empty{color:var(--mut,#8b8b83);padding:40px;text-align:center}
           @media(max-width:820px){#tc-exit .exit-kpis{grid-template-columns:repeat(2,1fr)}#tc-exit .exit-metrics{grid-template-columns:repeat(2,1fr)}}
-          #tc-exit .ex-tabs{display:flex;gap:4px;margin:2px 0 16px;border-bottom:1px solid rgba(255,255,255,.08)}
-          #tc-exit .ex-stab{background:none;border:none;border-bottom:2px solid transparent;color:var(--mut,#8b8b83);font-family:var(--mono,monospace);font-size:12.5px;padding:8px 15px 9px;cursor:pointer}
-          #tc-exit .ex-stab:hover{color:#c9c7c0}
-          #tc-exit .ex-stab.active{color:#e9e7e1;border-bottom-color:#46b6a1}
-          #tc-exit .ex-stab .ct{font-size:10px;color:var(--dim,#6a6a63);margin-left:5px}
-          #tc-exit .ex-panel{display:none} #tc-exit .ex-panel.active{display:block}
-          #tc-exit .ex-preview{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:20px 22px}
-          #tc-exit .ex-preview h4{margin:0 0 4px;font-size:14px;color:#e9e7e1;font-weight:600}
-          #tc-exit .ex-preview .pv-sub{color:var(--mut,#8b8b83);font-size:12px;margin-bottom:8px}
-          #tc-exit .ex-soon{display:inline-block;font-family:var(--mono,monospace);font-size:10px;color:#46b6a1;border:1px solid rgba(70,182,161,.4);border-radius:4px;padding:2px 8px;margin-left:8px;vertical-align:middle}
-          #tc-exit .ex-lens{display:flex;gap:11px;align-items:flex-start;padding:10px 0;border-top:1px solid rgba(255,255,255,.06)}
-          #tc-exit .ex-lens .li{font-size:15px;flex:0 0 20px;line-height:1.4}
-          #tc-exit .ex-lens .lt{font-size:12.5px;color:#c9c7c0;line-height:1.5}
-          #tc-exit .ex-lens .lt b{color:#e9e7e1;font-weight:600}
-          #tc-exit .ex-verdicts{font-family:var(--mono,monospace);font-size:11.5px;color:var(--mut,#8b8b83);margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.06)}
-          #tc-exit .ex-peek{font-family:var(--mono,monospace);font-size:11.5px;color:#e0a63a;margin-top:12px}
         </style>
         <div class="exit-head"><span style="font-size:20px">🚦</span><span class="exit-title">Exit Strategy</span></div>
-        <div class="exit-sub">What to do with each position — a rules-based read across your holdings. Decision-support, not advice.</div>
-        <div class="ex-tabs">
-          <button class="ex-stab active" data-sub="etfs" onclick="exitSwitchSub('etfs')">YieldMax ETFs</button>
-          <button class="ex-stab" data-sub="stks" onclick="exitSwitchSub('stks')">Stocks</button>
-          <button class="ex-stab" data-sub="opts" onclick="exitSwitchSub('opts')">Options</button>
-        </div>
-        <div id="exitSub-etfs" class="ex-panel active"><div id="exitMount"></div></div>
-        <div id="exitSub-stks" class="ex-panel"><div id="exitStksMount"></div></div>
-        <div id="exitSub-opts" class="ex-panel"><div id="exitOptsMount"></div></div>
+        <div class="exit-sub">Income-ETF sleeve · rules-based signal from your data, market, and tax lenses · decision-support, not advice</div>
+        <div id="exitMount"></div>
       </div>
 
       <div id="tc-deepdive" class="tc">
@@ -5377,7 +5347,7 @@
 /* ════════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════════ */
-const APP_VERSION = "2.19.0";
+const APP_VERSION = "2.17.0";
 const CLIENT_ID   = "305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com";
 const SCOPES      = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_FILE  = "forge_data.json";
@@ -6587,7 +6557,7 @@ function switchTab(id, btn){
   if(btn) btn.classList.add('active');
   if(id === 'imp'  && typeof impRenderHistory === 'function') impRenderHistory();
   if(id === 'etfs' && typeof renderEtfsTab   === 'function') renderEtfsTab();
-  if(id === 'exit' && typeof exitSwitchSub === 'function') exitSwitchSub(_exitSub || 'etfs');
+  if(id === 'exit' && typeof renderExitTab   === 'function') renderExitTab();
   if(id === 'stks' && typeof renderStksTab   === 'function') renderStksTab();
   if(id === 'opts' && typeof renderOptsTab   === 'function') renderOptsTab();
   if(id === 'fid'  && typeof renderFidTab    === 'function') renderFidTab();
@@ -10247,312 +10217,21 @@ async function exitEnrichMarket(rows){
     try{
       if(typeof osgFetchOHLC !== 'function') break;
       const o = await osgFetchOHLC(r.underlying);
+      const closes = (o && (o.closes || o.data)) || null;
       const span = document.querySelector('.exit-mkt[data-sym="'+r.underlying+'"]');
       if(!span) continue;
-      const closes = (o && o.ok && Array.isArray(o.bars)) ? o.bars.map(b=>b.c).filter(c=>c!=null) : null;
-      if(closes && closes.length>5){
-        const first = closes[0];
-        const last  = (o.currentPrice!=null) ? o.currentPrice : closes[closes.length-1];
-        const hi    = o.fiftyTwoWeekHigh || Math.max.apply(null, closes);
-        const chg   = Math.round((last/first-1)*100);
-        const offHi = hi ? Math.round((last/hi-1)*100) : null;
+      if(Array.isArray(closes) && closes.length>5){
+        const first=closes[0], last=closes[closes.length-1], hi=Math.max.apply(null,closes);
+        const chg = Math.round((last/first-1)*100);
+        const offHi = Math.round((last/hi-1)*100);
         span.textContent = r.underlying+' '+(chg>=0?'+':'')+chg+'%';
-        span.title = r.underlying+' ~1y '+(chg>=0?'+':'')+chg+'%'+(offHi!=null?(' · '+offHi+'% off 52w high'):'');
-        // extended: near 52w high after a big run — capped-upside structure can't capture it
-        if(offHi!=null && offHi > -3 && chg > 50){ span.classList.add('neg'); span.textContent += ' ⚠'; }
+        span.title = r.underlying+' 6mo '+(chg>=0?'+':'')+chg+'% · '+offHi+'% off high';
+        if(offHi>-3 && chg>50) span.classList.add('neg'); // extended: capped-upside risk
       } else {
         span.textContent = r.underlying;
       }
     }catch(e){ /* leave as underlying symbol */ }
   }
-}
-
-/* ════════════════════════════════════════════════════════
-   EXIT STRATEGY · STOCKS ENGINE (v2.19.0)
-   Different question from the ETFs: cut / hold / harvest / wait — not income-vs-decay.
-   Lenses: position math (unrealized %, size, days-to-long-term), tax (ROC-free basis,
-   ST/LT-aware harvest asset or cost-to-exit), wash-sale guard (recent buy within 30d),
-   and an additive technical read (trend via OS-Guidance fetchers). Pure + testable;
-   covers Schwab stocks AND Fidelity positions. Decision-support, not advice.
-════════════════════════════════════════════════════════ */
-
-const STOCK_RULES = {
-  harvestLossPct: 8,     // unrealized ≤ -8% → harvest candidate
-  harvestLossMin: 75,    // …and at least this many $ (skip trivial losses)
-  ltSoonDays:     45,    // ST gain within this many days of LT → WAIT-FOR-LT
-  washWindowDays: 30,    // buy within this many days → harvesting now risks a wash sale
-  ltSoonMinGain:  25     // ST gain must exceed this ($) for WAIT-FOR-LT (ignore rounding-dust tails)
-};
-
-function exitStockDaysToLT(lotDate, asOf){
-  const d = (typeof dashParseDate==='function') ? dashParseDate(lotDate) : null;
-  if(!d) return null;
-  const ltAt = new Date(d.getFullYear()+1, d.getMonth(), d.getDate());
-  return Math.ceil((ltAt - asOf) / 86400000); // >0 = still ST, ≤0 = already LT
-}
-
-function exitStockLotSplit(lots, px, asOf){
-  let remShares=0, cost=0, ltGL=0, stGL=0, ltShares=0, stShares=0;
-  let nextLTdays=null, recentBuyDays=null;
-  for(const l of (lots||[])){
-    const sh = Number(l.shares)||0; if(sh<=0.00000001) continue;
-    const cps = Number(l.costPerShare)||0;
-    remShares += sh; cost += sh*cps;
-    const dtl = exitStockDaysToLT(l.date, asOf);
-    const gl = (px!=null) ? sh*(Number(px)-cps) : 0;
-    if(dtl!=null && dtl>0){ stShares+=sh; stGL+=gl; if(nextLTdays==null||dtl<nextLTdays) nextLTdays=dtl; }
-    else { ltShares+=sh; ltGL+=gl; }
-    // recency (for wash-sale): days since purchase
-    const bought = (typeof dashParseDate==='function') ? dashParseDate(l.date) : null;
-    if(bought){ const age = Math.floor((asOf-bought)/86400000); if(recentBuyDays==null||age<recentBuyDays) recentBuyDays=age; }
-  }
-  return { remShares, cost, ltGL, stGL, ltShares, stShares, nextLTdays, recentBuyDays };
-}
-
-function exitStockVerdict(m){
-  const R = STOCK_RULES;
-  const reasons = [];
-  if(m.value==null){ return { verdict:'HOLD', reasons:['Awaiting price'] }; }
-  const unrl = m.unrl, unrlPct = m.unrlPct;
-  let verdict;
-  if(unrl < 0){
-    const material = (Math.abs(unrlPct) >= R.harvestLossPct) && (Math.abs(unrl) >= R.harvestLossMin);
-    if(material){
-      verdict = 'HARVEST';
-      reasons.push('Underwater '+Math.round(unrlPct)+'% — a tax-loss to harvest');
-      if(m.stShares>0 && m.ltShares===0) reasons.push('Short-term loss — offsets your ST gains at the higher rate');
-      if(m.washRisk) reasons.push('⚠ bought '+m.recentBuyDays+'d ago — harvesting now risks a wash sale (loss disallowed)');
-      else if(m.nextLTdays!=null && m.nextLTdays<=R.ltSoonDays) reasons.push('Harvest before day '+m.nextLTdays+' to keep the loss short-term (more valuable)');
-    } else {
-      verdict = 'HOLD';
-      reasons.push('Only '+Math.round(unrlPct)+'% under — not worth harvesting yet');
-    }
-  } else if(unrl > 0){
-    if(m.stGL>=R.ltSoonMinGain && m.nextLTdays!=null && m.nextLTdays<=R.ltSoonDays){
-      verdict = 'WAIT-FOR-LT';
-      reasons.push('Winner with a short-term gain '+m.nextLTdays+' days from long-term — waiting ~halves the tax if you sell');
-    } else {
-      verdict = 'LET-RUN';
-      reasons.push('Up '+Math.round(unrlPct)+'% — no tax reason to sell');
-      if(m.ltShares>0 && m.stShares===0) reasons.push('Fully long-term');
-    }
-  } else {
-    verdict = 'HOLD'; reasons.push('Flat');
-  }
-  return { verdict, reasons };
-}
-
-function exitStockCompute(pos, broker, rates, asOf){
-  const px = (pos.currentPrice!=null) ? Number(pos.currentPrice) : null;
-  const sp = exitStockLotSplit(pos.lots, px, asOf);
-  if(sp.remShares<=0.00000001) return null; // not held
-  const value = (px!=null) ? sp.remShares*px : null;
-  const unrl  = (value!=null) ? value - sp.cost : null;
-  const unrlPct = (value!=null && sp.cost>0) ? unrl/sp.cost*100 : null;
-  // term classification
-  let term = 'LT';
-  if(sp.stShares>0 && sp.ltShares>0) term = 'MIXED';
-  else if(sp.stShares>0) term = 'ST';
-  // tax: harvest asset (losses) or cost-to-exit (gains), by type
-  let taxAsset=0, taxCost=0;
-  if(value!=null){
-    // ST portion
-    if(sp.stGL < 0) taxAsset += Math.abs(sp.stGL)*rates.st/100; else taxCost += sp.stGL*rates.st/100;
-    if(sp.ltGL < 0) taxAsset += Math.abs(sp.ltGL)*rates.lt/100; else taxCost += sp.ltGL*rates.lt/100;
-  }
-  const washRisk = (unrl!=null && unrl<0 && sp.recentBuyDays!=null && sp.recentBuyDays<=STOCK_RULES.washWindowDays);
-  const v = exitStockVerdict({ value, unrl, unrlPct, stGL:sp.stGL, ltGL:sp.ltGL, stShares:sp.stShares, ltShares:sp.ltShares, nextLTdays:sp.nextLTdays, washRisk, recentBuyDays:sp.recentBuyDays });
-  return {
-    symbol:pos.symbol, name:pos.name||pos.symbol, broker,
-    shares:sp.remShares, cost:sp.cost, price:px, value, unrl, unrlPct,
-    term, ltShares:sp.ltShares, stShares:sp.stShares, nextLTdays:sp.nextLTdays,
-    stGL:sp.stGL, ltGL:sp.ltGL, taxAsset, taxCost, washRisk, recentBuyDays:sp.recentBuyDays,
-    verdict:v.verdict, reasons:v.reasons
-  };
-}
-
-function exitStockComputeAll(){
-  const rates = (typeof exitTaxRates==='function') ? exitTaxRates() : {lt:24,st:41};
-  const asOf = new Date();
-  const rows = [];
-  for(const stk of ((appData.schwab&&appData.schwab.stocks)||[])){ const r=exitStockCompute(stk,'Schwab',rates,asOf); if(r) rows.push(r); }
-  for(const pos of ((appData.fidelity&&appData.fidelity.positions)||[])){ const r=exitStockCompute(pos,'Fidelity',rates,asOf); if(r) rows.push(r); }
-  // roll-up
-  let harvestLoss=0, harvestAsset=0, washCount=0, unrl=0, valuePending=false;
-  for(const r of rows){
-    if(r.value==null){ valuePending=true; continue; }
-    unrl += r.unrl;
-    if(r.verdict==='HARVEST'){ harvestLoss += Math.min(0,r.unrl); harvestAsset += r.washRisk ? 0 : r.taxAsset; if(r.washRisk) washCount++; }
-  }
-  const rank = { HARVEST:0, 'WAIT-FOR-LT':1, TRIM:2, HOLD:3, 'LET-RUN':4 };
-  rows.sort((a,b)=> (rank[a.verdict]-rank[b.verdict]) || ((a.unrl||0)-(b.unrl||0)) );
-  return { rows, roll:{ unrl:valuePending?null:unrl, harvestLoss, harvestAsset, washCount, count:rows.length, valuePending }, rates };
-}
-
-/* ── Render ── */
-function renderExitStocks(){
-  const m = el('exitStksMount'); if(!m) return;
-  let data; try{ data = exitStockComputeAll(); }
-  catch(err){ console.warn('[renderExitStocks]', err); m.innerHTML='<div class="exit-empty">Unable to compute — '+(err&&err.message||err)+'</div>'; return; }
-  const { rows, roll } = data;
-  if(!rows.length){ m.innerHTML='<div class="exit-empty">No stock positions held.</div>'; return; }
-  const rollHtml =
-    '<div class="exit-kpis">'+
-      skpi('Positions', String(roll.count), 'Schwab + Fidelity')+
-      skpi('Unrealized', roll.unrl==null?'pending':exitFmt(roll.unrl), 'open G/L', exitSign(roll.unrl))+
-      skpi('Harvestable loss', exitFmt(roll.harvestLoss), 'across HARVEST names', roll.harvestLoss<0?'neg':'')+
-      skpi('Tax asset if harvested', '+'+exitFmt(roll.harvestAsset), roll.washCount?('excl. '+roll.washCount+' wash-flagged'):'at your rates', 'pos')+
-      skpi('Wash-sale flags', String(roll.washCount), roll.washCount?'review before selling':'none', roll.washCount?'neg':'')+
-    '</div>';
-  m.innerHTML = rollHtml + '<div class="exit-cards">'+rows.map(exitStockCard).join('')+'</div>'+
-    '<div class="exit-foot">Harvest = a tax-loss opportunity, not a call to abandon the thesis · ST losses offset ST gains at the higher rate · wash-sale flag = a buy within 30 days · estimated at your rates, reconcile at filing · not advice.</div>';
-  if(typeof exitEnrichStockTech==='function') exitEnrichStockTech(rows);
-  function skpi(l,v,s,sign){ return '<div class="exit-kpi"><div class="l">'+l+'</div><div class="v '+(sign||'')+'">'+v+'</div><div class="s">'+(s||'')+'</div></div>'; }
-}
-
-function exitStockCard(r){
-  const map = { 'HARVEST':'trim', 'WAIT-FOR-LT':'wait', 'TRIM':'trim', 'HOLD':'hold-n', 'LET-RUN':'hold' };
-  const vClass = map[r.verdict] || 'hold-n';
-  const why = (r.reasons||[]).slice(0,3).join(' · ');
-  const termCell = r.term==='MIXED'
-    ? ('MIXED '+Math.round(r.stShares)+'ST/'+Math.round(r.ltShares)+'LT')
-    : r.term;
-  const dtl = (r.nextLTdays!=null && r.nextLTdays>0) ? (r.nextLTdays+'d') : (r.term==='LT'?'—':'—');
-  let taxLine;
-  if(r.value==null) taxLine='<div class="exit-tax">Tax on sale: pending price</div>';
-  else if(r.unrl<0){
-    const cls = r.washRisk ? 'cost' : 'asset';
-    const asset = r.washRisk ? ('~'+exitFmt(r.taxAsset)+' asset BUT wash-sale risk — loss may be disallowed') : ('tax asset ~'+exitFmt(r.taxAsset));
-    taxLine='<div class="exit-tax '+cls+'">Harvest → '+r.term+' loss '+exitFmt(Math.abs(r.unrl))+' · '+asset+' · frees '+exitFmt(r.value)+'</div>';
-  } else {
-    taxLine='<div class="exit-tax cost">Sell → '+r.term+' gain '+exitFmt(r.unrl)+' · tax cost ~'+exitFmt(r.taxCost)+'</div>';
-  }
-  const wash = r.washRisk ? '<span class="exit-flag" style="color:#e5675e;border-color:rgba(229,103,94,.5)">⚠ wash-sale risk</span>' : '';
-  const badgeTxt = r.verdict==='WAIT-FOR-LT' ? 'WAIT · LT' : r.verdict;
-  return ''+
-  '<div class="exit-card"><div class="exit-rail '+vClass+'"></div><div class="exit-body">'+
-    '<div class="exit-chead">'+
-      '<span class="exit-sym">'+r.symbol+'</span>'+
-      '<span class="exit-name">'+(r.name||'')+' · '+r.broker+'</span>'+ wash +
-      '<span class="exit-badge '+vClass+'">'+badgeTxt+'</span>'+
-    '</div>'+
-    '<div class="exit-metrics">'+
-      smet('Unrealized', r.unrl==null?'pending':(exitFmt(r.unrl)+' ('+exitPct(r.unrlPct)+')'), exitSign(r.unrl))+
-      smet('Term', termCell, '')+
-      smet('Days → LT', dtl, '')+
-      smet('Tax', r.value==null?'—':(r.unrl<0?('+'+exitFmt(r.taxAsset)):('−'+exitFmt(r.taxCost))), r.unrl<0?'pos':'neg')+
-      smet('Trend', '<span class="exit-tech" data-sym="'+r.symbol+'">…</span>', '')+
-    '</div>'+
-    '<div class="exit-why">'+why+'</div>'+ taxLine +
-  '</div></div>';
-  function smet(l,v,sign){ return '<div class="exit-m"><div class="ml">'+l+'</div><div class="mv '+(sign||'')+'">'+v+'</div></div>'; }
-}
-
-/* additive technical read — trend via OS-Guidance fetchers; never blocks the verdict */
-async function exitEnrichStockTech(rows){
-  if(typeof osgFetchOHLC!=='function') return;
-  for(const r of rows){
-    try{
-      const o = await osgFetchOHLC(r.symbol);
-      const span = document.querySelector('.exit-tech[data-sym="'+r.symbol+'"]');
-      if(!span) continue;
-      if(o && o.ok && Array.isArray(o.bars) && o.bars.length>20){
-        let label='';
-        if(typeof osgCalcRSI==='function'){ const rsi=osgCalcRSI(o.bars,14); if(rsi&&rsi.label) label=rsi.label; }
-        const closes=o.bars.map(b=>b.c).filter(c=>c!=null);
-        const last=(o.currentPrice!=null)?o.currentPrice:closes[closes.length-1];
-        const ma50=closes.slice(-50).reduce((a,c)=>a+c,0)/Math.min(50,closes.length);
-        const trend = last>=ma50 ? 'above 50d' : 'below 50d';
-        span.textContent = trend + (label?(' · '+label):'');
-        if(last<ma50) span.classList.add('neg'); // downtrend strengthens a HARVEST
-      } else span.textContent='—';
-    }catch(e){ const span=document.querySelector('.exit-tech[data-sym="'+r.symbol+'"]'); if(span) span.textContent='—'; }
-  }
-}
-
-/* ── Exit Strategy hub (v2.18.0) — sub-tab switching + Stocks/Options previews ── */
-let _exitSub = 'etfs';
-function exitSwitchSub(sub){
-  _exitSub = sub;
-  document.querySelectorAll('#tc-exit .ex-stab').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sub')===sub));
-  document.querySelectorAll('#tc-exit .ex-panel').forEach(p=>p.classList.remove('active'));
-  const panel = el('exitSub-'+sub); if(panel) panel.classList.add('active');
-  if(sub==='etfs') renderExitTab();
-  else if(sub==='stks') renderExitStocks();
-  else if(sub==='opts') renderExitOptionsPreview();
-}
-
-function exitStockStats(){
-  try{
-    const s = appData.schwab || {};
-    let held=0, losers=0, winners=0, priced=0;
-    for(const stk of (s.stocks||[])){
-      const rem = (stk.lots||[]).reduce((a,l)=>a+(Number(l.shares)||0),0);
-      if(rem<=0.0001) continue; held++;
-      const px = stk.currentPrice; if(px==null) continue; priced++;
-      const cost = (stk.lots||[]).reduce((a,l)=>a+(Number(l.shares)||0)*(Number(l.costPerShare)||0),0);
-      (rem*Number(px) < cost) ? losers++ : winners++;
-    }
-    let fid=0;
-    for(const p of ((appData.fidelity&&appData.fidelity.positions)||[])){
-      const rem=(p.lots||[]).reduce((a,l)=>a+(Number(l.shares)||0),0);
-      if(rem>0.0001) fid++;
-    }
-    return {held, losers, winners, priced, fid};
-  }catch(e){ return null; }
-}
-
-function exitOptionStats(){
-  try{
-    const s = appData.schwab || {};
-    const arr = s.optionTrades || s.options || [];
-    let open=0;
-    for(const o of arr){
-      const st=String(o.status||o.state||'').toLowerCase();
-      if(o.open===true || st.indexOf('open')>=0) open++;
-    }
-    return {open, total:arr.length};
-  }catch(e){ return null; }
-}
-
-function exitLensRow(icon, text){ return '<div class="ex-lens"><div class="li">'+icon+'</div><div class="lt">'+text+'</div></div>'; }
-
-function renderExitStocksPreview(){
-  const m = el('exitStksMount'); if(!m) return;
-  const st = exitStockStats();
-  let peek='';
-  if(st){
-    peek = 'Your book: '+st.held+' Schwab stock position'+(st.held!==1?'s':'')+(st.fid?(' + '+st.fid+' Fidelity'):'');
-    if(st.priced) peek += ' · '+st.losers+' underwater (harvest candidates), '+st.winners+' in the green';
-  }
-  m.innerHTML =
-  '<div class="ex-preview">'+
-    '<h4>Stocks<span class="ex-soon">engine next</span></h4>'+
-    '<div class="pv-sub">A stock\u2019s exit question isn\u2019t \u201cis income beating decay\u201d \u2014 it\u2019s cut / hold / harvest / wait. Different lenses, same transparent card + verdict.</div>'+
-    exitLensRow('\uD83D\uDCC9','<b>Position math</b> \u2014 unrealized G/L %, size, and <b>days-to-long-term</b> (crossing one year can roughly halve the tax rate \u2014 a real timing signal).')+
-    exitLensRow('\uD83D\uDCB0','<b>Tax</b> \u2014 harvest a loss for its tax asset, or weigh the cost of selling a winner now vs. waiting for LT. Same basis + your rates.')+
-    exitLensRow('\uD83D\uDCCA','<b>Technical</b> \u2014 trend, RSI/ATR, 52-week position, reusing the OS-Guidance fetchers you already have. A broken downtrend on a loser strengthens \u201ccut.\u201d')+
-    exitLensRow('\u26A0\uFE0F','<b>Wash-sale guard</b> \u2014 flags when harvesting would trip a wash sale (you have live wash events today). This is what makes tax-loss harvesting safe.')+
-    '<div class="ex-verdicts">Verdict spectrum: HOLD \u00B7 LET-RUN (winner) \u00B7 TRIM \u00B7 HARVEST (cut for the tax asset) \u00B7 WAIT-FOR-LT (near crossover)</div>'+
-    (peek ? '<div class="ex-peek">'+peek+'</div>' : '')+
-  '</div>';
-}
-
-function renderExitOptionsPreview(){
-  const m = el('exitOptsMount'); if(!m) return;
-  const st = exitOptionStats();
-  const n = st ? (st.open || st.total || 0) : 0;
-  const peek = st ? ('Your book: '+n+' open option position'+(n!==1?'s':'')+' \u2014 Auto-Roll already watches these.') : '';
-  m.innerHTML =
-  '<div class="ex-preview">'+
-    '<h4>Options<span class="ex-soon">consolidate</span></h4>'+
-    '<div class="pv-sub">Options exit is tactical, not buy-and-hold \u2014 \u201cclose or roll, now?\u201d And you\u2019ve largely built this: the Auto-Roll engine (21-DTE, assignment risk, 80% profit). This tab consolidates those signals into one decision board rather than reinventing them.</div>'+
-    exitLensRow('\uD83C\uDFAF','<b>Profit capture</b> \u2014 % of max premium captured (your 80% trigger), from live option marks.')+
-    exitLensRow('\u23F1\uFE0F','<b>Time &amp; assignment</b> \u2014 DTE, moneyness (ITM/OTM), assignment risk \u2014 the existing Auto-Roll signals.')+
-    exitLensRow('\uD83D\uDD04','<b>Roll economics</b> \u2014 is there a net credit to roll out/up, or is closing cleaner? Uses the roll ledger you built.')+
-    '<div class="ex-verdicts">Verdict spectrum: HOLD \u00B7 CLOSE (take profit) \u00B7 ROLL (out/up for credit) \u00B7 LET-ASSIGN</div>'+
-    (peek ? '<div class="ex-peek">'+peek+'</div>' : '')+
-  '</div>';
 }
 
 /* ── Master render (hook for switchTab('etfs')) ──────────── */
