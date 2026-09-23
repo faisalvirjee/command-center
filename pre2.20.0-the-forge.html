@@ -1,6 +1,4 @@
 <!DOCTYPE html>
-<!-- The Forge v2.20.0 | Command Center Suite | v2.20.0 = Potential Tax Impact / Harvest Planner (the capstone tying Exit Strategy to real tax numbers). New Taxes-tab rail section 🎯 Tax-Loss Harvest (txs-harvest, between After-Tax Estimate and Tax Reference; renders via taxesRender→renderTaxHarvest). It is a PLANNING SCENARIO, not a ledger — nothing is realized until the user sells (stated in-panel). ENGINE: taxesHarvestCandidates() pulls loss candidates from the two exit engines (ETF: exitComputeAll rows with taxable<0 → LT losses, ROC-adjusted; Stock: exitStockComputeAll HARVEST rows → ST/LT loss split from per-lot GL, with wash flag). taxesHarvestNet() nets SELECTED losses against ACTUAL realized gains from computeYearRealized(year) — stGains = stockST+optsST, ltGains = stockLT — in IRS order: same-type first, then cross-net opposite signs (LT loss absorbs ST gain etc.), then up to $3,000 of net loss vs ordinary income at the ST rate, remainder carryforward. Wash-flagged candidates, if toggled on, are DISALLOWED (add no offset) and shown as such. Interactive: each candidate is a checkbox (non-wash default on, wash default off); toggling recomputes the live result block (taxHarvestToggle→updateTaxHarvestResult). Headline = estimated tax saved. DEEP-TESTED vs live gains (ST $996.56 stocks + $3,400.94 options, LT $0): default selection nets taxable gains $4,398→$113, tax ~$1,803→~$46, SAVED ~$1,756; the 3 ETF LT losses ($2,683) cross-offset the ST gain, the 2 stock ST losses ($1,602) offset ST gains, NAIL ($775) excluded as wash and adds $0 when force-toggled. Scoped #txs-harvest CSS. Reuses existing computeYearRealized (unchanged) + exitFmt. node --check passes (3 blocks). APP_VERSION 2.19.1 → 2.20.0 + lock-screen. Estimate only; reconcile with 1099-B/CPA — stated in-panel. NEXT: Options consolidation of Auto-Roll, the Help pass (Exit Strategy + planner docs), readability, and threshold knobs. -->
-<!-- The Forge v2.19.1 | Command Center Suite | v2.19.1 = Exit Strategy Stocks: broker tag chip. Per Faisal, keep the unified verdict-sorted list (cross-broker wash-sale logic means Schwab/Fidelity must NOT be visually siloed — a divider would wrongly imply they are independent for tax) but make broker scannable: replaced the inline "· Schwab/Fidelity" name text with a small colored chip in the card head (.exit-broker .sch=blue / .fid=green), mirroring the Dashboard SCHWAB/FIDELITY tags. Cosmetic only — no engine/logic change. node --check passes (3 blocks). APP_VERSION 2.19.0 → 2.19.1 + lock-screen. KNOWN DEBT (flagged by Faisal): the Help section has NO documentation for the entire Exit Strategy feature (ETF + Stocks engines, verdicts, the HARVEST=sell-to-realize-loss meaning, wash-sale flag, tax overlay, decision-support-not-advice framing) — needs a dedicated Help pass. NEXT: Potential Tax Impact planner on the Taxes tab (net ETF + stock harvests against actual ~$4,400 ST gains, IRS order, wash-aware), then Options consolidation, the Help pass, readability, and knobs. -->
 <!-- The Forge v2.19.0 | Command Center Suite | v2.19.0 = Exit Strategy · Stocks engine (the second asset class). The Stocks sub-tab is now a real engine (renderExitStocks), replacing the v2.18.0 design-preview (old renderExitStocksPreview/exitStockStats remain as dead code, unused). Covers BOTH schwab.stocks and fidelity.positions. Pure/testable engine: exitStockLotSplit (per-lot LT/ST classification via 1yr-from-purchase, days-to-LT for the nearest ST lot, per-lot gain/loss, most-recent-buy age), exitStockVerdict, exitStockCompute, exitStockComputeAll. LENSES: (1) position math — unrealized $/%, term (ST/LT/MIXED with share split), days-to-long-term; (2) tax — ROC-free basis, per-type harvest asset (ST loss x ST rate, LT loss x LT rate) or cost-to-exit, at taxes.rates (ST ~41% / LT ~24%); (3) WASH-SALE GUARD — flags a loss position with any buy within 30 days (its potential asset is EXCLUDED from the roll-up harvest total, since the loss would be disallowed); (4) technical (additive/async) — trend vs 50d MA + RSI label via osgFetchOHLC/osgCalcRSI, downtrend strengthens a HARVEST; never blocks the verdict. VERDICTS (STOCK_RULES, tunable): HARVEST (material loss >=8% and >=$75), WAIT-FOR-LT (winner with a MATERIAL ST gain — >=$25, calibrated to ignore fractional-share dust — within 45d of crossover), LET-RUN (winner, no tax reason), HOLD (small loss / flat), TRIM reserved. Roll-up: positions, unrealized, harvestable loss, tax asset if harvested (excl. wash-flagged), wash-sale flag count. DEEP-TESTED headless vs live JSON: 8 positions, unrl -$1,293, harvestable loss -$2,377, tax asset +$657, 1 wash flag. Verdicts: NFLX/JMKE HARVEST (ST losses, assets +$469/+$188), NAIL HARVEST + WASH-SALE flag (bought 5d ago -> its ~$318 excluded), SPY/TSLA/AMZN/NVDA/PLTR LET-RUN. All position numbers reconcile to the Dashboard to the dollar. New CSS: .exit-rail/.exit-badge .wait (blue) + .hold-n (neutral). node --check passes (3 blocks). APP_VERSION 2.18.0 -> 2.19.0 + lock-screen. NEXT: the Potential Tax Impact planner on the Taxes tab (nets these ETF + stock harvest candidates against your ACTUAL ~$7,291 YTD gains in IRS order, wash-sale-aware) — the capstone Faisal asked for; then Options consolidation of Auto-Roll, readability, knobs. -->
 <!-- The Forge v2.18.0 | Command Center Suite | v2.18.0 = Exit Strategy becomes a multi-asset hub. Restructured tc-exit into three sub-tabs (YieldMax ETFs | Stocks | Options) via exitSwitchSub(); the switchTab('exit') hook now restores the last sub (default etfs). YieldMax ETFs tab = the unchanged v2.17.x engine (renderExitTab into #exitMount inside #exitSub-etfs) — zero logic change, just relocated under the first sub-tab. Stocks + Options tabs = honest design-preview panels (renderExitStocksPreview / renderExitOptionsPreview) that lay out the planned per-class lenses and verdict spectrum and show a REAL data peek (no fake verdicts): exitStockStats() reports held/underwater/green counts across Schwab + Fidelity (live: 3 Schwab, all 3 underwater, 5 Fidelity); exitOptionStats() reports open/total from optionTrades (live: 7 open of 146). Rationale (theory-craft): the exit MINDSET transfers but each class needs its own engine — stocks are cut/hold/harvest/wait (unrealized%, days-to-LT, tax-loss harvest, wash-sale guard, technicals) not income-vs-decay; options are tactical close/roll and largely already exist as the Auto-Roll engine, so that tab will CONSOLIDATE Auto-Roll rather than duplicate it. New scoped CSS (.ex-tabs/.ex-stab/.ex-panel/.ex-preview/.ex-lens/.ex-verdicts/.ex-peek). No new deps. node --check passes (3 blocks). APP_VERSION 2.17.1 → 2.18.0 + lock-screen. NEXT (pending Faisal align): build the Stocks exit engine (highest-value — all data exists), then the Options consolidation of Auto-Roll; plus the still-queued readability pass and threshold knobs. -->
 <!-- The Forge v2.17.1 | Command Center Suite | v2.17.1 = Exit Strategy market-lens fix. The per-card Underlying trend fell to its bare-symbol fallback (screenshot showed "COIN"/"TSLA"/"AMD" with no %) because exitEnrichMarket read osgFetchOHLC as {closes|data} — the real shape is {ok, bars:[{c,h,l}], currentPrice, fiftyTwoWeekHigh}. Rewrote the underlying branch to map bars→closes, use currentPrice as the latest and fiftyTwoWeekHigh for the off-high calc, label ~1y (osgFetchOHLC pulls range=1y, not 6mo), and fire the "extended" ⚠ flag (capped-upside risk) when within 3% of the 52w high after a >50% run — which lights AMDY (AMD ~+208%, at ATH). VIX path was already working (14.2, low→headwind). Still fully additive/guarded: on !ok or thin data the cell shows the bare symbol, verdict unaffected. Verified the branch logic headless for AMD (extended ⚠) / TSLA (no flag) / COIN / fetch-failure. node --check passes (3 blocks). APP_VERSION 2.17.0 → 2.17.1 + lock-screen. -->
@@ -3693,9 +3691,6 @@
           #tc-exit .exit-rail.hold-n{background:#8b8b83}
           #tc-exit .exit-badge.wait{color:#7db0d8;border-color:rgba(91,141,184,.5);background:rgba(91,141,184,.12)}
           #tc-exit .exit-badge.hold-n{color:#b7b7ae;border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05)}
-          #tc-exit .exit-broker{font-family:var(--mono,monospace);font-size:9.5px;letter-spacing:.04em;padding:2px 7px;border-radius:4px;border:1px solid;white-space:nowrap}
-          #tc-exit .exit-broker.sch{color:#7db0d8;border-color:rgba(91,141,184,.4);background:rgba(91,141,184,.10)}
-          #tc-exit .exit-broker.fid{color:#6fc98a;border-color:rgba(78,199,125,.4);background:rgba(78,199,125,.10)}
           #tc-exit .exit-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:2px 14px;margin-bottom:10px}
           #tc-exit .exit-m .ml{font-family:var(--mono,monospace);font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--dim,#6a6a63);margin-bottom:3px}
           #tc-exit .exit-m .mv{font-family:var(--mono,monospace);font-size:13.5px;font-weight:600}
@@ -3920,7 +3915,6 @@
               <button class="sp-rail-item"         data-jump="txs-opts"><span class="ico">⚡</span>Options</button>
               <button class="sp-rail-item"         data-jump="txs-divs"><span class="ico">🏠</span>Dividends &amp; House Money</button>
               <button class="sp-rail-item"         data-jump="txs-aftertax"><span class="ico">💰</span>After-Tax Estimate</button>
-              <button class="sp-rail-item"         data-jump="txs-harvest"><span class="ico">🎯</span>Tax-Loss Harvest</button>
               <button class="sp-rail-item"         data-jump="txs-ref"><span class="ico">📚</span>Tax Reference</button>
             </nav>
 
@@ -4064,34 +4058,6 @@
                 <p class="sp-sub" style="margin-bottom:14px">Applies your configured rates (⚙ Tax Rates) to each income bucket for <span id="txsAtYear"></span>. Wash-disallowed losses are added back to taxable income (you can't claim them).</p>
                 <div id="txsAtTiles" class="txs-tile-row"></div>
                 <div id="txsAtBody" style="margin-top:16px"></div>
-              </section>
-
-              <!-- ── POTENTIAL TAX IMPACT · HARVEST PLANNER ── (v2.20.0) -->
-              <section class="sp-section" id="txs-harvest">
-                <style>
-                  #txs-harvest .txs-hv-baseline{font-size:12px;color:var(--text2);line-height:1.6;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px}
-                  #txs-harvest .txs-hv-baseline b{color:var(--text)}
-                  #txs-harvest .txs-hv-cands{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
-                  #txs-harvest .txs-hv-row{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-family:var(--mono);font-size:12px}
-                  #txs-harvest .txs-hv-row.wash{border-color:rgba(229,103,94,.4)}
-                  #txs-harvest .txs-hv-row input{width:15px;height:15px;accent-color:var(--green);cursor:pointer}
-                  #txs-harvest .txs-hv-sym{font-weight:600;color:var(--acc);min-width:52px}
-                  #txs-harvest .txs-hv-kind{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid}
-                  #txs-harvest .txs-hv-kind.etf{color:#d9a441;border-color:rgba(217,164,65,.4)}
-                  #txs-harvest .txs-hv-kind.stk{color:#7db0d8;border-color:rgba(91,141,184,.4)}
-                  #txs-harvest .txs-hv-term{color:var(--text3);flex:1}
-                  #txs-harvest .txs-hv-loss{color:var(--red);font-weight:600}
-                  #txs-harvest .txs-hv-wash{font-size:10px;color:var(--red)}
-                  #txs-harvest .txs-hv-result{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:12px}
-                  #txs-harvest .txs-hv-headline{font-size:15px;font-weight:600;color:var(--text);margin-bottom:10px}
-                  #txs-harvest .txs-hv-lines{display:flex;flex-direction:column;gap:5px}
-                  #txs-harvest .txs-hv-l{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11.5px;color:var(--text2)}
-                  #txs-harvest .txs-hv-note{font-size:11px;color:var(--text3);margin-top:10px;padding-top:9px;border-top:1px solid var(--border)}
-                  #txs-harvest .txs-hv-caveat{font-size:11px;color:var(--text3);line-height:1.55;font-family:var(--mono)}
-                </style>
-                <h3>🎯 Potential Tax Impact — Harvest Planner</h3>
-                <p class="sp-sub">A planning scenario, not a ledger — nothing here is realized until you actually sell. Toggle the Exit Strategy loss candidates to see how harvesting them nets against your <span id="txsHvYear"></span> realized gains, and what it saves at your rates.</p>
-                <div id="txsHarvestBody"></div>
               </section>
 
               <!-- ── TAX REFERENCE ── (v2.3.3) -->
@@ -5411,7 +5377,7 @@
 /* ════════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════════ */
-const APP_VERSION = "2.20.0";
+const APP_VERSION = "2.19.0";
 const CLIENT_ID   = "305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com";
 const SCOPES      = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_FILE  = "forge_data.json";
@@ -6894,150 +6860,6 @@ function taxesYearChanged(){
 }
 
 /* ── Master render ─────────────────────────────────────── */
-/* ════════════════════════════════════════════════════════
-   POTENTIAL TAX IMPACT · Harvest Planner (v2.20.0)
-   A planning scenario (NOT a ledger): nets the Exit Strategy loss candidates
-   (ETF + stock HARVEST names) against ACTUAL realized YTD gains in IRS order,
-   wash-sale aware, and shows the estimated tax saved. Nothing is realized until
-   the user actually sells. Estimated at their rates; reconcile at filing.
-════════════════════════════════════════════════════════ */
-let _txsHarvestSel = null;      // Set of selected candidate ids (null = uninitialized)
-let _txsHarvestCache = null;    // { R, rates, cands, yr }
-
-function taxesHarvestCandidates(yr){
-  const out = [];
-  try{
-    if(typeof exitComputeAll === 'function'){
-      const { rows } = exitComputeAll();
-      for(const r of rows){
-        if(r.taxable != null && r.taxable < 0){
-          out.push({ id:'etf-'+r.symbol, sym:r.symbol, kind:'ETF', term:'LT',
-                     stLoss:0, ltLoss:-r.taxable, wash:false });
-        }
-      }
-    }
-  }catch(e){ /* ETF engine optional */ }
-  try{
-    if(typeof exitStockComputeAll === 'function'){
-      const { rows } = exitStockComputeAll();
-      for(const r of rows){
-        if(r.verdict === 'HARVEST'){
-          out.push({ id:'stk-'+r.symbol, sym:r.symbol, kind:'Stock', broker:r.broker, term:r.term,
-                     stLoss:Math.max(0,-r.stGL), ltLoss:Math.max(0,-r.ltGL), wash:!!r.washRisk });
-        }
-      }
-    }
-  }catch(e){ /* stock engine optional */ }
-  return out;
-}
-
-function taxesHarvestNet(){
-  const c = _txsHarvestCache; if(!c) return null;
-  const { R, rates, cands } = c;
-  const stG = (Number(R.stockST)||0) + (Number(R.optsST)||0);
-  const ltG = (Number(R.stockLT)||0);
-  let selStLoss=0, selLtLoss=0, disallowed=0;
-  for(const cand of cands){
-    if(!_txsHarvestSel.has(cand.id)) continue;
-    if(cand.wash){ disallowed += cand.stLoss + cand.ltLoss; continue; } // wash → loss disallowed, no offset
-    selStLoss += cand.stLoss; selLtLoss += cand.ltLoss;
-  }
-  let netST = stG - selStLoss, netLT = ltG - selLtLoss;
-  // cross-net opposite signs (IRS §1211/1222 order)
-  if(netST>0 && netLT<0){ const u=Math.min(netST,-netLT); netST-=u; netLT+=u; }
-  else if(netLT>0 && netST<0){ const u=Math.min(netLT,-netST); netLT-=u; netST+=u; }
-  const rST=(rates.st||0)/100, rLT=(rates.lt||0)/100;
-  const taxBefore = Math.max(0,stG)*rST + Math.max(0,ltG)*rLT;
-  const taxAfter  = Math.max(0,netST)*rST + Math.max(0,netLT)*rLT;
-  const total = netST + netLT;
-  let ordUse=0, carry=0, ordBenefit=0;
-  if(total < 0){ ordUse=Math.min(3000,-total); carry=(-total)-ordUse; ordBenefit=ordUse*rST; }
-  return {
-    stG, ltG, selStLoss, selLtLoss, disallowed,
-    netST, netLT, ordUse, carry,
-    taxBefore, taxAfter, taxSaved: taxBefore - taxAfter + ordBenefit,
-    taxableBefore: Math.max(0,stG)+Math.max(0,ltG),
-    taxableAfter:  Math.max(0,netST)+Math.max(0,netLT)
-  };
-}
-
-function taxHarvestToggle(id){
-  if(!_txsHarvestSel) return;
-  if(_txsHarvestSel.has(id)) _txsHarvestSel.delete(id); else _txsHarvestSel.add(id);
-  updateTaxHarvestResult();
-}
-
-function updateTaxHarvestResult(){
-  const box = el('txsHvResult'); if(!box) return;
-  const n = taxesHarvestNet(); if(!n){ box.innerHTML=''; return; }
-  const money = (v)=> (typeof exitFmt==='function') ? exitFmt(v) : ('$'+Math.round(v));
-  const savedColor = n.taxSaved>0 ? 'var(--green)' : 'var(--text2)';
-  let rows = '';
-  rows += hvLine('Realized gains this year', money(n.stG)+' ST · '+money(n.ltG)+' LT');
-  rows += hvLine('Selected losses applied', money(n.selStLoss)+' ST · '+money(n.selLtLoss)+' LT');
-  if(n.disallowed>0) rows += hvLine('Wash-disallowed (no benefit)', '<span style="color:var(--red)">−'+money(n.disallowed)+'</span>');
-  rows += hvLine('Taxable capital gains', '<span style="color:var(--text3)">'+money(n.taxableBefore)+'</span> → <b style="color:var(--text)">'+money(n.taxableAfter)+'</b>');
-  if(n.carry>0) rows += hvLine('Loss carried forward', money(n.carry));
-  box.innerHTML =
-    '<div class="txs-hv-result">'+
-      '<div class="txs-hv-headline">Estimated 2026 tax saved: <span style="color:'+savedColor+'">'+ (n.taxSaved>0?'~'+money(n.taxSaved):'$0') +'</span></div>'+
-      '<div class="txs-hv-lines">'+rows+'</div>'+
-      (n.ordUse>0?'<div class="txs-hv-note">Includes '+money(n.ordUse)+' of net loss offsetting ordinary income (the annual $3,000 cap).</div>':'')+
-    '</div>';
-  function hvLine(l,v){ return '<div class="txs-hv-l"><span>'+l+'</span><span>'+v+'</span></div>'; }
-}
-
-function renderTaxHarvest(year){
-  const body = el('txsHarvestBody'); if(!body) return;
-  const yr = year || (typeof taxesGetSelectedYear==='function'?taxesGetSelectedYear():new Date().getFullYear());
-  const yEl = el('txsHvYear'); if(yEl) yEl.textContent = yr;
-  let R, rates, cands;
-  try{
-    R = computeYearRealized(yr);
-    rates = (typeof exitTaxRates==='function') ? exitTaxRates() : {lt:24,st:41};
-    cands = taxesHarvestCandidates(yr);
-  }catch(e){ console.warn('[renderTaxHarvest]',e); body.innerHTML='<div style="padding:24px;color:var(--text3)">Unable to compute — '+(e&&e.message||e)+'</div>'; return; }
-  _txsHarvestCache = { R, rates, cands, yr };
-  if(_txsHarvestSel===null){ _txsHarvestSel=new Set(); for(const c of cands) if(!c.wash) _txsHarvestSel.add(c.id); }
-  const ids=new Set(cands.map(c=>c.id)); for(const id of Array.from(_txsHarvestSel)) if(!ids.has(id)) _txsHarvestSel.delete(id);
-
-  const stG=(Number(R.stockST)||0)+(Number(R.optsST)||0), ltG=(Number(R.stockLT)||0);
-  const money=(v)=>(typeof exitFmt==='function')?exitFmt(v):('$'+Math.round(v));
-
-  if(!cands.length){
-    body.innerHTML='<div class="txs-hv-baseline">Realized this year: <b>'+money(stG)+'</b> short-term · <b>'+money(ltG)+'</b> long-term.</div>'+
-      '<div style="padding:18px 0;color:var(--text3);font-size:12.5px">No harvest candidates right now — no ETF or stock position is currently at a loss. When one is, it will appear here to plan against these gains.</div>';
-    return;
-  }
-
-  const baseline =
-    '<div class="txs-hv-baseline">Your realized capital gains this year: <b>'+money(stG)+'</b> short-term (stocks + options) · <b>'+money(ltG)+'</b> long-term. Short-term is taxed at ~'+Math.round(rates.st)+'%, long-term ~'+Math.round(rates.lt)+'%. Harvested losses offset these in IRS order (same type first, then cross, then $3,000/yr vs ordinary income, rest carries forward).</div>';
-
-  const rowsHtml = cands.map(c=>{
-    const sel = _txsHarvestSel.has(c.id);
-    const loss = c.stLoss + c.ltLoss;
-    const kindCls = c.kind==='ETF' ? 'etf' : 'stk';
-    const termTxt = c.term==='MIXED' ? 'MIXED' : c.term;
-    const washTag = c.wash ? '<span class="txs-hv-wash">⚠ wash-sale — loss disallowed</span>' : '';
-    const brokerTxt = c.broker ? (' · '+c.broker) : '';
-    return '<label class="txs-hv-row'+(c.wash?' wash':'')+'">'+
-      '<input type="checkbox" '+(sel?'checked':'')+' onchange="taxHarvestToggle(\''+c.id+'\')">'+
-      '<span class="txs-hv-sym">'+c.sym+'</span>'+
-      '<span class="txs-hv-kind '+kindCls+'">'+c.kind+brokerTxt+'</span>'+
-      '<span class="txs-hv-term">'+termTxt+' loss</span>'+
-      '<span class="txs-hv-loss">'+money(loss)+'</span>'+
-      washTag+
-    '</label>';
-  }).join('');
-
-  body.innerHTML =
-    baseline +
-    '<div class="txs-hv-cands">'+rowsHtml+'</div>'+
-    '<div id="txsHvResult"></div>'+
-    '<div class="txs-hv-caveat">Planning estimate only — nothing is realized until you sell, and final numbers depend on all your year-end gains and losses. Harvesting a wash-flagged name (bought within 30 days) disallows that loss. Not tax advice; reconcile with your 1099-B and CPA at filing.</div>';
-  updateTaxHarvestResult();
-}
-
 function taxesRender(){
   invalidateWashCache();        // v2.3.2: fresh wash compute every render pass
   const yr = taxesGetSelectedYear();
@@ -7048,7 +6870,6 @@ function taxesRender(){
   taxesRenderWashSales(yr);     // v2.3.2
   taxesRenderAfterTax(yr);      // v2.3.3
   taxesRenderTaxRef(yr);        // v2.3.3
-  if(typeof renderTaxHarvest==='function') renderTaxHarvest(yr);  // v2.20.0
 }
 
 /* ── Summary section ───────────────────────────────────── */
@@ -10612,8 +10433,7 @@ function exitStockCard(r){
   '<div class="exit-card"><div class="exit-rail '+vClass+'"></div><div class="exit-body">'+
     '<div class="exit-chead">'+
       '<span class="exit-sym">'+r.symbol+'</span>'+
-      '<span class="exit-broker '+(r.broker==='Fidelity'?'fid':'sch')+'">'+r.broker.toUpperCase()+'</span>'+
-      '<span class="exit-name">'+(r.name||'')+'</span>'+ wash +
+      '<span class="exit-name">'+(r.name||'')+' · '+r.broker+'</span>'+ wash +
       '<span class="exit-badge '+vClass+'">'+badgeTxt+'</span>'+
     '</div>'+
     '<div class="exit-metrics">'+
