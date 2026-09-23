@@ -1,6 +1,4 @@
 <!DOCTYPE html>
-<!-- The Forge v2.17.0 | Command Center Suite | v2.17.0 = Exit Strategy sub-tab — the income-ETF exit-decision engine built on the v2.16.11 lot plumbing. NEW SIDEBAR TAB (Analysis section, 🚦, between Taxes and the Tools section) → tc-exit panel; switchTab hook calls renderExitTab(). THREE-LENS RULES ENGINE (all in one new JS block, architected pure so it is unit-testable headless): (1) Pure math — per ETF: net (value+distros−cost), capital-recovery %, per-pay income trend (recent-6 vs early-6 avg, cadence-inferred annualized run-rate + yield-on-value), net cushion. (2) Tax — ROC-adjusted: taxable = value − _schwabAdjustedCost; LT/ST decided per-lot from the v2.16.11 lots (all four proven LT); loss → harvest asset, gain → cost-to-exit, at (fedLT|fedST + gaState + NII) from taxes.rates. (3) Market (additive, best-effort, never blocks the verdict) — reverse-split flag from lot splits (offline), plus live VIX regime + underlying 6mo trend via osgFetchVIX/osgFetchOHLC through the Worker; on pending/failed fetch the card shows the symbol/‘pending’, verdict already stands. VERDICT (EXIT/TRIM/HOLD) from centralized EXIT_RULES thresholds (collapse −70%, fade −40%, cushion 0.20, recovery 80/100%, lowVix 16) — knobs UI deferred per plan. Rules: net<0 → EXIT; house-money & income not collapsed → HOLD; faded/collapsed → TRIM if cushion≥20% & recovery≥80% else EXIT. RENDER: portfolio roll-up strip (sleeve net, recovered %, freed-if-exit, net tax effect, VIX) + per-ETF verdict cards (color rail, badge, 5-metric grid, transparent ‘why’, tax line) matching the approved mockup; scoped #tc-exit CSS. DEEP-TESTED HEADLESS against live JSON before ship: roll-up net +$3,468 / recovered 82% / freed $5,887 / net tax asset +$538, and verdicts CONY EXIT · ULTY EXIT · TSLY TRIM · AMDY HOLD — all match the hand-analysis to the dollar; full shim→engine pipeline confirms lots populate, LT proven from lots, reverse-split flag lights on all four. Decision-support only, not advice (stated in-panel). node --check passes on all 3 inline JS blocks; scripts 5/5; div balance unchanged from v2.16.11 baseline (pre-existing 1-off in a string/comment, not introduced here). APP_VERSION 2.16.11 → 2.17.0 + lock-screen. NEXT: readability pass (closed-position summary cards + lot history via the new lots) and the Exit Strategy ‘knobs’ (threshold tuning UI). -->
-<!-- The Forge v2.16.11 | Command Center Suite | v2.16.11 = ETF lot plumbing (foundation for Exit Strategy + lots readability). No UI change yet; purely additive data. CONTEXT: ETFs are seeded blended-only (shares/costPerShare/totalCost + ROC fields) by the canonical generator, and the in-app CSV importer only ever writes s.stocks — it has no ETF path (which is also why NAIL, a 3x leveraged ETF, correctly lives in stocks; the ETF bucket is specifically the option-income funds that need coverage/house-money/exit machinery). So ETFs had no per-lot detail and thus no per-lot holding period. FIX (in-app shim): new etfsMigrateLots() + ETF_SEED_LOTS table, called at the end of stksMigrate(). For each income ETF lacking a lots[], it builds a split-adjusted lots[] from verified Schwab buy history (TSLY 4 lots/1:5 split, ULTY 3/1:10, AMDY 2/1:5, CONY 2/1:10) — every lot dated 2024-2025, all PRE-2026 seed, all long-term. Each lot: {id, date, source, shares (split-adjusted), costPerShare (split-adjusted), cost, origPrice, preSplitShares, splits[]}. SAFETY (mirrors the originalShares backfill): idempotent — skips any ETF that already has lots (so generator-emitted lots always win); additive — nothing else reads etf.lots, so coverage/house-money/NAV math and blended fields are untouched; self-verifying — attaches ONLY if Σ(lot cost)==totalCost and Σ(lot shares)==shares (±$0.02 / 0.01sh), else logs and SKIPS without changing data. Verified against live JSON: all four reconcile to the penny and share. DURABLE COUNTERPART: canonical_json_generator v1.9.6 (shipped alongside) now emits the same lots[] shape from finalize_etfs, so future regenerations and future income ETFs carry lots natively and this shim no-ops. Adding a future income ETF = add a row to ETF_SEED_LOTS here AND to the generator's YIELDMAX_ETFS + ETF_NAMES. node --check passes on all 3 inline JS blocks; APP_VERSION 2.16.10 → 2.16.11 + lock-screen. NEXT: Exit Strategy sub-tab (v2.17.0) consuming these lots for proven-LT tax overlay; lots also feed the Stocks/ETF history readability work. -->
 <!-- The Forge v2.16.10 | Command Center Suite | v2.16.10 = Transactions unified-log sync fixes (2 code edits). Both surfaced when a freshly imported SPCX sell showed correctly in the Stocks tab but was missing from the Transactions log. (1) Stale flat-cache after import [primary bug] · the Transactions log doesn't read appData live — trnGetFlat() flattens the broker's stocks/sells/options/divs/interest into a row[] once and caches it in trnState._cachedFlat, returning the cache until trnInvalidate() clears it. trnInvalidate() was only called in trnSetBroker (Schwab↔Fidelity toggle) and the per-row delete handler — NOT after a CSV import (impCommit) or a lot reassignment. So if the user had viewed the log earlier in the session, the cache persisted across the import and newly imported rows (the SPCX 09/21 sell + its buys + journals — 5 events) stayed hidden until a manual broker toggle or reload. Confirmed live: toggling Fidelity→Schwab rebuilt the flat and the sell appeared, TOTAL EVENTS 571→576. Fix: added `if(typeof trnInvalidate === 'function') trnInvalidate();` as the first line inside renderAll()'s try block. renderAll fires after impCommit (line ~17000), applyReassignment, edits, and Live Prices, so the log can no longer drift from appData. Lazy by design — trnInvalidate only nulls the cache; the actual reflatten happens on the next trnGetFlat(), i.e. only when the Transactions tab renders, so there's no cost on renders that don't show the log. (2) Imported stock sells showed AMOUNT $0.00 in the log [related bug] · impBuildSellRecord stores sale proceeds under `proceeds` (there is no `proceedsNet` or `amount` field on imported sells). trnFlattenSchwab's amount expression for CURRENT-position stock sells (…? proceedsNet : (sell.amount || 0)) and the Fidelity flatten's equivalent both skipped `sell.proceeds`, so imported current-position sells rendered $0.00 in the amount column — the SPCX sell showed $0.00 despite $3,120.14 proceeds. Only the historicalStocks branch already read sell.proceeds, which is why fully-closed positions were unaffected. Fix: both branches now use `(sell.proceeds || sell.amount || 0)`, matching the historical branch — all three stock-sell flatten paths are now identical. No effect on the Stocks tab, realized G/L, or any tax number — display-only in the event log. node --check passes on all 3 inline JS blocks; APP_VERSION 2.16.9 → 2.16.10 + lock-screen. Backlog in changelog-forge.md. -->
 <!-- The Forge v2.16.9 | Command Center Suite | v2.16.9 = doc-accuracy pass (2 edits, zero code/logic change). Follow-up to the v2.16.7/.8 corsproxy arc, closing two stale-doc items. (1) AUTO_ROLL header comment [doc] · the section header still described the 80% profit trigger as "deferred until live options chain ships (currently tabled — Alpha Vantage REALTIME_OPTIONS or Worker shim)". That trigger actually SHIPPED in v2.9.0 — AUTO_ROLL_PROFIT_THRESHOLD = 0.80 is live and fires at line ~12574, reading _dashOptMarks marks populated via the Worker chain. Rewrote the header to describe all three live triggers (21 DTE, assignment risk, 80% profit) and note Auto-Roll is feature-complete, so future-you isn't misled into thinking a shipped feature is still on the shelf. (2) Help Worker-endpoint list [doc] · the hlp-keys Worker-setup step listed "five endpoint paths: /quote, /options, /intraday, /vix, /econ-calendar" — inaccurate. The client only ever calls the Worker at /options (osgFetchChain + the Test Proxy button's /options/SPY probe), /intraday (osgFetchIntraday), /chart (osgApiFetch, added v2.16.7), and /econ-calendar (osgFetchEconCalendar); /quote is Finnhub (not the Worker) and VIX rides /chart, so /quote and /vix were phantom routes and /chart was missing. Corrected to the real set: /options, /intraday, /chart, /econ-calendar, plus the /health diagnostic — matching both the deployed worker.js and the client's actual calls. node --check passes on all 3 inline JS blocks; APP_VERSION 2.16.8 → 2.16.9 + lock-screen. Outstanding backlog tracked in changelog-forge.md. -->
 <!-- The Forge v2.16.8 | Command Center Suite | v2.16.8 = corsproxy.io cleanup pass — 1 code fix + CSP hardening + doc/comment sweep, follow-up to the v2.16.7 keyless-URL fix. No functional routing change beyond the TTL fix; this pass removes the last dead corsproxy.io references and corrects comments that now misdescribed the code. (1) stksResolveName TTL fix [code] · the company-name fetcher called osgApiFetch('yahoo', endpoint, `stks_name_${sym}`, 30*24*60*60*1000) — four positional args against the (provider, endpoint, opts) signature, so the cache-key string landed in opts (harmless) and the intended 30-day TTL was silently DROPPED, defaulting names to the 60s cache. Fixed to pass { ttl: 30*24*60*60*1000 }. Names now actually cache 30 days → fewer redundant Yahoo hits. (2) CSP hardening [security] · removed the now-dead https://corsproxy.io from the connect-src allowlist (zero runtime references remain after v2.16.7) and updated the 47-line CSP doc-comment: dropped the corsproxy.io line, expanded the api.allorigins.win entry to note it's the keyless Yahoo fallback (was labeled VIX-2nd/3rd-only). connect-src now lists only hosts actually used. (3) User-facing Help sweep [doc] · hlp-keys + hlp-data: 7 edits replacing corsproxy.io with allorigins.win — API-keys intro, Worker-setup crumb blurb, "Without the Worker" callout, the 4-row data-unlocks table (source column + the oversold "Always available — corsproxy fallback works" note, softened to note allorigins is slower/best-effort), the CSP-allowlist security blurb, and the fetch-failure-modal consent blurb. (4) Stale code-comment sweep [doc] · ~15 internal comments that named corsproxy.io — most importantly the osgApiFetch header, which still claimed "routes yahoo through corsproxy.io (never Worker), so viaWorker is always false" (the exact opposite of the v2.16.7 candidate-chain code). Also corrected: the v2.0.0 routing-doc VIX/price notes, osgFetchVIX header + path-1 comment, osgFetchOHLC header, osgFetchChain/osgFetchIntraday headers + consent comments, dashFetchOptionMarks note, the intraday-VWAP fetch-loop note, and the failure-modal HTML section comment. Also flipped the osgFetchVIX success return's src:'corsproxy' diagnostic label to src:'primary' (path 1 is now Worker-or-allorigins, so 'corsproxy' misreported it). DELIBERATELY LEFT: the historical top-of-file changelog banners (accurate records of what shipped when — rewriting history there would be wrong) and the _forgeFmCorsproxyConsentSession identifier (a rename touches ~8 call sites for zero functional gain; prose around it clarified instead). NOT TOUCHED (flagged separately, needs Faisal's confirm): the hlp-keys Worker-setup step still lists worker endpoints /quote and /vix and omits the new /chart route — the deployed worker actually exposes /options, /intraday, /chart, /econ-calendar, /health, so that endpoint list looks inaccurate but only Faisal can confirm his worker's true routes. The pre-2026 seed-lot date cap (max="2025-12-31") confirmed CORRECT — it's the tracking-epoch boundary, not stale. node --check passes on all 3 inline JS blocks; APP_VERSION 2.16.7 → 2.16.8 + lock-screen. -->
@@ -3218,7 +3216,6 @@
       <button class="sb-item" onclick="switchTab('deepdive',this)"><span>🔬</span>Deep Dive</button>
       <button class="sb-item" onclick="switchTab('trans',this)"><span>📜</span>Transactions</button>
       <button class="sb-item" onclick="switchTab('taxes',this)"><span>💰</span>Taxes</button>
-      <button class="sb-item" onclick="switchTab('exit',this)"><span>🚦</span>Exit Strategy</button>
     </div>
 
     <div class="sb-section">
@@ -3657,48 +3654,6 @@
            3. How Options Closed donut + breakdown
            4. Equity curve chart (year-tied to optsCalYear)
            5. Period Performance table (year-tied) ═ -->
-      <div id="tc-exit" class="tc">
-        <style>
-          #tc-exit .exit-head{display:flex;align-items:center;gap:10px;margin:2px 0 2px}
-          #tc-exit .exit-title{font-size:18px;font-weight:600}
-          #tc-exit .exit-sub{color:var(--mut,#8b8b83);font-size:12.5px;margin:0 0 18px}
-          #tc-exit .exit-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
-          #tc-exit .exit-kpi{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:11px 13px}
-          #tc-exit .exit-kpi .l{font-family:var(--mono,monospace);font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut,#8b8b83);margin-bottom:6px}
-          #tc-exit .exit-kpi .v{font-family:var(--mono,monospace);font-size:18px;font-weight:600}
-          #tc-exit .exit-kpi .s{font-family:var(--mono,monospace);font-size:10.5px;color:var(--mut,#8b8b83);margin-top:3px}
-          #tc-exit .exit-kpi-vix{border-left:3px solid #e0a63a}
-          #tc-exit .pos{color:#4ec77d} #tc-exit .neg{color:#e5675e}
-          #tc-exit .exit-cards{display:flex;flex-direction:column;gap:11px}
-          #tc-exit .exit-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden;display:flex}
-          #tc-exit .exit-rail{width:4px;flex:0 0 4px}
-          #tc-exit .exit-rail.exit{background:#e5675e}
-          #tc-exit .exit-rail.trim{background:#e0a63a}
-          #tc-exit .exit-rail.hold{background:#4ec77d}
-          #tc-exit .exit-body{padding:13px 16px;flex:1;min-width:0}
-          #tc-exit .exit-chead{display:flex;align-items:center;gap:10px;margin-bottom:11px;flex-wrap:wrap}
-          #tc-exit .exit-sym{font-family:var(--mono,monospace);font-size:15px;font-weight:600;color:#46b6a1}
-          #tc-exit .exit-name{color:var(--mut,#8b8b83);font-size:12px;flex:1;min-width:120px}
-          #tc-exit .exit-flag{font-family:var(--mono,monospace);font-size:10px;color:#e0a63a;border:1px solid rgba(224,166,58,.4);border-radius:4px;padding:2px 7px}
-          #tc-exit .exit-badge{font-family:var(--mono,monospace);font-size:11px;font-weight:600;letter-spacing:.05em;padding:3px 11px;border-radius:5px;border:1px solid}
-          #tc-exit .exit-badge.exit{color:#e5675e;border-color:rgba(229,103,94,.5);background:rgba(229,103,94,.10)}
-          #tc-exit .exit-badge.trim{color:#e0a63a;border-color:rgba(224,166,58,.5);background:rgba(224,166,58,.10)}
-          #tc-exit .exit-badge.hold{color:#4ec77d;border-color:rgba(78,199,125,.5);background:rgba(78,199,125,.10)}
-          #tc-exit .exit-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:2px 14px;margin-bottom:10px}
-          #tc-exit .exit-m .ml{font-family:var(--mono,monospace);font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--dim,#6a6a63);margin-bottom:3px}
-          #tc-exit .exit-m .mv{font-family:var(--mono,monospace);font-size:13.5px;font-weight:600}
-          #tc-exit .exit-why{font-size:12px;color:#c9c7c0;border-top:1px solid rgba(255,255,255,.07);padding-top:9px;margin-bottom:6px}
-          #tc-exit .exit-tax{font-family:var(--mono,monospace);font-size:11px}
-          #tc-exit .exit-tax.asset{color:#4ec77d} #tc-exit .exit-tax.cost{color:#e5675e}
-          #tc-exit .exit-foot{color:var(--dim,#6a6a63);font-size:11px;margin-top:18px;border-top:1px solid rgba(255,255,255,.07);padding-top:11px;font-family:var(--mono,monospace)}
-          #tc-exit .exit-empty{color:var(--mut,#8b8b83);padding:40px;text-align:center}
-          @media(max-width:820px){#tc-exit .exit-kpis{grid-template-columns:repeat(2,1fr)}#tc-exit .exit-metrics{grid-template-columns:repeat(2,1fr)}}
-        </style>
-        <div class="exit-head"><span style="font-size:20px">🚦</span><span class="exit-title">Exit Strategy</span></div>
-        <div class="exit-sub">Income-ETF sleeve · rules-based signal from your data, market, and tax lenses · decision-support, not advice</div>
-        <div id="exitMount"></div>
-      </div>
-
       <div id="tc-deepdive" class="tc">
         <div class="dd">
 
@@ -5347,7 +5302,7 @@
 /* ════════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════════ */
-const APP_VERSION = "2.17.0";
+const APP_VERSION = "2.16.10";
 const CLIENT_ID   = "305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com";
 const SCOPES      = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_FILE  = "forge_data.json";
@@ -6557,7 +6512,6 @@ function switchTab(id, btn){
   if(btn) btn.classList.add('active');
   if(id === 'imp'  && typeof impRenderHistory === 'function') impRenderHistory();
   if(id === 'etfs' && typeof renderEtfsTab   === 'function') renderEtfsTab();
-  if(id === 'exit' && typeof renderExitTab   === 'function') renderExitTab();
   if(id === 'stks' && typeof renderStksTab   === 'function') renderStksTab();
   if(id === 'opts' && typeof renderOptsTab   === 'function') renderOptsTab();
   if(id === 'fid'  && typeof renderFidTab    === 'function') renderFidTab();
@@ -9969,271 +9923,6 @@ document.addEventListener('click', (ev) => {
   if(n && n.classList.contains('open') && !n.contains(ev.target)) n.classList.remove('open');
 });
 
-/* ════════════════════════════════════════════════════════
-   EXIT STRATEGY (v2.17.0)
-   Rules-based signal for the income-ETF sleeve. Three lenses:
-     · Pure math   — net position, capital recovery, income trend, cushion
-     · Tax         — ROC-adjusted (schwabAdjustedCost) LT/ST harvest or cost-to-exit
-     · Market      — reverse-split flag (offline) + live underlying trend + VIX (additive)
-   Engine is pure (data in → metrics + verdict out) so it is unit-testable headless;
-   render + market enrichment are separate. Verdict thresholds are centralized in
-   EXIT_RULES for a future "knobs" pass. Decision-support only — not advice.
-════════════════════════════════════════════════════════ */
-
-const EXIT_UNDERLYING = { TSLY:'TSLA', CONY:'COIN', AMDY:'AMD', ULTY:null /* diversified basket */ };
-
-const EXIT_RULES = {
-  collapsePct: -70,   // per-pay income decline that counts as "engine collapsed"
-  fadePct:     -40,   // milder fade
-  cushionTrim: 0.20,  // net/cost cushion above which a faded name is TRIM not EXIT
-  recoveryTrim: 80,   // and recovery% above which the same holds
-  houseMoney:  100,   // recovery% = de-risked
-  lowVix:      16     // VIX below this = income headwind flag
-};
-
-function exitTaxRates(){
-  const r = (appData.taxes && appData.taxes.rates) || {};
-  const nii = (appData.taxes && appData.taxes.aboveNIIThreshold) ? 3.8 : 0;
-  return {
-    lt: (Number(r.fedLT)||0) + (Number(r.gaState)||0) + nii,
-    st: (Number(r.fedST)||0) + (Number(r.gaState)||0) + nii,
-    nii
-  };
-}
-
-function exitIsLongTerm(dateStr, asOf){
-  const d = (typeof dashParseDate==='function') ? dashParseDate(dateStr) : null;
-  if(!d) return true; // unknown → assume LT (all seeded ETF lots are pre-2026)
-  const cut = new Date(asOf.getFullYear()-1, asOf.getMonth(), asOf.getDate());
-  return d <= cut;
-}
-
-function exitIncomeStats(sym, divs){
-  const ds = (divs||[])
-    .filter(d=>d.symbol===sym)
-    .map(d=>({ t:(typeof dashParseDate==='function')?dashParseDate(d.date):null, a:Number(d.amount)||0 }))
-    .filter(x=>x.t)
-    .sort((a,b)=>a.t-b.t);
-  const n = ds.length;
-  if(n < 4) return { count:n, trendPct:null, annual:null, perPay:null, perYear:null, first:ds[0]&&ds[0].t, last:ds[n-1]&&ds[n-1].t };
-  const k = Math.min(6, Math.floor(n/2));
-  const early  = ds.slice(0,k).reduce((s,x)=>s+x.a,0)/k;
-  const recent = ds.slice(-k).reduce((s,x)=>s+x.a,0)/k;
-  const trendPct = early>0 ? (recent/early-1)*100 : null;
-  const gaps=[]; for(let i=n-k;i<n;i++){ if(i>0) gaps.push((ds[i].t-ds[i-1].t)/86400000); }
-  const avgGap = gaps.length ? gaps.reduce((a,b)=>a+b,0)/gaps.length : 30;
-  const perYear = avgGap>0 ? 365.25/avgGap : 12;
-  return { count:n, trendPct, annual:recent*perYear, perPay:recent, perYear, first:ds[0].t, last:ds[n-1].t };
-}
-
-function exitVerdict(m){
-  const R = EXIT_RULES;
-  const reasons = [];
-  const recovered = m.recovery >= R.houseMoney;
-  const collapsed = m.incomeTrend != null && m.incomeTrend <= R.collapsePct;
-  const faded     = m.incomeTrend != null && m.incomeTrend <= R.fadePct;
-  const cushion   = (m.net != null && m.cost > 0) ? m.net / m.cost : 0;
-  let verdict;
-  if(m.net != null && m.net < 0){
-    verdict = 'EXIT';
-    reasons.push('Net-negative even counting every distribution received');
-  } else if(recovered && !collapsed){
-    verdict = 'HOLD';
-    reasons.push('House money — 100%+ of cost already returned as distributions');
-  } else if(collapsed || faded){
-    if(cushion >= R.cushionTrim && m.recovery >= R.recoveryTrim){
-      verdict = 'TRIM';
-      reasons.push('Income has faded hard, but a solid net cushion remains — de-risk rather than abandon');
-    } else {
-      verdict = 'EXIT';
-      reasons.push('Income engine collapsed and little net cushion is left');
-    }
-  } else {
-    verdict = 'HOLD';
-    reasons.push('Position stable on the numbers');
-  }
-  if(m.recovery >= R.houseMoney) reasons.push('Recovered '+Math.round(m.recovery)+'% of cost');
-  else reasons.push('Recovered '+Math.round(m.recovery)+'% of cost (still exposed)');
-  if(m.incomeTrend != null) reasons.push('Per-pay income '+(m.incomeTrend>=0?'+':'')+Math.round(m.incomeTrend)+'% vs early payments');
-  if(m.hasReverseSplit) reasons.push('Has done a reverse split — classic NAV-decay tell');
-  return { verdict, reasons };
-}
-
-function exitComputeEtf(etf, divs, rates, asOf){
-  const cost   = Number(etf.totalCost)||0;
-  const shares = Number(etf.shares)||0;
-  const price  = (etf.currentPrice!=null) ? Number(etf.currentPrice) : null;
-  const value  = (price!=null) ? shares*price : null;
-  const seed   = Number(etf.seedDivs)||0;
-  const earned = (divs||[]).filter(d=>d.symbol===etf.symbol).reduce((s,d)=>s+(Number(d.amount)||0),0);
-  const distros = seed + earned;
-  const recovery = cost>0 ? distros/cost*100 : 0;
-  const net    = (value!=null) ? value + distros - cost : null;
-  const unrl   = (value!=null) ? value - cost : null;
-  const unrlPct= (value!=null && cost>0) ? unrl/cost*100 : null;
-  const adjBasis = (etf._schwabAdjustedCost!=null) ? Number(etf._schwabAdjustedCost) : (cost - (Number(etf._rocCumulative)||0));
-  const lots = Array.isArray(etf.lots) ? etf.lots : [];
-  const allLT = lots.length ? lots.every(l=>exitIsLongTerm(l.date, asOf)) : true;
-  const splits = lots.reduce((a,l)=>a.concat(l.splits||[]),[]);
-  const hasReverseSplit = splits.length>0;
-
-  let taxable=null, taxKind=null, taxAmt=null, taxRatePct=null;
-  if(value!=null){
-    taxable = value - adjBasis;              // + = gain, - = loss
-    taxRatePct = allLT ? rates.lt : rates.st;
-    if(taxable < 0){ taxKind='asset'; taxAmt = Math.abs(taxable)*taxRatePct/100; }
-    else           { taxKind='cost';  taxAmt = taxable*taxRatePct/100; }
-  }
-
-  const inc = exitIncomeStats(etf.symbol, divs);
-  const yieldOnValue = (inc.annual!=null && value) ? inc.annual/value*100 : null;
-
-  const v = exitVerdict({ net, cost, recovery, incomeTrend:inc.trendPct, unrlPct, hasReverseSplit });
-
-  return {
-    symbol:etf.symbol, name:etf.name, underlying:EXIT_UNDERLYING[etf.symbol]||null,
-    cost, shares, price, value, distros, recovery, net, unrl, unrlPct,
-    adjBasis, taxable, taxKind, taxAmt, taxRatePct, allLT,
-    incomeTrend:inc.trendPct, annualIncome:inc.annual, yieldOnValue,
-    hasReverseSplit, splits, lotCount:lots.length,
-    verdict:v.verdict, reasons:v.reasons
-  };
-}
-
-function exitComputeAll(){
-  const s = appData.schwab || {};
-  const etfs = (s.etfs||[]).filter(e=>Number(e.shares)>0);
-  const divs = s.dividends || [];
-  const rates = exitTaxRates();
-  const asOf = new Date();
-  const rows = etfs.map(e=>exitComputeEtf(e, divs, rates, asOf));
-
-  let cost=0, distros=0, value=0, valuePending=false, netTaxAsset=0, netKnown=0;
-  for(const r of rows){
-    cost += r.cost; distros += r.distros;
-    if(r.value!=null){ value += r.value; netKnown += r.net; } else valuePending=true;
-    if(r.taxAmt!=null){ netTaxAsset += (r.taxKind==='asset' ? r.taxAmt : -r.taxAmt); }
-  }
-  const roll = {
-    cost, distros,
-    value: valuePending ? null : value,
-    net:   valuePending ? null : (value + distros - cost),
-    recovery: cost>0 ? distros/cost*100 : 0,
-    freedIfExit: valuePending ? null : value,
-    netTaxAsset,
-    valuePending,
-    count: rows.length
-  };
-  // order EXIT, TRIM, HOLD then by net asc (worst first)
-  const rank = { EXIT:0, TRIM:1, HOLD:2 };
-  rows.sort((a,b)=> (rank[a.verdict]-rank[b.verdict]) || ((a.net||0)-(b.net||0)) );
-  return { rows, roll, rates };
-}
-
-/* ── Render ─────────────────────────────────────────────── */
-function exitFmt(n, dp){ if(n==null||isNaN(n)) return '—'; return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:dp||0,maximumFractionDigits:dp||0}); }
-function exitPct(n){ if(n==null||isNaN(n)) return '—'; return (n>=0?'+':'')+Math.round(n)+'%'; }
-function exitSign(n){ return n==null ? '' : (n>=0 ? 'pos' : 'neg'); }
-
-function renderExitTab(){
-  const mount = el('exitMount'); if(!mount) return;
-  let data;
-  try { data = exitComputeAll(); }
-  catch(err){ console.warn('[renderExitTab]', err); mount.innerHTML = '<div class="exit-empty">Unable to compute exit strategy — '+(err&&err.message||err)+'</div>'; return; }
-  const { rows, roll } = data;
-  if(!rows.length){ mount.innerHTML = '<div class="exit-empty">No income-ETF positions held.</div>'; return; }
-
-  const rollHtml =
-    '<div class="exit-kpis">'+
-      kpi('Sleeve net', roll.net==null?'pending':exitFmt(roll.net), roll.net==null?'awaiting prices':(exitPct(roll.cost>0?roll.net/roll.cost*100:0)+' incl. distros'), exitSign(roll.net))+
-      kpi('Cost recovered', Math.round(roll.recovery)+'%', exitFmt(roll.distros)+' of '+exitFmt(roll.cost))+
-      kpi('Freed if full exit', roll.freedIfExit==null?'pending':exitFmt(roll.freedIfExit), 'cash to redeploy')+
-      kpi('Net tax effect', (roll.netTaxAsset>=0?'+':'−')+exitFmt(Math.abs(roll.netTaxAsset)), roll.netTaxAsset>=0?'harvest asset if all sold':'net tax cost', roll.netTaxAsset>=0?'pos':'neg')+
-      kpi('Vol regime', '<span id="exitVix">—</span>', '<span id="exitVixNote">income sensitivity</span>', '', 'exit-kpi-vix')+
-    '</div>';
-
-  const cardsHtml = rows.map(exitCard).join('');
-  mount.innerHTML = rollHtml + '<div class="exit-cards">'+cardsHtml+'</div>'+
-    '<div class="exit-foot">Rules-based and transparent · thresholds tunable in a later pass · assumes long-term holding (verified from lots) · decision-support, not investment advice.</div>';
-
-  if(typeof exitEnrichMarket === 'function') exitEnrichMarket(rows);
-
-  function kpi(l,v,s,sign,extra){
-    return '<div class="exit-kpi '+(extra||'')+'"><div class="l">'+l+'</div><div class="v '+(sign||'')+'">'+v+'</div><div class="s">'+(s||'')+'</div></div>';
-  }
-}
-
-function exitCard(r){
-  const vClass = r.verdict.toLowerCase();
-  const badge = { EXIT:'EXIT', TRIM:'TRIM', HOLD:'HOLD' }[r.verdict] || r.verdict;
-  const why = (r.reasons||[]).slice(0,3).join(' · ');
-  const und = r.underlying ? (' · underlying '+r.underlying) : ' · diversified basket';
-  let taxLine;
-  if(r.taxAmt==null) taxLine = '<div class="exit-tax">Tax on sale: pending price</div>';
-  else if(r.taxKind==='asset') taxLine = '<div class="exit-tax asset">Sell → '+(r.allLT?'LT':'ST')+' loss '+exitFmt(Math.abs(r.taxable))+' · tax asset ~'+exitFmt(r.taxAmt)+' · frees '+exitFmt(r.value)+'</div>';
-  else taxLine = '<div class="exit-tax cost">Sell → '+(r.allLT?'LT':'ST')+' gain '+exitFmt(r.taxable)+' · tax cost ~'+exitFmt(r.taxAmt)+' · frees '+exitFmt(r.value)+'</div>';
-  const rsplit = r.hasReverseSplit ? '<span class="exit-flag">⟳ reverse split</span>' : '';
-  return ''+
-  '<div class="exit-card">'+
-    '<div class="exit-rail '+vClass+'"></div>'+
-    '<div class="exit-body">'+
-      '<div class="exit-chead">'+
-        '<span class="exit-sym">'+r.symbol+'</span>'+
-        '<span class="exit-name">'+(r.name||'')+und+'</span>'+
-        rsplit+
-        '<span class="exit-badge '+vClass+'">'+badge+'</span>'+
-      '</div>'+
-      '<div class="exit-metrics">'+
-        met('Net', r.net==null?'pending':exitFmt(r.net), exitSign(r.net))+
-        met('Recovered', Math.round(r.recovery)+'%', r.recovery>=100?'pos':'')+
-        met('Income trend', exitPct(r.incomeTrend), r.incomeTrend!=null&&r.incomeTrend<0?'neg':'')+
-        met('Yield / value', r.yieldOnValue==null?'—':Math.round(r.yieldOnValue)+'%', '')+
-        met('Underlying', '<span class="exit-mkt" data-sym="'+(r.underlying||'')+'">'+(r.underlying?'…':'basket')+'</span>', '')+
-      '</div>'+
-      '<div class="exit-why">'+why+'</div>'+
-      taxLine+
-    '</div>'+
-  '</div>';
-  function met(l,v,sign){ return '<div class="exit-m"><div class="ml">'+l+'</div><div class="mv '+(sign||'')+'">'+v+'</div></div>'; }
-}
-
-/* ── Market lens (additive, best-effort, never blocks the verdict) ── */
-async function exitEnrichMarket(rows){
-  // VIX regime
-  try{
-    if(typeof osgFetchVIX === 'function'){
-      const vr = await osgFetchVIX();
-      const vix = vr && (vr.vix!=null ? vr.vix : (vr.value!=null?vr.value:null));
-      const vEl = el('exitVix'), nEl = el('exitVixNote');
-      if(vix!=null && vEl){
-        vEl.textContent = 'VIX '+Number(vix).toFixed(1);
-        if(nEl) nEl.textContent = (vix < EXIT_RULES.lowVix) ? 'low → income headwind' : 'supportive for option income';
-      }
-    }
-  }catch(e){ /* leave as — */ }
-  // per-card underlying trend (6mo) — additive note only
-  for(const r of rows){
-    if(!r.underlying) continue;
-    try{
-      if(typeof osgFetchOHLC !== 'function') break;
-      const o = await osgFetchOHLC(r.underlying);
-      const closes = (o && (o.closes || o.data)) || null;
-      const span = document.querySelector('.exit-mkt[data-sym="'+r.underlying+'"]');
-      if(!span) continue;
-      if(Array.isArray(closes) && closes.length>5){
-        const first=closes[0], last=closes[closes.length-1], hi=Math.max.apply(null,closes);
-        const chg = Math.round((last/first-1)*100);
-        const offHi = Math.round((last/hi-1)*100);
-        span.textContent = r.underlying+' '+(chg>=0?'+':'')+chg+'%';
-        span.title = r.underlying+' 6mo '+(chg>=0?'+':'')+chg+'% · '+offHi+'% off high';
-        if(offHi>-3 && chg>50) span.classList.add('neg'); // extended: capped-upside risk
-      } else {
-        span.textContent = r.underlying;
-      }
-    }catch(e){ /* leave as underlying symbol */ }
-  }
-}
-
 /* ── Master render (hook for switchTab('etfs')) ──────────── */
 function renderEtfsTab(){
   try{
@@ -10319,73 +10008,6 @@ function stksMigrate(){
       if(lot.originalShares == null){
         lot.originalShares = (Number(lot.shares)||0) + (consumedByLot[lot.id]||0);
       }
-    }
-  }
-  // v2.16.11 · attach split-adjusted per-lot detail to income ETFs (holding-period,
-  // buy history, Exit Strategy tax overlay). Additive + idempotent — see below.
-  if(typeof etfsMigrateLots === 'function') etfsMigrateLots();
-}
-
-/* ── ETF lot backfill (v2.16.11) ─────────────────────────────────────────
-   ETFs are seeded blended-only (shares/costPerShare/totalCost) by the canonical
-   generator; the in-app importer never touches s.etfs (it writes only s.stocks,
-   which is why e.g. NAIL lives in stocks). This shim attaches a split-adjusted
-   lots[] to each income ETF from verified Schwab buy history so per-lot holding
-   period (ST/LT), buy-history display, and the Exit Strategy tax overlay have real
-   data — WITHOUT a full regenerate (which would drop accrued in-app state).
-
-   Safety contract, mirroring the originalShares backfill:
-     · Idempotent — skips any ETF that already has a lots[] (so generator-emitted
-       lots from v1.9.6+ always win; this shim only fills the gap on older data).
-     · Additive — nothing else reads etf.lots, so blended fields / coverage / NAV
-       math are untouched.
-     · Self-verifying — attaches only if Σ(lot cost)==totalCost and Σ(lot shares)==
-       shares (tolerances $0.02 / 0.01 sh). On mismatch it logs and SKIPS, never
-       overwriting a blended position with lots that don't reconcile.
-   Emitted lot shape is identical to the generator's finalize_etfs output.
-   Future income ETFs: add a row here AND to the generator's YIELDMAX_ETFS set. */
-const ETF_SEED_LOTS = {
-  TSLY: { split:{date:'12/01/2025', ratio:0.2}, buys:[['08/06/2024',100,13.765],['10/02/2024',100,13.57],['05/14/2025',200,9.88],['06/05/2025',100,7.75]] },
-  ULTY: { split:{date:'12/01/2025', ratio:0.1}, buys:[['09/11/2024',100,10.83],['10/15/2024',100,10.70],['05/14/2025',200,6.34]] },
-  AMDY: { split:{date:'12/08/2025', ratio:0.2}, buys:[['10/30/2024',100,12.90],['05/20/2025',100,7.70]] },
-  CONY: { split:{date:'12/02/2025', ratio:0.1}, buys:[['12/12/2024',100,15.92],['05/20/2025',100,8.70]] }
-};
-function etfsMigrateLots(){
-  const s = appData && appData.schwab;
-  if(!s || !Array.isArray(s.etfs)) return;
-  const r2 = x => Math.round(x*100)/100;
-  const r4 = x => Math.round(x*10000)/10000;
-  for(const etf of s.etfs){
-    if(Array.isArray(etf.lots) && etf.lots.length) continue; // native/prior lots win
-    const seed = ETF_SEED_LOTS[etf.symbol];
-    if(!seed) continue;
-    const ratio = seed.split ? seed.split.ratio : 1;
-    const lots = seed.buys.map(function(b){
-      const date=b[0], preSh=b[1], origPrice=b[2];
-      const cost   = r2(preSh * origPrice);
-      const shares = r4(preSh * ratio);
-      const yr = parseInt((date.split('/')[2]||'0'), 10);
-      return {
-        id: 'elot_'+etf.symbol+'_'+date.replace(/\D/g,''),
-        date: date,
-        source: (yr >= 2026) ? 'import' : 'seed',
-        shares: shares,
-        costPerShare: shares ? r4(cost/shares) : 0,
-        cost: cost,
-        origPrice: r4(origPrice),
-        preSplitShares: preSh,
-        splits: (seed.split && ratio !== 1) ? [{ date: seed.split.date, ratio: ratio }] : []
-      };
-    });
-    const sumCost = r2(lots.reduce((a,l)=>a+l.cost,0));
-    const sumSh   = r4(lots.reduce((a,l)=>a+l.shares,0));
-    const okCost  = Math.abs(sumCost - Number(etf.totalCost||0)) < 0.02;
-    const okSh    = Math.abs(sumSh   - Number(etf.shares||0))   < 0.01;
-    if(okCost && okSh){
-      etf.lots = lots;
-    } else if(typeof console !== 'undefined'){
-      console.warn('[etfsMigrateLots] '+etf.symbol+' lots do not reconcile — skipped, no data changed',
-        { sumCost: sumCost, totalCost: etf.totalCost, sumSh: sumSh, shares: etf.shares });
     }
   }
 }
