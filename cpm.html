@@ -1,4 +1,4 @@
-<!-- CPM — Construction Project Management | v2.15.19 | 2026-09-24 -->
+<!-- CPM — Construction Project Management | v2.15.23 | 2026-09-24 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1987,7 +1987,7 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION = 'v2.15.19';
+const APP_VERSION = 'v2.15.23';
 const APP_NAME = 'CPM';
 const LS_KEY = 'cpm_data';
 const PW_KEY = 'cpm_pass';
@@ -8032,6 +8032,17 @@ function removeRisk(i){currentProject.risks.splice(i,1);renderRisksTable();sched
    code, just living there instead of here.
    ══════════════════════════════════════════════════════ */
 const svgNS='http://www.w3.org/2000/svg';
+// v2.15.20 — the 800x400 viewBox scales down to whatever the chart-box actually
+// renders at (measured: ~440px wide on a typical screen layout ⇒ a 0.55 scale
+// factor), so a font-size written in viewBox units renders ~45% smaller than
+// the same number would as a real CSS px (which is what Chart.js's font.size
+// means for the still-unmigrated charts sitting right next to this one).
+// svgText() below corrects for that automatically — every caller keeps writing
+// sizes as if they were true CSS px (11 for axis ticks, 12 for labels/callouts,
+// matching the Font choices in the migration spec) and this constant scales
+// them up to actually render at that size. Reuse it for every future chart in
+// this migration; don't recalibrate per-chart.
+const RPT_SVG_FONT_SCALE=1.82;
 function svgEl(tag,attrs){
   const e=document.createElementNS(svgNS,tag);
   if(attrs)for(const k in attrs)if(attrs[k]!=null)e.setAttribute(k,attrs[k]);
@@ -8041,7 +8052,7 @@ function svgText(x,y,text,opts={}){
   const t=svgEl('text',{
     x,y,
     'font-family':"system-ui,-apple-system,'Segoe UI',sans-serif",
-    'font-size':opts.size||11,
+    'font-size':(opts.size||11)*RPT_SVG_FONT_SCALE,
     'font-weight':opts.weight||400,
     fill:opts.fill||'#555',
     'text-anchor':opts.anchor||'start'
@@ -8069,12 +8080,13 @@ function svgPath(d,opts={}){
   return svgEl('path',attrs);
 }
 // Rounded-top bar — bottom edge stays square since bars sit on the baseline.
-function svgRoundedTopBar(x,y,w,h,r,fill){
+// extra:{stroke,strokeWidth} optionally outlines it (used for outline-style bars).
+function svgRoundedTopBar(x,y,w,h,r,fill,extra={}){
   if(h<=0.5)return svgRect(x,y+h-0.5,w,0.5,{fill});
   const rr=Math.max(0,Math.min(r,w/2,h));
   const d=`M${x},${y+h} L${x},${y+rr} Q${x},${y} ${x+rr},${y} `+
           `L${x+w-rr},${y} Q${x+w},${y} ${x+w},${y+rr} L${x+w},${y+h} Z`;
-  return svgPath(d,{fill});
+  return svgPath(d,{fill,stroke:extra.stroke,strokeWidth:extra.strokeWidth});
 }
 // Paul Heckbert "nice numbers" axis scale — reproduces the kind of round,
 // human-friendly ticks Chart.js auto-picks ($0k/$50k/$100k/$150k/$200k),
@@ -8134,7 +8146,7 @@ function renderSvgWaterfall(){
   const barColors=showRefunds?['#1a6b3a','#c04040','#c04040','#1a6b3a','#c9a227']:['#1a6b3a','#c04040','#c04040','#c9a227'];
   const lblColors=showRefunds?['#1a6b3a','#c04040','#c04040','#1a6b3a','#a07010']:['#1a6b3a','#c04040','#c04040','#a07010'];
 
-  const W=800,H=400,marginL=64,marginR=16,marginT=44,marginB=40;
+  const W=800,H=400,marginL=78,marginR=16,marginT=54,marginB=50;
   const plotW=W-marginL-marginR,plotH=H-marginT-marginB;
   const maxAbs=Math.max(1,...wfData.map(v=>Math.abs(v)));
   const scale=niceScale(0,maxAbs,6);
@@ -8155,16 +8167,240 @@ function renderSvgWaterfall(){
     const x=marginL+i*bandW+(bandW-barW)/2;
     const y=marginT+plotH-barH;
     svg.appendChild(svgRoundedTopBar(x,y,barW,barH,4,barColors[i]));
-    svg.appendChild(svgText(x+barW/2,marginT+plotH+18,label,{size:12,fill:'#333',anchor:'middle'}));
+    svg.appendChild(svgText(x+barW/2,marginT+plotH+24,label,{size:12,fill:'#333',anchor:'middle'}));
     const calloutText=fmtCallout(val);
     const isSmall=absVal<5000;
     if(isSmall){
-      const connectorTopY=y-26+12;
+      const connectorTopY=y-18;
       svg.appendChild(svgLine(x+barW/2,y-3,x+barW/2,connectorTopY,{color:lblColors[i],width:1,dash:'3,3'}));
-      svg.appendChild(svgText(x+barW/2,y-26,calloutText,{size:12,weight:600,fill:lblColors[i],anchor:'middle'}));
+      svg.appendChild(svgText(x+barW/2,y-34,calloutText,{size:12,weight:600,fill:lblColors[i],anchor:'middle'}));
     } else {
-      svg.appendChild(svgText(x+barW/2,y-6,calloutText,{size:12,weight:600,fill:lblColors[i],anchor:'middle'}));
+      svg.appendChild(svgText(x+barW/2,y-10,calloutText,{size:12,weight:600,fill:lblColors[i],anchor:'middle'}));
     }
+  });
+}
+
+// Text rotated around its own anchor point — used for x-axis category labels
+// that don't fit horizontally (Chart.js auto-rotates these; we fix a single
+// angle since we can't reproduce its dynamic fit-to-space logic exactly).
+function svgTextRotated(x,y,text,angleDeg,opts={}){
+  const t=svgText(x,y,text,opts);
+  t.setAttribute('transform',`rotate(${angleDeg} ${x} ${y})`);
+  return t;
+}
+function fmtDrawnLabel(v){return '$'+(v>=1000?(v/1000).toFixed(0)+'k':v.toFixed(0));}
+
+// ── Chart 2 of 4 — Phase Spend vs Budget (SVG) ──
+function renderSvgPhaseSpend(){
+  const svg=ensureSvgContainer('report-chart-phases');
+  if(!svg)return;
+  const phs=PHASES.filter(p=>p.id!=='mgmt');
+  const budgets=phs.map(p=>{const ph=currentProject.phases.find(x=>x.id===p.id);return ph?.budget||0;});
+  const drawn=phs.map(p=>calcPhaseDrawInvestorNet(p.id));
+  const printMode=!!window._printMode;
+  const tickColor=printMode?'#555':'#94a3b8';
+  const gridColor=printMode?'rgba(0,0,0,0.06)':'rgba(100,116,139,0.2)';
+  const calloutColor=printMode?'#333':'#fff';
+
+  const W=800,H=400,marginL=95,marginR=16,marginT=54,marginB=140;
+  const plotW=W-marginL-marginR,plotH=H-marginT-marginB;
+  const maxAbs=Math.max(1,...budgets,...drawn);
+  const scale=niceScale(0,maxAbs,6);
+  const yOf=v=>marginT+plotH-(v/scale.max)*plotH;
+
+  // Gridlines + y-axis labels
+  scale.ticks.forEach(t=>{
+    const y=yOf(t);
+    svg.appendChild(svgLine(marginL,y,W-marginR,y,{color:gridColor,width:1}));
+    svg.appendChild(svgText(marginL-8,y+4,fmtAxisMoney(t),{size:11,fill:tickColor,anchor:'end'}));
+  });
+
+  // Grouped bars: pale outlined "Budget" + solid "Drawn (net)", per category
+  const n=phs.length,bandW=plotW/n,groupW=bandW*0.68,barGap=4,barW=(groupW-barGap)/2;
+  const plotBottom=marginT+plotH;
+  phs.forEach((p,i)=>{
+    const groupX=marginL+i*bandW+(bandW-groupW)/2;
+    const bH=(budgets[i]/scale.max)*plotH, dH=(drawn[i]/scale.max)*plotH;
+    svg.appendChild(svgRoundedTopBar(groupX,plotBottom-bH,barW,bH,3,'rgba(201,162,39,0.12)',{stroke:'#c9a227',strokeWidth:1.5}));
+    svg.appendChild(svgRoundedTopBar(groupX+barW+barGap,plotBottom-dH,barW,dH,3,'rgba(201,162,39,0.72)'));
+    if(drawn[i]>0){
+      svg.appendChild(svgText(groupX+barW+barGap+barW/2,plotBottom-dH-6,fmtDrawnLabel(drawn[i]),{size:9,weight:600,fill:calloutColor,anchor:'middle'}));
+    }
+    // Category label — rotated to clear its neighbors, same as Chart.js's auto-rotation here
+    const tickX=groupX+groupW/2;
+    svg.appendChild(svgTextRotated(tickX,plotBottom+16,p.name,-30,{size:10,fill:tickColor,anchor:'end'}));
+  });
+
+  // Legend — centered, bottom: pale-outlined "Budget" swatch + solid "Drawn (net)" swatch
+  const legendY=H-22,swatch=14,gap=6,itemGap=26;
+  const legendItems=[
+    {label:'Budget',fill:'rgba(201,162,39,0.12)',stroke:'#c9a227',strokeWidth:1.5},
+    {label:'Drawn (net)',fill:'rgba(201,162,39,0.72)'}
+  ];
+  const widths=legendItems.map(it=>swatch+gap+it.label.length*11.5+itemGap);
+  let lx=(W-(widths.reduce((a,b)=>a+b,0)-itemGap))/2;
+  legendItems.forEach((it,i)=>{
+    svg.appendChild(svgRect(lx,legendY-swatch/2-2,swatch,swatch,{fill:it.fill,stroke:it.stroke,strokeWidth:it.strokeWidth,rx:2}));
+    svg.appendChild(svgText(lx+swatch+gap,legendY+4,it.label,{size:11,fill:tickColor,anchor:'start'}));
+    lx+=widths[i];
+  });
+}
+
+function svgCircle(cx,cy,r,opts={}){
+  const attrs={cx,cy,r};
+  attrs.fill=opts.fill||'none';
+  if(opts.stroke){attrs.stroke=opts.stroke;attrs['stroke-width']=opts.strokeWidth||1;}
+  return svgEl('circle',attrs);
+}
+// Chart.js's own splineCurve algorithm (length-weighted Catmull-Rom), ported
+// so the curve matches tension:0.18 the same way the canvas version drew it.
+// Returns, for every point, the bezier control point sitting just before it
+// and just after it — segment i uses points[i].next and points[i+1].prev.
+function catmullRomControlPoints(pts,tension){
+  return pts.map((cur,i)=>{
+    const prevPt=pts[i-1]||cur, nextPt=pts[i+1]||cur;
+    const d01=Math.hypot(cur.x-prevPt.x,cur.y-prevPt.y);
+    const d12=Math.hypot(nextPt.x-cur.x,nextPt.y-cur.y);
+    let s01=d01/(d01+d12), s12=d12/(d01+d12);
+    if(isNaN(s01))s01=0; if(isNaN(s12))s12=0;
+    const fa=tension*s01, fb=tension*s12;
+    return {
+      prev:{x:cur.x-fa*(nextPt.x-prevPt.x),y:cur.y-fa*(nextPt.y-prevPt.y)},
+      next:{x:cur.x+fb*(nextPt.x-prevPt.x),y:cur.y+fb*(nextPt.y-prevPt.y)}
+    };
+  });
+}
+function curvedPathD(pts,tension){
+  if(pts.length<2)return '';
+  const cps=catmullRomControlPoints(pts,tension);
+  let d=`M${pts[0].x},${pts[0].y}`;
+  for(let i=0;i<pts.length-1;i++){
+    d+=` C${cps[i].next.x},${cps[i].next.y} ${cps[i+1].prev.x},${cps[i+1].prev.y} ${pts[i+1].x},${pts[i+1].y}`;
+  }
+  return d;
+}
+
+// ── Chart 3 of 4 — Bank Balance Over Time (SVG) ──
+function renderSvgBankBalance(){
+  const svg=ensureSvgContainer('report-chart-balance');
+  if(!svg)return;
+  const ledger=(currentProject.ledger||[])
+    .filter(e=>e.type!=='Non-Project Entry'&&e.date)
+    .slice()
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  if(!ledger.length)return;
+
+  const dayMap=new Map();
+  let running=0;
+  ledger.forEach(e=>{
+    running+=(e.deposit||0)-(e.withdrawal||0);
+    dayMap.set(e.date,running);
+  });
+  const rows=[...dayMap.entries()].map(([date,bal])=>({date,bal}));
+  const labels=rows.map(r=>{
+    const d=new Date(r.date+'T12:00:00');
+    return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  });
+  const data=rows.map(r=>r.bal);
+  const minBal=Math.min(...data,0);
+  const maxBal=Math.max(...data);
+  const printMode=!!window._printMode;
+  const tickColor=printMode?'#555':'#94a3b8';
+  const gridColor=printMode?'rgba(0,0,0,0.06)':'rgba(100,116,139,0.2)';
+
+  const W=800,H=400,marginL=78,marginR=20,marginT=50,marginB=46;
+  const plotW=W-marginL-marginR,plotH=H-marginT-marginB;
+  const scale=niceScale(Math.min(0,minBal),maxBal,6);
+  const yOf=v=>marginT+plotH-((v-scale.min)/(scale.max-scale.min))*plotH;
+  const n=data.length;
+  const xOf=i=>n===1?marginL+plotW/2:marginL+(i/(n-1))*plotW;
+
+  // Gridlines + y-axis labels
+  scale.ticks.forEach(t=>{
+    const y=yOf(t);
+    svg.appendChild(svgLine(marginL,y,W-marginR,y,{color:gridColor,width:1}));
+    svg.appendChild(svgText(marginL-8,y+4,fmtAxisMoney(t),{size:10,fill:tickColor,anchor:'end'}));
+  });
+
+  const pts=data.map((v,i)=>({x:xOf(i),y:yOf(v)}));
+
+  // Filled area under the curve, down to the zero baseline
+  const zeroY=yOf(0);
+  const fillD=curvedPathD(pts,0.18)+` L${pts[n-1].x},${zeroY} L${pts[0].x},${zeroY} Z`;
+  svg.appendChild(svgPath(fillD,{fill:'rgba(26,107,58,0.08)'}));
+
+  // The line itself
+  svg.appendChild(svgPath(curvedPathD(pts,0.18),{stroke:'#1a6b3a',strokeWidth:2}));
+
+  // Point markers
+  pts.forEach(p=>svg.appendChild(svgCircle(p.x,p.y,2.5,{fill:'#1a6b3a',stroke:'#fff',strokeWidth:1})));
+
+  // X-axis labels — thin to at most 6, evenly spread, always keep first & last
+  const maxLabels=Math.min(6,n);
+  const idxs=maxLabels<=1?[0]:Array.from({length:maxLabels},(_,k)=>Math.round(k*(n-1)/(maxLabels-1)));
+  [...new Set(idxs)].forEach(i=>{
+    svg.appendChild(svgText(pts[i].x,marginT+plotH+22,labels[i],{size:9,fill:tickColor,anchor:'middle'}));
+  });
+
+  // End-of-line value label — bold, green if positive, red if negative
+  const lastVal=data[n-1],lastPt=pts[n-1];
+  const endLabel=(lastVal/1000).toFixed(1)+'k';
+  svg.appendChild(svgText(lastPt.x-2,lastPt.y-10,'$'+endLabel,{size:11,weight:700,fill:lastVal>=0?'#1a6b3a':'#c04040',anchor:'end'}));
+}
+
+// Rounded-right bar — for horizontal bars, the left edge sits flush against
+// the axis so only the end (right) edge needs rounding.
+function svgRoundedRightBar(x,y,w,h,r,fill){
+  if(w<=0.5)return svgRect(x,y,0.5,h,{fill});
+  const rr=Math.max(0,Math.min(r,h/2,w));
+  const d=`M${x},${y} L${x+w-rr},${y} Q${x+w},${y} ${x+w},${y+rr} `+
+          `L${x+w},${y+h-rr} Q${x+w},${y+h} ${x+w-rr},${y+h} L${x},${y+h} Z`;
+  return svgPath(d,{fill});
+}
+
+// ── Chart 4 of 4 — Investor Equity Split (SVG) ──
+function renderSvgInvestorEquity(){
+  const svg=ensureSvgContainer('report-chart-donut');
+  if(!svg)return;
+  const inv=currentProject.investors||[];
+  const barColors=['#c9a227','#1a6b3a','#3b82f6','#e07b39','#8b5cf6','#ef4444'];
+  const printMode=!!window._printMode;
+  const tickColor=printMode?'#555':'#94a3b8';
+  const gridColor=printMode?'rgba(0,0,0,0.08)':'rgba(100,116,139,0.2)';
+  const labelColor=printMode?'#333':'#e2e8f0';
+  const nameFontSize=printMode?9:11;
+  const pctFontSize=printMode?9:11;
+
+  if(!inv.length){
+    svg.appendChild(svgText(400,200,'No investors added',{size:13,fill:'#aaa',anchor:'middle'}));
+    return;
+  }
+
+  const W=800,H=400,marginL=168,marginR=110,marginT=50,marginB=44;
+  const plotW=W-marginL-marginR,plotH=H-marginT-marginB;
+  const n=inv.length,bandH=plotH/n,barH=bandH*0.5;
+
+  // Vertical gridlines + x-axis 0-100% ticks
+  for(let pct=0;pct<=100;pct+=10){
+    const x=marginL+(pct/100)*plotW;
+    svg.appendChild(svgLine(x,marginT,x,marginT+plotH,{color:gridColor,width:1}));
+    svg.appendChild(svgText(x,marginT+plotH+20,pct+'%',{size:10,fill:tickColor,anchor:'middle'}));
+  }
+
+  inv.forEach((investor,i)=>{
+    const pct=investor.equityPct||0;
+    const y=marginT+i*bandH+(bandH-barH)/2;
+    const barW=(pct/100)*plotW;
+    const color=barColors[i%barColors.length];
+    svg.appendChild(svgRoundedRightBar(marginL,y,Math.max(barW,0),barH,4,color));
+    // Investor name, right-aligned just left of the axis
+    svg.appendChild(svgText(marginL-10,y+barH/2+4,investor.name||'—',{size:nameFontSize,fill:tickColor,anchor:'end'}));
+    // Percentage label just past the bar's end, clamped so it can't overflow the plot
+    const label=pct.toFixed(1)+'%';
+    const estWidth=label.length*pctFontSize*0.62;
+    const desiredX=marginL+barW+6;
+    const maxX=marginL+plotW-estWidth-2;
+    svg.appendChild(svgText(Math.min(desiredX,maxX),y+barH/2+4,label,{size:pctFontSize,weight:600,fill:labelColor,anchor:'start'}));
   });
 }
 
@@ -8368,163 +8604,19 @@ function renderReportCharts(){
   }
 }
 
-// v2.15.19 — new entry point for the reports/print flow. Waterfall (chart 1)
-// is SVG now; Phase Spend, Bank Balance, and Investor Equity are unchanged
-// Chart.js, copied verbatim from renderReportCharts() above. As each of
-// those migrates in a later ship, its block gets replaced here the same
-// way the waterfall block was.
+// v2.15.19 — new entry point for the reports/print flow. All four charts
+// are now hand-rolled SVG (Waterfall → Phase Spend → Bank Balance →
+// Investor Equity, migrated in that order across v2.15.19-v2.15.23).
+// renderReportCharts() above is left completely untouched as the full-revert
+// fallback per the migration spec's rollback plan — nothing currently calls it.
 function renderReportChartsSVG(){
   destroyChart('r-waterfall');destroyChart('r-phases');
   destroyChart('r-balance');destroyChart('r-donut');
 
   renderSvgWaterfall();
-
-  const c2=document.getElementById('report-chart-phases');
-  const c3=document.getElementById('report-chart-balance');
-  const c4=document.getElementById('report-chart-donut');
-
-  // ── Phase Spend vs Budget (unchanged — Chart.js, migrates in a later ship) ──
-  if(c2?.getContext){
-    const phs=PHASES.filter(p=>p.id!=='mgmt');
-    const budgets=phs.map(p=>{const ph=currentProject.phases.find(x=>x.id===p.id);return ph?.budget||0;});
-    const drawn=phs.map(p=>calcPhaseDrawInvestorNet(p.id));
-    const drawnLabelPlugin={id:'phaseDrawLabels',afterDatasetsDraw(chart){
-      const{ctx}=chart;ctx.save();
-      chart.getDatasetMeta(1).data.forEach((bar,i)=>{
-        const val=drawn[i];
-        if(!val||val===0)return;
-        const label='$'+(val>=1000?(val/1000).toFixed(0)+'k':val.toFixed(0));
-        ctx.font='600 9px system-ui,sans-serif';
-        ctx.textAlign='center';ctx.textBaseline='bottom';
-        ctx.fillStyle=window._printMode?'#333':'#fff';
-        ctx.fillText(label,bar.x,bar.y-3);
-      });ctx.restore();
-    }};
-    charts['r-phases']=new Chart(c2,{type:'bar',plugins:[drawnLabelPlugin],
-      data:{labels:phs.map(p=>p.name),datasets:[
-        {label:'Budget',data:budgets,backgroundColor:'rgba(201,162,39,0.12)',borderColor:'#c9a227',borderWidth:1.5,borderRadius:3},
-        {label:'Drawn (net)',data:drawn,backgroundColor:'rgba(201,162,39,0.72)',borderRadius:3}
-      ]},
-      options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:20}},
-        plugins:{legend:{position:'bottom',labels:{color:window._printMode?'#555':'#94a3b8',boxWidth:12,font:{size:11}}},
-          tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString('en-US',{minimumFractionDigits:2})}}},
-        scales:{x:{ticks:{color:window._printMode?'#555':'#94a3b8',font:{size:10}}},y:{ticks:{color:window._printMode?'#555':'#94a3b8',font:{size:10},callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:window._printMode?'rgba(0,0,0,0.06)':'rgba(100,116,139,0.2)'}}}}});
-  }
-
-  // ── Bank Balance Over Time (unchanged — Chart.js, migrates in a later ship) ──
-  if(c3?.getContext){
-    const ledger=(currentProject.ledger||[])
-      .filter(e=>e.type!=='Non-Project Entry'&&e.date)
-      .slice()
-      .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-    if(ledger.length){
-      const dayMap=new Map();
-      let running=0;
-      ledger.forEach(e=>{
-        running+=(e.deposit||0)-(e.withdrawal||0);
-        dayMap.set(e.date, running);
-      });
-      const points=[...dayMap.entries()].map(([date,bal])=>({date,bal}));
-      const labels=points.map(p=>{
-        const d=new Date(p.date+'T12:00:00');
-        return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-      });
-      const data=points.map(p=>p.bal);
-      const minBal=Math.min(...data,0);
-      const maxBal=Math.max(...data);
-      const tickColor=window._printMode?'#555':'#94a3b8';
-      const gridColor=window._printMode?'rgba(0,0,0,0.06)':'rgba(100,116,139,0.2)';
-      const lastValPlugin={id:'balLastVal',afterDatasetsDraw(chart){
-        const{ctx}=chart;ctx.save();
-        const meta=chart.getDatasetMeta(0);
-        const lastBar=meta.data[meta.data.length-1];
-        if(!lastBar)return;
-        const val=data[data.length-1];
-        const label='$'+(val/1000).toFixed(1)+'k';
-        ctx.font='700 11px system-ui,sans-serif';
-        ctx.fillStyle=val>=0?'#1a6b3a':'#c04040';
-        ctx.textAlign='right';ctx.textBaseline='bottom';
-        ctx.fillText(label, lastBar.x-2, lastBar.y-6);
-        ctx.restore();
-      }};
-      charts['r-balance']=new Chart(c3,{type:'line',plugins:[lastValPlugin],
-        data:{labels, datasets:[{
-          data,
-          borderColor:'#1a6b3a',
-          backgroundColor:'rgba(26,107,58,0.08)',
-          borderWidth:2,
-          pointRadius:2.5,
-          pointBackgroundColor:'#1a6b3a',
-          pointBorderColor:'#fff',
-          pointBorderWidth:1,
-          fill:true,
-          tension:0.18
-        }]},
-        options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18,right:8}},
-          plugins:{legend:{display:false},
-            tooltip:{callbacks:{label:ctx=>' $'+ctx.parsed.y.toLocaleString('en-US',{minimumFractionDigits:2})}}},
-          scales:{
-            x:{ticks:{color:tickColor,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:6},grid:{display:false}},
-            y:{ticks:{color:tickColor,font:{size:10},callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:gridColor},
-               suggestedMin:Math.min(0,minBal)}
-          }}});
-    }
-  }
-
-  // ── Investor Equity — Horizontal Bar (unchanged — Chart.js, migrates in a later ship) ──
-  if(c4?.getContext){
-    const inv=currentProject.investors||[];
-    const barColors=['#c9a227','#1a6b3a','#3b82f6','#e07b39','#8b5cf6','#ef4444'];
-    const tickColor=window._printMode?'#555':'#94a3b8';
-    const gridColor=window._printMode?'rgba(0,0,0,0.08)':'rgba(100,116,139,0.2)';
-    if(inv.length){
-      charts['r-donut']=new Chart(c4,{type:'bar',
-        data:{
-          labels:inv.map(r=>r.name||'—'),
-          datasets:[{
-            data:inv.map(r=>r.equityPct||0),
-            backgroundColor:inv.map((_,i)=>barColors[i%barColors.length]),
-            borderRadius:4,borderSkipped:false
-          }]
-        },
-        options:{
-          indexAxis:'y',
-          responsive:true,maintainAspectRatio:false,
-          layout:{padding:{right:56}},
-          plugins:{
-            legend:{display:false},
-            tooltip:{callbacks:{label:ctx=>' '+ctx.parsed.x.toFixed(2)+'%'}}
-          },
-          scales:{
-            x:{max:100,grid:{color:gridColor},ticks:{callback:v=>v+'%',font:{size:10},color:tickColor}},
-            y:{grid:{display:false},ticks:{font:{size:window._printMode?9:11},color:tickColor}}
-          }
-        },
-        plugins:[{
-          id:'equityLabels',
-          afterDatasetsDraw(chart){
-            const{ctx,data,chartArea}=chart;ctx.save();
-            data.datasets[0].data.forEach((val,i)=>{
-              const bar=chart.getDatasetMeta(0).data[i];
-              ctx.font=`600 ${window._printMode?'9':'11'}px system-ui,sans-serif`;
-              ctx.fillStyle=window._printMode?'#333':'#e2e8f0';
-              ctx.textAlign='left';ctx.textBaseline='middle';
-              const label=val.toFixed(1)+'%';
-              const desiredX=bar.x+6;
-              const labelWidth=ctx.measureText(label).width;
-              const maxX=(chartArea?.right||chart.width)-labelWidth-2;
-              ctx.fillText(label, Math.min(desiredX, maxX), bar.y);
-            });ctx.restore();
-          }
-        }]
-      });
-    } else {
-      c4.getContext('2d').fillStyle='#aaa';
-      c4.getContext('2d').font='13px system-ui';
-      c4.getContext('2d').textAlign='center';
-      c4.getContext('2d').fillText('No investors added',c4.width/2,c4.height/2);
-    }
-  }
+  renderSvgPhaseSpend();
+  renderSvgBankBalance();
+  renderSvgInvestorEquity();
 }
 /* ── COMPANY LOGO MANAGEMENT ── */
 let _logoUploadTargetId=null;
