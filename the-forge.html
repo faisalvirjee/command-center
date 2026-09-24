@@ -3107,7 +3107,7 @@
     <div class="lc-icon-brand"></div>
     <div class="lc-title">The Forge</div>
     <div class="lc-sub">Capital Forged. Premium Collected.</div>
-    <div class="lc-ver" id="lockScreenVersion"><!-- APP_VERSION -->v2.27.0</div>
+    <div class="lc-ver" id="lockScreenVersion"><!-- APP_VERSION -->v2.27.1</div>
     <div id="loginMode">
       <div class="pw-wrap">
         <input type="password" id="pwInp" class="pw-inp" placeholder="Password"
@@ -5478,7 +5478,7 @@
 /* ════════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════════ */
-const APP_VERSION = "2.27.0";
+const APP_VERSION = "2.27.1";
 const CLIENT_ID   = "305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com";
 const SCOPES      = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_FILE  = "forge_data.json";
@@ -11683,9 +11683,9 @@ function stksBuildCard(pos){
           <tr${wrap}${jtitle}>
             <td>${dashEscape(s.date||'—')}</td>
             <td class="r">${dashFmtShares(s.shares)}</td>
-            <td class="r">$${Number(s.pricePerShare||0).toFixed(4)}</td>
-            <td class="r">${dashFmtC(s.proceeds||0)}</td>
-            <td class="r">${dashFmtC(s.costBasis||0)}</td>
+            <td class="r">${isJournal ? '—' : '$'+Number(s.pricePerShare||0).toFixed(4)}</td>
+            <td class="r">${isJournal ? '—' : dashFmtC(s.proceeds||0)}</td>
+            <td class="r">${isJournal ? '—' : dashFmtC(s.costBasis||0)}</td>
             <td class="r" style="color:var(--${glCls})">${glStr}</td>
             <td><span class="stks-term ${termCls}">${termLbl}</span></td>
             <td>${sflagBadge}</td>
