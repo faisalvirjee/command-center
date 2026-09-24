@@ -1,4 +1,4 @@
-<!-- CPM — Construction Project Management | v2.15.17 | 2026-09-17 -->
+<!-- CPM — Construction Project Management | v2.15.18 | 2026-09-17 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1987,7 +1987,7 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION = 'v2.15.17';
+const APP_VERSION = 'v2.15.18';
 const APP_NAME = 'CPM';
 const LS_KEY = 'cpm_data';
 const PW_KEY = 'cpm_pass';
@@ -8017,16 +8017,15 @@ function addRisk(){if(!currentProject.risks)currentProject.risks=[];currentProje
 function removeRisk(i){currentProject.risks.splice(i,1);renderRisksTable();scheduleSave();}
 
 function renderReportCharts(){
-  // v2.15.17 — sharpen chart text in printed Investor Report. Chart.js draws everything
-  // (bars, axis labels, plugin-drawn callouts) into a canvas bitmap. Screen canvas is
-  // ~220px tall; print CSS shrinks it to 155px, so the bitmap gets scaled down and the
-  // text picks up sub-pixel stretch artifacts (the "fonts look elongated" symptom).
-  // Two config changes across all four report charts fix it: devicePixelRatio=2 in
-  // _printMode (Chart.js draws at 2x internal resolution, print engine downsamples
-  // cleanly), and print-mode font-size bumps on axis ticks, legend, and plugin labels
-  // (waterfall 10→12, phases 10→12 + legend 11→12 + drawn labels 9→11, balance ticks
-  // 9→11 / 10→12 + last-value 11→13, equity axis kept at 11 with equal-in-both-modes
-  // label size). Screen mode untouched.
+  // v2.15.18 — reverted the v2.15.17 chart font fix. The attempt combined
+  // devicePixelRatio:2 in print mode with axis/label font size bumps; instead of
+  // making text sharper, the combination caused Chart.js to render the actual
+  // drawing area smaller inside the fixed 155px print box, making fonts noticeably
+  // harder to read than v2.15.16. Root cause is unresolved — devicePixelRatio in
+  // Chart.js interacts with print-mode CSS max-height in a way that shrinks the
+  // effective plot area. Backing out to v2.15.16 chart config until a proven-safe
+  // approach is designed (candidates: bump print CSS max-height from 155→180px so
+  // fonts have absolute room; or switch report charts to SVG rendering).
   destroyChart('r-waterfall');destroyChart('r-phases');
   destroyChart('r-balance');destroyChart('r-donut');
   const c1=document.getElementById('report-chart-waterfall');
@@ -8056,7 +8055,7 @@ function renderReportCharts(){
         const bar=chart.getDatasetMeta(0).data[i];
         const label=fmtL(wfData[i]);
         const isSmall=Math.abs(wfData[i])<5000;
-        ctx.font=`600 ${window._printMode?12:10}px system-ui,sans-serif`;ctx.fillStyle=lblColors[i];ctx.textAlign='center';ctx.textBaseline='bottom';
+        ctx.font='600 10px system-ui,sans-serif';ctx.fillStyle=lblColors[i];ctx.textAlign='center';ctx.textBaseline='bottom';
         const yPos=isSmall?bar.y-26:bar.y-4;
         if(isSmall){ctx.save();ctx.strokeStyle=lblColors[i];ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(bar.x,bar.y-3);ctx.lineTo(bar.x,yPos+12);ctx.stroke();ctx.restore();}
         ctx.fillText(label,bar.x,yPos);
@@ -8064,9 +8063,9 @@ function renderReportCharts(){
     }};
     charts['r-waterfall']=new Chart(c1,{type:'bar',plugins:[labPlugin],
       data:{labels:wfLabels,datasets:[{data:wfData.map(v=>Math.abs(v)),backgroundColor:barColors,borderRadius:4,borderSkipped:false}]},
-      options:{responsive:true,maintainAspectRatio:false,devicePixelRatio:window._printMode?2:1,layout:{padding:{top:34}},
+      options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:34}},
         plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const v=wfData[ctx.dataIndex];return' '+(v>=0?'+':'-')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2});}}}},
-        scales:{x:{grid:{display:false},ticks:{font:{size:window._printMode?12:10},color:'#555'}},y:{grid:{color:'rgba(0,0,0,0.06)'},ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k',font:{size:window._printMode?12:10},color:'#555'}}}}});
+        scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#555'}},y:{grid:{color:'rgba(0,0,0,0.06)'},ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k',font:{size:10},color:'#555'}}}}});
   }
 
   // ── Phase Spend vs Budget ──
@@ -8080,7 +8079,7 @@ function renderReportCharts(){
         const val=drawn[i];
         if(!val||val===0)return;
         const label='$'+(val>=1000?(val/1000).toFixed(0)+'k':val.toFixed(0));
-        ctx.font=`600 ${window._printMode?11:9}px system-ui,sans-serif`;
+        ctx.font='600 9px system-ui,sans-serif';
         ctx.textAlign='center';ctx.textBaseline='bottom';
         ctx.fillStyle=window._printMode?'#333':'#fff';
         ctx.fillText(label,bar.x,bar.y-3);
@@ -8091,10 +8090,10 @@ function renderReportCharts(){
         {label:'Budget',data:budgets,backgroundColor:'rgba(201,162,39,0.12)',borderColor:'#c9a227',borderWidth:1.5,borderRadius:3},
         {label:'Drawn (net)',data:drawn,backgroundColor:'rgba(201,162,39,0.72)',borderRadius:3}
       ]},
-      options:{responsive:true,maintainAspectRatio:false,devicePixelRatio:window._printMode?2:1,layout:{padding:{top:20}},
-        plugins:{legend:{position:'bottom',labels:{color:window._printMode?'#555':'#94a3b8',boxWidth:12,font:{size:window._printMode?12:11}}},
+      options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:20}},
+        plugins:{legend:{position:'bottom',labels:{color:window._printMode?'#555':'#94a3b8',boxWidth:12,font:{size:11}}},
           tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString('en-US',{minimumFractionDigits:2})}}},
-        scales:{x:{ticks:{color:window._printMode?'#555':'#94a3b8',font:{size:window._printMode?12:10}}},y:{ticks:{color:window._printMode?'#555':'#94a3b8',font:{size:window._printMode?12:10},callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:window._printMode?'rgba(0,0,0,0.06)':'rgba(100,116,139,0.2)'}}}}});
+        scales:{x:{ticks:{color:window._printMode?'#555':'#94a3b8',font:{size:10}}},y:{ticks:{color:window._printMode?'#555':'#94a3b8',font:{size:10},callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:window._printMode?'rgba(0,0,0,0.06)':'rgba(100,116,139,0.2)'}}}}});
   }
 
   // ── Bank Balance Over Time ──
@@ -8130,7 +8129,7 @@ function renderReportCharts(){
         if(!lastBar)return;
         const val=data[data.length-1];
         const label='$'+(val/1000).toFixed(1)+'k';
-        ctx.font=`700 ${window._printMode?13:11}px system-ui,sans-serif`;
+        ctx.font='700 11px system-ui,sans-serif';
         ctx.fillStyle=val>=0?'#1a6b3a':'#c04040';
         ctx.textAlign='right';ctx.textBaseline='bottom';
         ctx.fillText(label, lastBar.x-2, lastBar.y-6);
@@ -8149,12 +8148,12 @@ function renderReportCharts(){
           fill:true,
           tension:0.18
         }]},
-        options:{responsive:true,maintainAspectRatio:false,devicePixelRatio:window._printMode?2:1,layout:{padding:{top:18,right:8}},
+        options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18,right:8}},
           plugins:{legend:{display:false},
             tooltip:{callbacks:{label:ctx=>' $'+ctx.parsed.y.toLocaleString('en-US',{minimumFractionDigits:2})}}},
           scales:{
-            x:{ticks:{color:tickColor,font:{size:window._printMode?11:9},maxRotation:0,autoSkip:true,maxTicksLimit:6},grid:{display:false}},
-            y:{ticks:{color:tickColor,font:{size:window._printMode?12:10},callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:gridColor},
+            x:{ticks:{color:tickColor,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:6},grid:{display:false}},
+            y:{ticks:{color:tickColor,font:{size:10},callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:gridColor},
                suggestedMin:Math.min(0,minBal)}
           }}});
     }
@@ -8178,15 +8177,15 @@ function renderReportCharts(){
         },
         options:{
           indexAxis:'y',
-          responsive:true,maintainAspectRatio:false,devicePixelRatio:window._printMode?2:1,
+          responsive:true,maintainAspectRatio:false,
           layout:{padding:{right:56}},
           plugins:{
             legend:{display:false},
             tooltip:{callbacks:{label:ctx=>' '+ctx.parsed.x.toFixed(2)+'%'}}
           },
           scales:{
-            x:{max:100,grid:{color:gridColor},ticks:{callback:v=>v+'%',font:{size:window._printMode?12:10},color:tickColor}},
-            y:{grid:{display:false},ticks:{font:{size:window._printMode?11:11},color:tickColor}}
+            x:{max:100,grid:{color:gridColor},ticks:{callback:v=>v+'%',font:{size:10},color:tickColor}},
+            y:{grid:{display:false},ticks:{font:{size:window._printMode?9:11},color:tickColor}}
           }
         },
         plugins:[{
@@ -8195,7 +8194,7 @@ function renderReportCharts(){
             const{ctx,data,chartArea}=chart;ctx.save();
             data.datasets[0].data.forEach((val,i)=>{
               const bar=chart.getDatasetMeta(0).data[i];
-              ctx.font=`600 ${window._printMode?11:11}px system-ui,sans-serif`;
+              ctx.font=`600 ${window._printMode?'9':'11'}px system-ui,sans-serif`;
               ctx.fillStyle=window._printMode?'#333':'#e2e8f0';
               ctx.textAlign='left';ctx.textBaseline='middle';
               const label=val.toFixed(1)+'%';
