@@ -1,4 +1,4 @@
-<!-- CPM — Construction Project Management | v2.15.23 | 2026-09-24 -->
+<!-- CPM — Construction Project Management | v2.15.24 | 2026-09-24 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -533,9 +533,10 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
   /* Donut canvas: center it, JS sets exact square dimensions before print */
   #report-chart-donut{display:block!important;margin:0 auto!important}
 
-  /* Footer on each page — extra top padding so text breathes off the gold rule */
+  /* Footer on each page — extra top padding so text breathes off the gold rule.
+     v2.15.24 — 10px still read as tight against the rule at print scale; bumped. */
   .rpt-footer{
-    border-top:1px solid #c9a227!important;padding:10px 0 6px 0!important;
+    border-top:1px solid #c9a227!important;padding:16px 0 9px 0!important;
     font-size:8pt!important;color:#555!important;
     display:flex!important;justify-content:space-between!important}
 
@@ -1987,7 +1988,7 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION = 'v2.15.23';
+const APP_VERSION = 'v2.15.24';
 const APP_NAME = 'CPM';
 const LS_KEY = 'cpm_data';
 const PW_KEY = 'cpm_pass';
