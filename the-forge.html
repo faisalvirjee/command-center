@@ -3107,7 +3107,7 @@
     <div class="lc-icon-brand"></div>
     <div class="lc-title">The Forge</div>
     <div class="lc-sub">Capital Forged. Premium Collected.</div>
-    <div class="lc-ver" id="lockScreenVersion"><!-- APP_VERSION -->v2.28.0</div>
+    <div class="lc-ver" id="lockScreenVersion"><!-- APP_VERSION -->v2.28.1</div>
     <div id="loginMode">
       <div class="pw-wrap">
         <input type="password" id="pwInp" class="pw-inp" placeholder="Password"
@@ -5478,7 +5478,7 @@
 /* ════════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════════ */
-const APP_VERSION = "2.28.0";
+const APP_VERSION = "2.28.1";
 const CLIENT_ID   = "305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com";
 const SCOPES      = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_FILE  = "forge_data.json";
@@ -17644,7 +17644,9 @@ function impCategorizeSchwab(parsed) {
       ? impConsumeLotsFIFO(sim, r.qty, r.date, r.price, r.fees)
       : { ok:false, oversell:true, sharesRequested:r.qty, sharesConsumed:0, sharesShortfall:r.qty, consumed:[], totals:{costBasis:0,proceeds:impRound2(r.qty*r.price-r.fees),realizedGL:0,holdDays:0,classification:'none'} };
     const row = { ...r, _plan: plan, _noStock: !sim };
-    if (plan.oversell) cats.sells.oversellCount++;
+    // v2.28.1 · only alarm on a REAL oversell — a duplicate (already-imported) sell of a now-closed
+    // position re-appears with 0 lots available and would false-flag; it's skipped at commit, so don't count it.
+    if (plan.oversell && !dup) cats.sells.oversellCount++;
     (dup?cats.sells.dup:cats.sells.new).push(row);
   }
 
