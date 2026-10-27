@@ -1,0 +1,1020 @@
+<!-- ApexTrack — Family School Tracker | v0.0.0-draft (Phase 1 foundation, awaiting go-ahead for version bump) | 2026-10-26 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="theme-color" content="#0c1628">
+<title>ApexTrack — Family School Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8E%92%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060b18;--bg2:#0a1020;--surface:#0c1628;--card:#0f1e35;--card2:#162440;
+  --border:#1a2e4a;--border2:#243d60;
+  --amber:#f59e0b;--amber-dim:rgba(245,158,11,.12);
+  --blue:#3b82f6;--green:#10b981;--red:#ef4444;--purple:#a78bfa;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#7a8fa8;
+  --mono:'IBM Plex Mono',monospace;--font:'Barlow',sans-serif;--cond:'Barlow Condensed',sans-serif;
+  --radius:10px;--radius2:14px;--shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5}
+button{cursor:pointer;font-family:var(--font)}
+input{font-family:var(--font);font-size:16px;background:var(--card2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:11px 12px;outline:none;width:100%}
+input:focus{border-color:var(--amber)}
+.screen{display:none;min-height:100vh;align-items:flex-start;justify-content:center;padding:20px 14px}
+.screen.active{display:flex}
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius2);padding:26px 22px;width:100%;max-width:440px;box-shadow:var(--shadow)}
+.card.wide{max-width:720px}
+.title{font-family:var(--cond);font-size:30px;font-weight:700;color:var(--amber);letter-spacing:.5px}
+.ver{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:14px}
+.sub{color:var(--text2);font-size:14px;margin-bottom:16px}
+.btn{display:block;width:100%;min-height:46px;padding:11px;border-radius:9px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-weight:600;font-size:14px;margin-top:10px}
+.btn.primary{background:var(--amber);border-color:var(--amber);color:#000;font-family:var(--cond);font-size:16px;letter-spacing:.4px;font-weight:700}
+.btn.danger{border-color:var(--red);color:#fca5a5;background:rgba(239,68,68,.1)}
+.btn.small{min-height:38px;font-size:13px;margin-top:0}
+.btn:disabled{opacity:.5;cursor:default}
+.link{background:none;border:none;color:var(--text3);font-size:13px;text-decoration:underline;margin-top:14px;display:block;width:100%;padding:8px}
+.msg{min-height:20px;margin-top:12px;font-size:13px;color:var(--text3)}
+.msg.err{color:#fca5a5}.msg.ok{color:#6ee7b7}
+.pwrow{position:relative;margin-top:10px}
+.pwrow button{position:absolute;right:6px;top:6px;height:34px;padding:0 10px;background:transparent;border:none;color:var(--text3);font-size:12px}
+.hidden-user{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.chip{display:inline-block;font-family:var(--mono);font-size:11px;background:var(--card2);border:1px solid var(--border2);border-radius:20px;padding:2px 10px;color:var(--text2);margin-bottom:12px}
+.sect{font-family:var(--cond);font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:3px 10px;font-size:13px}
+.kv .k{color:var(--text3)}.kv .v{font-family:var(--mono);font-size:12px;word-break:break-all}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.list-item{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px;padding:5px 0;border-bottom:1px solid var(--border);color:var(--text2)}
+.cand{display:block;width:100%;text-align:left;margin-top:8px;padding:10px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;font-family:var(--mono)}
+pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px;font-family:var(--mono);font-size:10.5px;color:var(--text2);max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.ok{color:#6ee7b7}.bad{color:#fca5a5}.warn{color:#fde68a}
+#banner-offline,#banner-auth{display:none;position:fixed;top:0;left:0;right:0;z-index:900;padding:9px 14px;font-size:13px;font-weight:600;text-align:center}
+#banner-offline{background:#451a03;color:#fde68a;border-bottom:1px solid var(--amber)}
+#banner-auth{background:#450a0a;color:#fca5a5;border-bottom:1px solid var(--red)}
+#banner-auth button{margin-left:10px;padding:4px 12px;border-radius:6px;border:1px solid var(--red);background:transparent;color:#fca5a5;font-weight:700}
+#toastEl{position:fixed;bottom:16px;left:12px;right:12px;display:flex;flex-direction:column;gap:8px;align-items:center;z-index:1000;pointer-events:none}
+.toast{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:var(--shadow);max-width:440px}
+.toast.success{background:#064e3b;border:1px solid var(--green);color:#6ee7b7}
+.toast.error{background:#450a0a;border:1px solid var(--red);color:#fca5a5}
+.toast.info{background:#1e3a5f;border:1px solid var(--blue);color:#93c5fd}
+.toast.warning{background:#451a03;border:1px solid var(--amber);color:#fde68a}
+</style>
+</head>
+<body>
+<div id="banner-offline">No connection — changes won't save</div>
+<div id="banner-auth">Google session expired <button id="btn-reconnect" type="button">Reconnect</button></div>
+
+<!-- SIGN IN -->
+<div class="screen" id="screen-signin"><div class="card">
+  <div class="title">ApexTrack</div><div class="ver" data-ver></div>
+  <p class="sub">Family school tracker. Sign in with <b>your own personal Google account</b>.</p>
+  <button class="btn primary" id="btn-signin" type="button">Sign in with Google</button>
+  <div class="msg" id="msg-signin"></div>
+</div></div>
+
+<!-- SETUP: find or create the shared file -->
+<div class="screen" id="screen-setup"><div class="card">
+  <div class="title">Connect data file</div><div class="ver" data-ver></div>
+  <div class="chip" id="setup-who"></div>
+  <p class="sub" id="setup-intro">Pick the shared ApexTrack files from Google Drive. This is a one-time step per Google account.</p>
+  <div id="keybox" style="display:none">
+    <p class="sub">Picker API key not set in this build. Paste it once (it is restricted to this site and the Picker API).</p>
+    <input id="in-pickerkey" type="text" placeholder="AIza…" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="btn small" id="btn-savekey" type="button" style="margin-top:8px">Save key on this device</button>
+  </div>
+  <div id="cands"></div>
+  <button class="btn primary" id="btn-pickfiles" type="button">Find the existing file</button>
+  <p class="sub" style="margin-top:6px;font-size:12px">In the picker, select both <b>school_tracker.json</b> and <b>school_tracker_lock.json</b>.</p>
+  <button class="btn" id="btn-firsttime" type="button">First-time setup (admin only)</button>
+  <button class="link" id="btn-setup-back" type="button" style="display:none">Back to foundation check</button>
+  <button class="link" id="btn-setup-signout" type="button">Use a different Google account</button>
+  <div class="msg" id="msg-setup"></div>
+</div></div>
+
+<!-- CREATE: first-time password -->
+<div class="screen" id="screen-create"><div class="card">
+  <div class="title">Create encrypted file</div><div class="ver" data-ver></div>
+  <p class="sub">Use the shared password from your password manager. There is <b>no recovery</b> — a forgotten password means the data cannot be opened.</p>
+  <form id="form-create" onsubmit="return false">
+    <input class="hidden-user" type="text" name="username" value="ApexTrack family" autocomplete="username" tabindex="-1" aria-hidden="true">
+    <div class="pwrow"><input id="in-newpw1" type="password" placeholder="New shared password (10+ characters)" autocomplete="new-password"></div>
+    <div class="pwrow"><input id="in-newpw2" type="password" placeholder="Repeat password" autocomplete="new-password"></div>
+    <button class="btn primary" id="btn-create" type="submit">Create encrypted file</button>
+  </form>
+  <button class="link" id="btn-create-back" type="button">Back</button>
+  <div class="msg" id="msg-create"></div>
+</div></div>
+
+<!-- UNLOCK -->
+<div class="screen" id="screen-unlock"><div class="card">
+  <div class="title">ApexTrack</div><div class="ver" data-ver></div>
+  <div class="chip" id="unlock-who"></div>
+  <p class="sub" id="unlock-note">Enter the shared family password.</p>
+  <form id="form-unlock" onsubmit="return false">
+    <input class="hidden-user" type="text" name="username" value="ApexTrack family" autocomplete="username" tabindex="-1" aria-hidden="true">
+    <div class="pwrow"><input id="in-pw" type="password" placeholder="Shared password" autocomplete="current-password"><button type="button" id="btn-showpw">Show</button></div>
+    <button class="btn primary" id="btn-unlock" type="submit">Unlock</button>
+  </form>
+  <button class="link" id="btn-unlock-file" type="button">Choose a different file</button>
+  <button class="link" id="btn-unlock-signout" type="button" style="margin-top:0">Use a different Google account</button>
+  <div class="msg" id="msg-unlock"></div>
+</div></div>
+
+<!-- PHASE 1 FOUNDATION CHECK (temporary — replaced by real views in Phase 2a) -->
+<div class="screen" id="screen-panel"><div class="card wide">
+  <div class="title">Foundation check</div><div class="ver" data-ver></div>
+  <p class="sub">Phase 1 test screen. No tracker views yet — this only proves read, decrypt, encrypt, write.</p>
+  <div class="sect">Status</div>
+  <div class="kv" id="status-kv"></div>
+  <div class="sect">Test actions</div>
+  <div class="grid2">
+    <button class="btn small" id="t-add" type="button">Add test item</button>
+    <button class="btn small" id="t-toggle" type="button">Toggle check-off</button>
+    <button class="btn small" id="t-edit" type="button">Edit test title</button>
+    <button class="btn small" id="t-clean" type="button">Remove test items</button>
+    <button class="btn small" id="t-pull" type="button">Pull latest</button>
+    <button class="btn small" id="t-backup" type="button">Backup now</button>
+    <button class="btn small" id="t-probe" type="button">Check access</button>
+    <button class="btn small" id="t-repick" type="button">Re-pick files</button>
+    <button class="btn small" id="t-backups-folder" type="button">Grant Backups folder</button>
+    <button class="btn small" id="t-lockapp" type="button">Lock now</button>
+  </div>
+  <div class="sect">Access check</div>
+  <div id="probe-out" class="sub" style="font-size:12px">Not run yet.</div>
+  <div class="sect">Backups (<span id="bk-count">0</span>)</div>
+  <div id="bk-list"></div>
+  <div class="sect">Log</div>
+  <pre id="logBox"></pre>
+  <div class="grid2" style="margin-top:8px">
+    <button class="btn small" id="t-copylog" type="button">Copy log</button>
+    <button class="btn small danger" id="t-signout" type="button">Sign out of Google</button>
+  </div>
+</div></div>
+
+<div id="toastEl"></div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   CONSTANTS
+════════════════════════════════════════════════════ */
+const APP_VERSION='v0.0.0-draft';
+const APP_NAME='ApexTrack';
+const SCHEMA_VERSION=1;
+const ENV_VERSION=1;
+const CLIENT_ID='305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com';
+const CLOUD_PROJECT_NUMBER=CLIENT_ID.split('-')[0];      // Picker setAppId — the numeric prefix of the OAuth client ID
+const PICKER_API_KEY='AIzaSyD5spm8lRFQh2cTaDaIMpusD2Eo8RZ1yfs';  // restricted key (Picker API + this site). Empty → one-time in-app paste, stored per device.
+const SCOPE='https://www.googleapis.com/auth/drive.file';  // the only Drive scope (spec §4.1)
+const DATA_FILE_NAME='school_tracker.json';
+const LOCK_FILE_NAME='school_tracker_lock.json';
+const BACKUPS_FOLDER_NAME='Backups';
+const BACKUP_PREFIX='apextrack_backup_';
+const KEEP_BACKUPS=10;
+const TOKEN_KEY='apextrack_drive_token';                   // sessionStorage — clears when the tab closes
+const LS={fileId:'apextrack_file_id',lockId:'apextrack_lock_id',email:'apextrack_last_email',pickerKey:'apextrack_picker_key'};
+const COLLECTIONS=['kids','items','events','grades','backups'];
+const WIPEABLE=new Set(['items','events']);                // grades/kids/backups survive a year-end wipe
+const CFG={                                                 // overridable by the test harness only
+  pbkdf2Iter:600000, idleMs:10*60*1000, idleCheckMs:10000,
+  lockTtlMs:30000, lockSettleMs:700, lockMarginMs:8000, lockGraceMs:3000,
+  saveAttempts:3, saveRetryMs:1500, pullThrottleMs:30000, backupDelayMs:2000
+};
+
+/* ════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════ */
+let ME=null;                 // {email,name}
+let accessToken=null,tokenExp=0,tokenClient=null,tokenWaiters=[],refreshing=null;
+let fileId=null,lockId=null;
+let CRYPTO=null;             // {key:CryptoKey(non-extractable),salt:b64,iter:n} — memory only, cleared on idle
+let DATA=null;               // decrypted working copy — memory only
+let driveDataLoaded=false;   // guard: no write is possible until a successful decrypt of the live file
+let readOnly=false;
+let dirty=false,mutationSeq=0,saving=null;
+let lastActivity=0,idleTimer=null,locking=false,lostEditsNote='';
+let lastPulledAt=0,lastSavedAt=0,lastLockInfo=null,lastProbe=null,lastBackupErr='';
+let pendingFolderId=null;    // folder chosen for first-time setup
+let setupCands=[];
+const LOGS=[];
+
+/* ════════════════════════════════════════════════════
+   UTIL
+════════════════════════════════════════════════════ */
+const nowMs=()=>Date.now();
+const iso=ms=>new Date(ms==null?nowMs():ms).toISOString();
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const $=id=>document.getElementById(id);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const ts=r=>(r&&r.updatedAt&&Date.parse(r.updatedAt))||0;
+const isOnline=()=>typeof navigator==='undefined'||navigator.onLine!==false;
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
+function stable(v){
+  if(v===undefined||v===null)return 'null';
+  if(typeof v!=='object')return JSON.stringify(v);
+  if(Array.isArray(v))return '['+v.map(stable).join(',')+']';
+  return '{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+stable(v[k])).join(',')+'}';
+}
+function b64e(buf){const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
+function b64d(s){const bin=atob(s);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u}
+function randHex(n){const u=crypto.getRandomValues(new Uint8Array(n));return Array.from(u).map(x=>x.toString(16).padStart(2,'0')).join('')}
+function firstName(s){s=String(s||'').trim().split(/[\s@.]/)[0]||'Someone';return s.charAt(0).toUpperCase()+s.slice(1)}
+function deviceTag(){const ua=(typeof navigator!=='undefined'&&navigator.userAgent)||'';return /Android/i.test(ua)?'android':/iPhone|iPad/i.test(ua)?'ios':'desktop'}
+function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new ATError('TIMEOUT','Timed out')),ms))])}
+function log(...a){
+  const line=iso().slice(11,19)+' '+a.map(x=>typeof x==='string'?x:(x&&x.message)||JSON.stringify(x)).join(' ');
+  LOGS.push(line);if(LOGS.length>200)LOGS.shift();
+  try{console.log('[AT]',line)}catch(e){}
+  renderLog();
+}
+function toast(msg,type='success'){
+  const t=document.createElement('div');t.className='toast '+type;
+  const i=document.createElement('span');i.textContent={success:'✓',error:'✕',info:'ℹ',warning:'⚠'}[type]||'ℹ';
+  const m=document.createElement('span');m.textContent=msg;
+  t.appendChild(i);t.appendChild(m);$('toastEl').appendChild(t);
+  setTimeout(()=>t.remove(),type==='error'?6000:3500);
+}
+class ATError extends Error{constructor(code,msg,extra){super(msg||code);this.code=code;if(extra)Object.assign(this,extra)}}
+function errMsg(e){
+  if(!e)return 'Unknown error';
+  if(e.code==='WRONG_PASSWORD')return 'Wrong password, or the file is damaged.';
+  if(e.code==='OFFLINE')return "No connection — changes won't save";
+  return e.message||String(e);
+}
+
+/* ════════════════════════════════════════════════════
+   AUTH — Google Identity Services (CPM pattern, drive.file only)
+════════════════════════════════════════════════════ */
+function saveToken(){try{sessionStorage.setItem(TOKEN_KEY,JSON.stringify({t:accessToken,exp:tokenExp}))}catch(e){}}
+function restoreToken(){
+  try{const o=JSON.parse(sessionStorage.getItem(TOKEN_KEY)||'null');
+    if(o&&o.t&&o.exp>nowMs()+30000){accessToken=o.t;tokenExp=o.exp;return true}}catch(e){}
+  try{sessionStorage.removeItem(TOKEN_KEY)}catch(e){}
+  return false;
+}
+function settleToken(err){
+  const w=tokenWaiters;tokenWaiters=[];
+  w.forEach(x=>{clearTimeout(x.timer);err?x.reject(err):x.resolve(accessToken)});
+}
+function initGIS(){
+  if(tokenClient)return true;
+  if(!(window.google&&google.accounts&&google.accounts.oauth2))return false;
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID,scope:SCOPE,
+    callback:r=>{
+      if(r.error)return settleToken(new ATError('AUTH','Google sign-in failed ('+r.error+')'));
+      if(google.accounts.oauth2.hasGrantedAllScopes&&!google.accounts.oauth2.hasGrantedAllScopes(r,SCOPE))
+        return settleToken(new ATError('AUTH','Drive permission was not granted. Sign in again and allow access.'));
+      accessToken=r.access_token;tokenExp=nowMs()+((+r.expires_in||3600)-60)*1000;saveToken();
+      hideAuthBanner();settleToken(null);
+    },
+    error_callback:e=>settleToken(new ATError('AUTH','Sign-in window was closed or blocked ('+((e&&e.type)||'unknown')+')'))
+  });
+  return true;
+}
+async function waitForGIS(ms){
+  const t0=nowMs();
+  while(!initGIS()){if(nowMs()-t0>ms)throw new ATError('AUTH','Google sign-in library did not load — check your connection and reload.');await sleep(200)}
+}
+function requestToken(prompt,timeoutMs){
+  return new Promise((resolve,reject)=>{
+    if(!initGIS())return reject(new ATError('AUTH','Google sign-in library not ready — reload the page.'));
+    const w={resolve,reject};
+    w.timer=setTimeout(()=>{tokenWaiters=tokenWaiters.filter(x=>x!==w);reject(new ATError('AUTH','Sign-in timed out'))},timeoutMs||60000);
+    tokenWaiters.push(w);
+    try{const cfg={prompt};const hint=lsGet(LS.email);if(hint)cfg.hint=hint;tokenClient.requestAccessToken(cfg)}
+    catch(e){settleToken(new ATError('AUTH',String(e.message||e)))}
+  });
+}
+function refreshToken(){
+  if(!refreshing)refreshing=requestToken('',10000).finally(()=>{refreshing=null});
+  return refreshing;
+}
+async function ensureToken(){
+  if(accessToken&&tokenExp>nowMs())return accessToken;
+  try{return await refreshToken()}catch(e){showAuthBanner();throw new ATError('AUTH','Google session expired — tap Reconnect')}
+}
+function showAuthBanner(){const b=$('banner-auth');if(b)b.style.display='block'}
+function hideAuthBanner(){const b=$('banner-auth');if(b)b.style.display='none'}
+async function reconnect(){
+  try{await waitForGIS(8000);await requestToken('',60000);toast('Reconnected','success');if(dirty)requestSave()}
+  catch(e){toast(errMsg(e),'error')}
+}
+async function signOutGoogle(){
+  const t=accessToken;
+  try{if(t&&window.google&&google.accounts&&google.accounts.oauth2)google.accounts.oauth2.revoke(t,()=>{})}catch(e){}
+  accessToken=null;tokenExp=0;try{sessionStorage.removeItem(TOKEN_KEY)}catch(e){}
+  clearMemory();ME=null;fileId=null;lockId=null;hideAuthBanner();
+  show('signin');
+}
+
+/* ════════════════════════════════════════════════════
+   DRIVE PRIMITIVES (drive.file — only files this user has opened/created through the app)
+════════════════════════════════════════════════════ */
+const DRIVE='https://www.googleapis.com/drive/v3';
+const UPLOAD='https://www.googleapis.com/upload/drive/v3';
+async function apiError(res){
+  let m='';try{const j=await res.json();m=(j.error&&j.error.message)||''}catch(e){}
+  const code=res.status===404?'NOT_FOUND':res.status===403?(/rate/i.test(m)?'RATE':'FORBIDDEN'):res.status===401?'AUTH':res.status===429?'RATE':'API';
+  return new ATError(code,'Drive '+res.status+(m?': '+m:''),{status:res.status});
+}
+async function dfetch(url,opt,retried){
+  if(!isOnline())throw new ATError('OFFLINE','No connection');
+  const token=await ensureToken();
+  const o=Object.assign({},opt||{});o.headers=Object.assign({},o.headers,{Authorization:'Bearer '+token});
+  let res;
+  try{res=await fetch(url,o)}catch(e){throw new ATError('OFFLINE','Network error: '+(e.message||e))}
+  if(res.status===401){
+    accessToken=null;try{sessionStorage.removeItem(TOKEN_KEY)}catch(e){}
+    if(retried)throw new ATError('AUTH','Google session expired — tap Reconnect');
+    return dfetch(url,opt,true);
+  }
+  const method=(o.method||'GET').toUpperCase();
+  if([429,500,502,503,504].includes(res.status)&&method!=='POST'&&(retried||0)<3){
+    await sleep(800*((retried||0)+1));return dfetch(url,opt,(retried||0)+1);
+  }
+  return res;
+}
+async function driveGetMeta(id,fields){
+  const r=await dfetch(DRIVE+'/files/'+id+'?supportsAllDrives=true&fields='+encodeURIComponent(fields));
+  if(!r.ok)throw await apiError(r);return r.json();
+}
+async function driveGetText(id){
+  const r=await dfetch(DRIVE+'/files/'+id+'?alt=media&supportsAllDrives=true',{cache:'no-store'});
+  if(!r.ok)throw await apiError(r);return r.text();
+}
+async function driveList(q,fields){
+  const r=await dfetch(DRIVE+'/files?supportsAllDrives=true&includeItemsFromAllDrives=true&pageSize=50&orderBy='+encodeURIComponent('modifiedTime desc')+
+    '&q='+encodeURIComponent(q)+'&fields='+encodeURIComponent('files('+fields+')'));
+  if(!r.ok)throw await apiError(r);const j=await r.json();return j.files||[];
+}
+async function driveUpdateText(id,text,mime){
+  const r=await dfetch(UPLOAD+'/files/'+id+'?uploadType=media&supportsAllDrives=true',{method:'PATCH',headers:{'Content-Type':mime||'application/json'},body:text});
+  if(!r.ok)throw await apiError(r);return true;
+}
+async function driveCreate(name,mime,parentId,text){          // two-step (CPM uploadFileToDrive pattern): metadata → content
+  const meta={name,mimeType:mime};if(parentId)meta.parents=[parentId];
+  const cr=await dfetch(DRIVE+'/files?supportsAllDrives=true&fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(meta)});
+  if(!cr.ok)throw await apiError(cr);
+  const cj=await cr.json();if(!cj.id)throw new ATError('API','Drive create returned no ID');
+  if(text!=null)await driveUpdateText(cj.id,text,mime);
+  return cj.id;
+}
+async function driveDelete(id){
+  const r=await dfetch(DRIVE+'/files/'+id+'?supportsAllDrives=true',{method:'DELETE'});
+  if(!r.ok&&r.status!==204)throw await apiError(r);return true;
+}
+
+/* ════════════════════════════════════════════════════
+   CRYPTO — PBKDF2-SHA256 → AES-256-GCM (spec §4.3)
+   Envelope is a plain JSON text file: {format,v,kdf{alg,iter,salt},cipher,iv,ct}
+   A successful decrypt IS the password check. Salt/iter are in the envelope header
+   and authenticated as AAD, so header tampering also fails the decrypt.
+════════════════════════════════════════════════════ */
+const enc=new TextEncoder(),dec=new TextDecoder();
+async function deriveKey(password,saltBytes,iter){
+  const base=await crypto.subtle.importKey('raw',enc.encode(String(password).normalize('NFKC')),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:saltBytes,iterations:iter},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+const aadFor=(iter,saltB64)=>enc.encode('apextrack|'+ENV_VERSION+'|'+iter+'|'+saltB64);
+async function encryptEnvelope(obj,ci){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:aadFor(ci.iter,ci.salt)},ci.key,enc.encode(JSON.stringify(obj)));
+  return JSON.stringify({format:'apextrack',v:ENV_VERSION,kdf:{alg:'PBKDF2-SHA256',iter:ci.iter,salt:ci.salt},cipher:'AES-256-GCM',iv:b64e(iv),ct:b64e(ct)});
+}
+function parseEnvelope(text){
+  let o;try{o=JSON.parse(text)}catch(e){throw new ATError('BAD_FORMAT','The data file is not a valid ApexTrack file.')}
+  if(!o||o.format!=='apextrack'||!o.kdf||typeof o.iv!=='string'||typeof o.ct!=='string'||typeof o.kdf.salt!=='string')
+    throw new ATError('BAD_FORMAT','The data file is not a valid ApexTrack file.');
+  if(o.v>ENV_VERSION)throw new ATError('NEWER_FORMAT','This file was written by a newer ApexTrack. Reload the page to get the latest version.');
+  if(!(o.kdf.iter>=1000&&o.kdf.iter<=5000000))throw new ATError('BAD_FORMAT','The data file has invalid key settings.');
+  return o;
+}
+async function decryptEnvelope(env,key){
+  let pt;
+  try{pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64d(env.iv),additionalData:aadFor(env.kdf.iter,env.kdf.salt)},key,b64d(env.ct))}
+  catch(e){throw new ATError('WRONG_PASSWORD','Wrong password, or the file is damaged.')}
+  try{return JSON.parse(dec.decode(pt))}catch(e){throw new ATError('BAD_FORMAT','Decrypted data is unreadable.')}
+}
+
+/* ════════════════════════════════════════════════════
+   DATA MODEL + MERGE (spec §4.6, §5)
+   Records live in id-keyed maps. Deletes are tombstones (kept in the same map).
+   Merge is per record: newest updatedAt wins (deterministic tie-break → commutative).
+   `status` is merged as its own field by statusUpdatedAt, and a check-off does not touch updatedAt,
+   so a check-off and a concurrent edit of the same item both survive (a superset of the "within 5 s" rule).
+   Wipe epoch: records in items/events older than settings.lastWipeAt are dropped.
+   The year-end wipe (Phase 2c) must restamp any kept recurring events to the wipe time.
+════════════════════════════════════════════════════ */
+function newData(){
+  const t=iso();
+  return {schemaVersion:SCHEMA_VERSION,createdAt:t,
+    settings:{updatedAt:t,lastWipeAt:null,backupIntervalDays:3,lastBackupAt:null,backupsFolderId:null,lockFileId:null},
+    kids:{AV:{id:'AV',initials:'AV',color:'#3b82f6',school:'North Gwinnett Middle School',gradeLevel:6,teachers:[],updatedAt:t},
+          IV:{id:'IV',initials:'IV',color:'#a78bfa',school:'Roberts Elementary School',gradeLevel:3,teachers:[],updatedAt:t}},
+    items:{},events:{},grades:{},backups:{}};
+}
+function normalizeData(d){
+  if(!d||typeof d!=='object')throw new ATError('BAD_FORMAT','Decrypted data is unreadable.');
+  if((d.schemaVersion||1)>SCHEMA_VERSION)throw new ATError('NEWER_FORMAT','This data was written by a newer ApexTrack. Reload the page to get the latest version.');
+  d.schemaVersion=d.schemaVersion||1;
+  d.settings=d.settings||{updatedAt:iso()};
+  COLLECTIONS.forEach(c=>{if(!d[c]||typeof d[c]!=='object')d[c]={}});
+  return d;
+}
+const STATUS_KEYS=['status','statusUpdatedAt','statusUpdatedBy'];
+function contentKey(r){const c=Object.assign({},r);STATUS_KEYS.forEach(k=>delete c[k]);return stable(c)}   // tie-break must ignore status, which is resolved separately
+function mergeRecord(a,b){
+  if(!a)return b;if(!b)return a;
+  const ta=ts(a),tb=ts(b);let w,l;
+  if(ta>tb){w=a;l=b}else if(tb>ta){w=b;l=a}
+  else{const sa=contentKey(a),sb=contentKey(b);if(sa>=sb){w=a;l=b}else{w=b;l=a}}
+  const out=clone(w);
+  if(!w.deleted&&!l.deleted&&('statusUpdatedAt' in w||'statusUpdatedAt' in l)){
+    const sw=Date.parse(w.statusUpdatedAt||0)||0,sl=Date.parse(l.statusUpdatedAt||0)||0;
+    if(sl>sw||(sl===sw&&String(l.status)>String(w.status))){out.status=l.status;out.statusUpdatedAt=l.statusUpdatedAt;out.statusUpdatedBy=l.statusUpdatedBy}
+  }
+  return out;
+}
+function mergeSettings(a,b){
+  const w=(Date.parse(a.updatedAt||0)||0)>=(Date.parse(b.updatedAt||0)||0)?a:b,l=w===a?b:a;
+  const out=Object.assign({},l,w);
+  const mx=k=>{const x=a[k]||null,y=b[k]||null;return x&&y?(Date.parse(x)>=Date.parse(y)?x:y):(x||y)};
+  out.lastWipeAt=mx('lastWipeAt');out.lastBackupAt=mx('lastBackupAt');
+  out.backupsFolderId=w.backupsFolderId||l.backupsFolderId||null;
+  out.lockFileId=w.lockFileId||l.lockFileId||null;
+  return out;
+}
+function mergeData(a,b){
+  const out=Object.assign({},b,a);
+  out.schemaVersion=Math.max(a.schemaVersion||1,b.schemaVersion||1);
+  out.settings=mergeSettings(a.settings||{},b.settings||{});
+  const wipe=Date.parse(out.settings.lastWipeAt||0)||0;
+  COLLECTIONS.forEach(c=>{
+    const A=a[c]||{},B=b[c]||{},O={};
+    new Set(Object.keys(A).concat(Object.keys(B))).forEach(id=>{
+      const r=mergeRecord(A[id],B[id]);
+      if(WIPEABLE.has(c)&&wipe&&ts(r)<wipe)return;
+      O[id]=r;
+    });
+    out[c]=O;
+  });
+  return out;
+}
+function liveCount(c){return DATA?Object.values(DATA[c]||{}).filter(r=>!r.deleted).length:0}
+
+/* ════════════════════════════════════════════════════
+   LOCK — cooperative, short, TTL ~30 s (spec §4.6)
+   acquire → settle → re-read to break ties → (caller: pull, merge, write) → release
+════════════════════════════════════════════════════ */
+async function readLock(){
+  const t=await driveGetText(lockId);
+  try{return JSON.parse(t)||{holder:null}}catch(e){return {holder:null}}
+}
+const writeLock=o=>driveUpdateText(lockId,JSON.stringify(o),'application/json');
+const lockActive=lk=>!!(lk&&lk.holder&&lk.nonce&&(Date.parse(lk.expiresAt)||0)+CFG.lockGraceMs>nowMs());
+async function resolveLockId(){
+  if(lockId)return lockId;
+  const cands=[lsGet(LS.lockId),DATA&&DATA.settings&&DATA.settings.lockFileId].filter(Boolean);
+  for(const id of cands){
+    try{const m=await driveGetMeta(id,'id,name,trashed');if(!m.trashed&&m.name===LOCK_FILE_NAME){lockId=m.id;lsSet(LS.lockId,m.id);return lockId}}
+    catch(e){if(e.code!=='NOT_FOUND'&&e.code!=='FORBIDDEN')throw e}
+  }
+  const found=await driveList("name='"+LOCK_FILE_NAME+"' and trashed=false",'id,name,modifiedTime');
+  if(found.length){lockId=found[0].id;lsSet(LS.lockId,lockId);return lockId}
+  throw new ATError('NEEDS_ACCESS','The lock file has not been opened from this Google account yet. Use “Re-pick files”.',{what:'lock'});
+}
+async function acquireLock(){
+  await resolveLockId();
+  const lk=await readLock();lastLockInfo=lk;
+  if(lockActive(lk))return {ok:false,by:lk.name||lk.holder};
+  const nonce=randHex(8),at=nowMs();
+  await writeLock({holder:ME.email,name:ME.name,nonce,device:deviceTag(),acquiredAt:iso(at),expiresAt:iso(at+CFG.lockTtlMs)});
+  await sleep(CFG.lockSettleMs);
+  const lk2=await readLock();lastLockInfo=lk2;
+  if(lk2.nonce!==nonce)return {ok:false,by:lk2.name||lk2.holder};
+  return {ok:true,nonce,acquiredAt:at};
+}
+async function verifyLockStill(l){
+  const lk=await readLock();
+  if(lk.nonce!==l.nonce)throw new ATError('LOCK_LOST','Lock was taken by someone else');
+  if(nowMs()-l.acquiredAt>CFG.lockTtlMs-CFG.lockMarginMs)throw new ATError('LOCK_EXPIRED','Lock about to expire');
+}
+async function releaseLock(l){
+  try{const lk=await readLock();if(lk.nonce===l.nonce)await writeLock({holder:null,releasedAt:iso(),lastBy:ME.email});}
+  catch(e){log('lock release failed:',errMsg(e))}
+}
+
+/* ════════════════════════════════════════════════════
+   FILE LOCATE / PICKER / FIRST-TIME CREATE
+════════════════════════════════════════════════════ */
+function loadScript(src){
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.async=true;s.onload=res;
+    s.onerror=()=>rej(new ATError('PICKER','Could not load Google Picker — check your connection.'));document.head.appendChild(s)});
+}
+let pickerReady=null;
+function loadPicker(){
+  if(!pickerReady)pickerReady=(async()=>{
+    if(!window.gapi)await loadScript('https://apis.google.com/js/api.js');
+    await new Promise((res,rej)=>gapi.load('picker',{callback:res,onerror:()=>rej(new ATError('PICKER','Google Picker failed to load'))}));
+  })().catch(e=>{pickerReady=null;throw e});
+  return pickerReady;
+}
+const pickerKey=()=>PICKER_API_KEY||lsGet(LS.pickerKey)||'';
+async function openPicker(o){   // o:{kind:'files'|'folder', parentId, query, title}  → array of {id,name,mimeType,parentId} | null (cancelled)
+  const key=pickerKey();if(!key)throw new ATError('PICKER_KEY','Picker API key is missing.');
+  const token=await ensureToken();await loadPicker();
+  return new Promise(resolve=>{
+    const g=google.picker;const views=[];
+    const mk=(base,owned)=>{
+      const v=new g.DocsView(base);
+      if(o.kind==='folder'){v.setIncludeFolders(true).setSelectFolderEnabled(true)}else{v.setIncludeFolders(false)}
+      if(o.parentId)v.setParent(o.parentId);else if(o.query)v.setQuery(o.query);
+      if(owned!=null&&!o.parentId)v.setOwnedByMe(owned);
+      return v;
+    };
+    const base=o.kind==='folder'?g.ViewId.FOLDERS:g.ViewId.DOCS;
+    views.push(mk(base,true));if(!o.parentId)views.push(mk(base,false));
+    const b=new g.PickerBuilder().setAppId(CLOUD_PROJECT_NUMBER).setOAuthToken(token).setDeveloperKey(key)
+      .setTitle(o.title||'Select').setOrigin(location.protocol+'//'+location.host)
+      .setCallback(d=>{
+        if(d.action===g.Action.PICKED)resolve((d.docs||[]).map(x=>({id:x.id,name:x.name,mimeType:x.mimeType,parentId:x.parentId||null})));
+        else if(d.action===g.Action.CANCEL)resolve(null);
+      });
+    views.forEach(v=>b.addView(v));
+    if(o.kind!=='folder')b.enableFeature(g.Feature.MULTISELECT_ENABLED);
+    b.build().setVisible(true);
+  });
+}
+async function checkDataFile(id){
+  const m=await driveGetMeta(id,'id,name,trashed,mimeType');
+  if(m.trashed||m.name!==DATA_FILE_NAME)throw new ATError('NOT_FOUND','Not the ApexTrack data file');
+  return m;
+}
+async function locateDataFile(){   // → {status:'ok'|'none'|'many', files?}
+  const saved=lsGet(LS.fileId);
+  if(saved){
+    try{await checkDataFile(saved);fileId=saved;return {status:'ok'}}
+    catch(e){if(e.code!=='NOT_FOUND'&&e.code!=='FORBIDDEN')throw e;log('remembered file not accessible — searching by name');lsDel(LS.fileId);lsDel(LS.lockId);lockId=null}
+  }
+  const found=await driveList("name='"+DATA_FILE_NAME+"' and trashed=false",'id,name,modifiedTime,owners(emailAddress)');
+  if(found.length===1){fileId=found[0].id;lsSet(LS.fileId,fileId);log('found data file by name');return {status:'ok'}}
+  if(found.length>1)return {status:'many',files:found};
+  return {status:'none'};
+}
+async function findOrCreateFolder(name,parentId){
+  const f=await driveList("name='"+name+"' and mimeType='application/vnd.google-apps.folder' and '"+parentId+"' in parents and trashed=false",'id');
+  if(f.length)return f[0].id;
+  return driveCreate(name,'application/vnd.google-apps.folder',parentId,null);
+}
+async function findOrCreateFile(name,parentId,text){
+  const f=await driveList("name='"+name+"' and '"+parentId+"' in parents and trashed=false",'id');
+  if(f.length)return f[0].id;
+  return driveCreate(name,'application/json',parentId,text);
+}
+async function createNewStore(folderId,password){
+  const dup=await driveList("name='"+DATA_FILE_NAME+"' and trashed=false",'id');
+  if(dup.length)throw new ATError('EXISTS','A data file already exists for this account. Use “Find the existing file” instead.');
+  const backupsId=await findOrCreateFolder(BACKUPS_FOLDER_NAME,folderId);
+  const lockFid=await findOrCreateFile(LOCK_FILE_NAME,folderId,JSON.stringify({holder:null}));
+  const saltBytes=crypto.getRandomValues(new Uint8Array(16));
+  const key=await deriveKey(password,saltBytes,CFG.pbkdf2Iter);
+  const ci={key,salt:b64e(saltBytes),iter:CFG.pbkdf2Iter};
+  const data=newData();data.settings.backupsFolderId=backupsId;data.settings.lockFileId=lockFid;
+  const text=await encryptEnvelope(data,ci);
+  const fid=await driveCreate(DATA_FILE_NAME,'application/json',folderId,text);
+  const back=await decryptEnvelope(parseEnvelope(await driveGetText(fid)),key);      // read-back proof
+  if(stable(back)!==stable(data))throw new ATError('VERIFY','Read-back of the new file did not match — nothing was remembered.');
+  fileId=fid;lockId=lockFid;lsSet(LS.fileId,fid);lsSet(LS.lockId,lockFid);
+  CRYPTO=ci;DATA=normalizeData(back);driveDataLoaded=true;
+  log('created new store: data, lock, Backups');
+}
+
+/* ════════════════════════════════════════════════════
+   UNLOCK / LOAD / IDLE (spec §4.3, §4.4)
+════════════════════════════════════════════════════ */
+async function loadEnvelope(){return parseEnvelope(await driveGetText(fileId))}
+async function unlock(password){
+  const env=await loadEnvelope();
+  const key=await deriveKey(password,b64d(env.kdf.salt),env.kdf.iter);
+  const data=normalizeData(await decryptEnvelope(env,key));          // throws WRONG_PASSWORD
+  CRYPTO={key,salt:env.kdf.salt,iter:env.kdf.iter};DATA=data;driveDataLoaded=true;
+  lastPulledAt=nowMs();touch();startIdle();
+  log('unlocked: '+liveCount('items')+' items, '+liveCount('grades')+' grades');
+}
+function touch(){lastActivity=nowMs()}
+function startIdle(){stopIdle();idleTimer=setInterval(checkIdle,CFG.idleCheckMs)}
+function stopIdle(){if(idleTimer){clearInterval(idleTimer);idleTimer=null}}
+function checkIdle(){if(CRYPTO&&nowMs()-lastActivity>=CFG.idleMs)lockApp('idle')}
+function clearMemory(){CRYPTO=null;DATA=null;driveDataLoaded=false;dirty=false;stopIdle()}
+async function lockApp(reason){
+  if(!CRYPTO||locking)return;locking=true;
+  try{
+    lostEditsNote='';
+    if(dirty&&reason==='idle'){try{await withTimeout(requestSave(),20000)}catch(e){}}
+    if(dirty)lostEditsNote='Unsaved changes from the previous session could not be saved and were discarded.';
+    clearMemory();                 // key AND decrypted data leave memory; the Google token is untouched (no sign-out)
+    log('locked ('+reason+')');
+    const note=$('unlock-note');
+    note.textContent=reason==='idle'?'Locked after 10 minutes of inactivity. Enter the shared password.':reason==='password-changed'?'The password was changed. Enter the new shared password.':'Enter the shared family password.';
+    if(lostEditsNote)toast(lostEditsNote,'warning');
+    $('in-pw').value='';show('unlock');
+  }finally{locking=false}
+}
+
+/* ════════════════════════════════════════════════════
+   SAVE — hybrid lock + per-item merge (spec §4.6)
+════════════════════════════════════════════════════ */
+function assertWritable(){
+  if(!CRYPTO||!DATA||!driveDataLoaded)throw new ATError('LOCKED','The app is locked.');
+  if(readOnly)throw new ATError('READONLY','Read-only.');
+  if(!isOnline())throw new ATError('OFFLINE',"No connection — changes won't save");
+}
+async function readRemote(){
+  const env=await loadEnvelope();
+  if(env.kdf.salt!==CRYPTO.salt||env.kdf.iter!==CRYPTO.iter)throw new ATError('PASSWORD_CHANGED','The password was changed on another device.');
+  return {env,data:normalizeData(await decryptEnvelope(env,CRYPTO.key))};
+}
+async function saveOnce(){
+  try{assertWritable()}catch(e){return {ok:false,code:e.code,message:errMsg(e)}}
+  let busyBy=null;
+  for(let a=1;a<=CFG.saveAttempts;a++){
+    let lock;
+    try{lock=await acquireLock()}catch(e){return failResult(e)}
+    if(!lock.ok){busyBy=lock.by;if(a<CFG.saveAttempts)await sleep(CFG.saveRetryMs);continue}
+    try{
+      const remote=await readRemote();
+      const seq=mutationSeq,snap=clone(DATA);
+      const merged=mergeData(snap,remote.data);
+      await verifyLockStill(lock);
+      await driveUpdateText(fileId,await encryptEnvelope(merged,CRYPTO),'application/json');
+      DATA=mergeData(DATA,merged);dirty=(mutationSeq!==seq);lastSavedAt=nowMs();busyBy=null;
+      return {ok:true};
+    }catch(e){
+      if(e.code==='LOCK_LOST'||e.code==='LOCK_EXPIRED'){log('save retry:',e.code);continue}
+      return failResult(e);
+    }finally{await releaseLock(lock)}
+  }
+  return {ok:false,code:'BUSY',by:busyBy,message:busyBy?busyBy+' is saving — try again in a moment.':'Could not save — try again.'};
+}
+function failResult(e){
+  if(e.code==='PASSWORD_CHANGED')setTimeout(()=>lockApp('password-changed'),0);
+  if(e.code==='AUTH')showAuthBanner();
+  return {ok:false,code:e.code,message:errMsg(e)};
+}
+let saveActive=false;
+function requestSave(){
+  dirty=true;
+  if(!saveActive){
+    saveActive=true;
+    saving=(async()=>{
+      let r={ok:true};
+      try{while(dirty){r=await saveOnce();if(!r.ok)break}}
+      finally{saveActive=false}               // reset synchronously with the last dirty check — no window for a lost edit
+      if(!r.ok){log('save failed:',r.message);toast(r.message,r.code==='BUSY'?'warning':'error')}
+      renderPanel();return r;
+    })();
+  }
+  return saving;
+}
+
+/* local mutation API — updates memory synchronously, returns the save promise */
+function stampNow(old){return iso(Math.max(nowMs(),ts(old)+1))}      // never older than what we already saw
+function upsert(coll,rec){
+  assertWritable();
+  const old=DATA[coll][rec.id],t=stampNow(old);
+  const r=Object.assign({},old||{},rec);
+  if(!old){r.createdAt=t;r.createdBy=ME.email}
+  r.updatedAt=t;r.updatedBy=ME.email;
+  DATA[coll][r.id]=r;mutationSeq++;
+  return requestSave();
+}
+function setStatus(coll,id,status){
+  assertWritable();
+  const old=DATA[coll][id];if(!old||old.deleted)throw new ATError('NOT_FOUND','No such record');
+  const t=iso(Math.max(nowMs(),(Date.parse(old.statusUpdatedAt||0)||0)+1));
+  DATA[coll][id]=Object.assign({},old,{status,statusUpdatedAt:t,statusUpdatedBy:ME.email});   // updatedAt untouched: content and status never overwrite each other
+  mutationSeq++;return requestSave();
+}
+function removeRecord(coll,id){
+  assertWritable();
+  const old=DATA[coll][id];if(!old)return Promise.resolve({ok:true});
+  const t=stampNow(old);
+  DATA[coll][id]={id,deleted:true,deletedAt:t,deletedBy:ME.email,updatedAt:t,updatedBy:ME.email};
+  mutationSeq++;return requestSave();
+}
+async function pullLatest(){
+  if(!CRYPTO||!DATA)return;
+  const remote=await readRemote();
+  DATA=mergeData(DATA,remote.data);lastPulledAt=nowMs();renderPanel();
+}
+
+/* ════════════════════════════════════════════════════
+   BACKUPS — shared Backups/ folder, keep last 10 (spec §4.7)
+   Backup = verbatim copy of the live encrypted file (same password + salt), written only after
+   the live file decrypts, then read back and decrypted. Manifest lives in DATA.backups so both
+   people see it. A person can only delete backup files their own Google grant can see; others are
+   left flagged pendingPrune for their creator to remove on their next backup.
+════════════════════════════════════════════════════ */
+const compactStamp=()=>iso().replace(/[-:]/g,'').replace(/\.\d+Z$/,'Z');
+function liveBackups(){return Object.values((DATA&&DATA.backups)||{}).filter(b=>!b.deleted).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt))}
+async function backupIfDue(){
+  if(!DATA||!CRYPTO)return {skipped:true};
+  const days=DATA.settings.backupIntervalDays||3,last=Date.parse(DATA.settings.lastBackupAt||0)||0;
+  if(nowMs()-last<days*864e5)return {skipped:true};
+  return backupNow('auto');
+}
+async function backupNow(reason){
+  assertWritable();
+  const folderId=DATA.settings.backupsFolderId;
+  if(!folderId)throw new ATError('NO_BACKUP_FOLDER','No Backups folder is recorded in the data file.');
+  const liveText=await driveGetText(fileId);
+  const env=parseEnvelope(liveText);
+  if(env.kdf.salt!==CRYPTO.salt)throw new ATError('PASSWORD_CHANGED','The password was changed on another device.');
+  const liveData=await decryptEnvelope(env,CRYPTO.key);          // live file must decrypt or no backup is taken
+  const name=BACKUP_PREFIX+compactStamp()+'.json';
+  let bid;
+  try{bid=await driveCreate(name,'application/json',folderId,liveText)}
+  catch(e){if(e.code==='NOT_FOUND'||e.code==='FORBIDDEN')throw new ATError('NEEDS_ACCESS','The Backups folder is not writable from this Google account yet. Use “Grant Backups folder”.',{what:'backups'});throw e}
+  let ok=false;
+  try{const back=await decryptEnvelope(parseEnvelope(await driveGetText(bid)),CRYPTO.key);ok=stable(back)===stable(liveData)}catch(e){ok=false}
+  if(!ok){try{await driveDelete(bid)}catch(e){}throw new ATError('BACKUP_VERIFY','The backup failed verification and was discarded. The existing backups were not touched.')}
+  const t=iso();
+  DATA.settings.lastBackupAt=t;DATA.settings.updatedAt=t;
+  const p=upsert('backups',{id:bid,name,createdAt:t,createdBy:ME.email,createdByName:ME.name,bytes:liveText.length,verified:true,reason:reason||'manual',
+    counts:{items:liveCount('items'),events:liveCount('events'),grades:liveCount('grades')}});
+  const r=await p;
+  if(!r.ok)return {ok:false,id:bid,name,message:'Backup written, but the manifest could not be saved: '+r.message};
+  await rotateBackups();
+  log('backup ok: '+name);
+  return {ok:true,id:bid,name};
+}
+async function rotateBackups(){
+  const live=liveBackups();
+  const keep=new Set(live.filter(b=>b.verified).slice(0,KEEP_BACKUPS).map(b=>b.id));   // newest verified are always kept
+  let changed=false;
+  for(const b of live){
+    if(keep.has(b.id))continue;
+    let gone=false;
+    try{await driveDelete(b.id);gone=true}
+    catch(e){
+      if(e.code==='NOT_FOUND'||e.code==='FORBIDDEN'){
+        if(b.createdBy===ME.email)gone=true;                       // our own file and not found → already gone
+        else if(!b.pendingPrune){const t=stampNow(b);DATA.backups[b.id]=Object.assign({},b,{pendingPrune:true,updatedAt:t,updatedBy:ME.email});mutationSeq++;changed=true}
+      }else{log('prune failed:',errMsg(e))}
+    }
+    if(gone){const t=stampNow(b);DATA.backups[b.id]={id:b.id,deleted:true,deletedAt:t,deletedBy:ME.email,updatedAt:t,updatedBy:ME.email};mutationSeq++;changed=true}
+  }
+  if(changed)await requestSave();
+}
+
+/* ════════════════════════════════════════════════════
+   ACCESS PROBE — answers the drive.file [VERIFY] questions on the real device
+════════════════════════════════════════════════════ */
+async function probeAccess(){
+  const r={at:iso(),lock:{},backups:{},find:{}};
+  try{const l=await acquireLock();if(l.ok){await releaseLock(l);r.lock={ok:true,note:'acquired and released'}}else r.lock={ok:true,note:'held by '+l.by}}
+  catch(e){r.lock={ok:false,note:errMsg(e),code:e.code}}
+  const bf=DATA&&DATA.settings.backupsFolderId;
+  if(!bf)r.backups={ok:false,note:'no Backups folder recorded'};
+  else{
+    try{const id=await driveCreate('.apextrack_preflight_'+nowMs(),'text/plain',bf,'.');await driveDelete(id).catch(()=>{});r.backups={ok:true,note:'can create files in Backups'}}
+    catch(e){r.backups={ok:false,note:errMsg(e),code:e.code}}
+  }
+  try{const f=await driveList("name='"+DATA_FILE_NAME+"' and trashed=false",'id');r.find={ok:f.length>0,note:f.length+' file(s) found by name'}}
+  catch(e){r.find={ok:false,note:errMsg(e)}}
+  lastProbe=r;renderPanel();return r;
+}
+
+/* ════════════════════════════════════════════════════
+   UI — sign-in flow, screens, Phase 1 test panel
+════════════════════════════════════════════════════ */
+function show(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=$('screen-'+name);if(el)el.classList.add('active');
+  if(name==='panel')renderPanel();
+  if(name==='setup'){$('keybox').style.display=pickerKey()?'none':'block';$('btn-setup-back').style.display=CRYPTO?'block':'none'}
+  if(name==='unlock'){$('unlock-who').textContent=ME?ME.email:'';setTimeout(()=>{const i=$('in-pw');if(i&&i.focus)i.focus()},50)}
+  if(name==='setup')$('setup-who').textContent=ME?ME.email:'';
+}
+function setMsg(id,text,kind){const m=$(id);if(!m)return;m.textContent=text||'';m.className='msg'+(kind?' '+kind:'')}
+async function loadMe(){
+  try{
+    const r=await dfetch(DRIVE+'/about?fields='+encodeURIComponent('user(emailAddress,displayName)'));
+    if(!r.ok)throw await apiError(r);
+    const u=(await r.json()).user||{};
+    ME={email:String(u.emailAddress||'').toLowerCase(),name:firstName(u.displayName||u.emailAddress)};
+    if(!ME.email)throw new ATError('API','No email returned');
+  }catch(e){
+    if(e.code==='AUTH'||e.code==='OFFLINE')throw e;
+    log('could not read profile:',errMsg(e));ME={email:'unknown@device',name:'Someone'};toast('Could not read your Google profile — lock messages may show “Someone”.','warning');
+  }
+}
+async function afterSignIn(){
+  await loadMe();
+  const prev=lsGet(LS.email);
+  if(prev&&prev!==ME.email){lsDel(LS.fileId);lsDel(LS.lockId);fileId=null;lockId=null;log('different Google account — cleared remembered file')}
+  lsSet(LS.email,ME.email);
+  log('signed in as '+ME.email);
+  await locateAndContinue();
+}
+async function locateAndContinue(){
+  const res=await locateDataFile();
+  setupCands=[];$('cands').textContent='';
+  if(res.status==='ok'){show('unlock');return}
+  if(res.status==='many'){
+    setupCands=res.files;
+    $('setup-intro').textContent='More than one data file is visible to this account. Choose the right one.';
+    res.files.forEach(f=>{
+      const b=document.createElement('button');b.type='button';b.className='cand';
+      b.textContent=f.name+'  ·  modified '+String(f.modifiedTime||'').slice(0,16).replace('T',' ')+'  ·  '+((f.owners&&f.owners[0]&&f.owners[0].emailAddress)||'');
+      b.addEventListener('click',()=>{fileId=f.id;lsSet(LS.fileId,f.id);lsDel(LS.lockId);lockId=null;show('unlock')});
+      $('cands').appendChild(b);
+    });
+  }else $('setup-intro').textContent='Pick the shared ApexTrack files from Google Drive. This is a one-time step per Google account.';
+  show('setup');
+}
+async function doSignIn(){
+  const btn=$('btn-signin');btn.disabled=true;setMsg('msg-signin','Connecting to Google…');
+  try{await waitForGIS(8000);await requestToken('select_account',90000);await afterSignIn();setMsg('msg-signin','')}
+  catch(e){setMsg('msg-signin',errMsg(e),'err');log('sign-in failed:',errMsg(e));if(e.code!=='AUTH')show('signin')}
+  finally{btn.disabled=false}
+}
+async function doPickFiles(){
+  setMsg('msg-setup','');
+  try{
+    const docs=await openPicker({kind:'files',query:'school_tracker',title:'Select school_tracker.json and school_tracker_lock.json'});
+    if(!docs)return;
+    const d=docs.find(x=>x.name===DATA_FILE_NAME),l=docs.find(x=>x.name===LOCK_FILE_NAME);
+    if(!d&&!fileId){setMsg('msg-setup','Select school_tracker.json (and school_tracker_lock.json) in the picker.','err');return}
+    if(d){await checkDataFile(d.id);fileId=d.id;lsSet(LS.fileId,d.id)}
+    if(l){lockId=l.id;lsSet(LS.lockId,l.id)}
+    log('picked: data='+(d?'yes':'no')+' lock='+(l?'yes':'no'));
+    if(CRYPTO){toast(l?'Files granted':'Data file granted — lock file still missing',l?'success':'warning');if(l)probeAccess();show('panel')}
+    else{if(!l)toast('Tip: also select school_tracker_lock.json so saving works.','info');show('unlock')}
+  }catch(e){setMsg('msg-setup',errMsg(e),'err');log('pick failed:',errMsg(e));if(e.code==='PICKER_KEY')$('keybox').style.display='block'}
+}
+async function doPickBackupsFolder(){
+  try{
+    const bf=DATA&&DATA.settings.backupsFolderId;
+    const docs=await openPicker({kind:'folder',query:'Backups',title:'Select the Backups folder'});
+    if(!docs||!docs.length)return;
+    const f=docs[0];
+    if(bf&&f.id!==bf)toast('That is a different folder than the one the data file points to.','warning');
+    log('backups folder picked');toast('Backups folder granted','success');probeAccess();
+  }catch(e){toast(errMsg(e),'error');log('folder pick failed:',errMsg(e))}
+}
+async function doFirstTime(){
+  setMsg('msg-setup','');
+  try{
+    const docs=await openPicker({kind:'folder',query:'ApexTrack',title:'Select the shared ApexTrack folder'});
+    if(!docs||!docs.length)return;
+    pendingFolderId=docs[0].id;setMsg('msg-create','');show('create');
+  }catch(e){setMsg('msg-setup',errMsg(e),'err');log('folder pick failed:',errMsg(e));if(e.code==='PICKER_KEY')$('keybox').style.display='block'}
+}
+async function doCreate(){
+  const p1=$('in-newpw1').value,p2=$('in-newpw2').value;
+  if(p1.length<10)return setMsg('msg-create','Use at least 10 characters.','err');
+  if(p1!==p2)return setMsg('msg-create','Passwords do not match.','err');
+  const btn=$('btn-create');btn.disabled=true;setMsg('msg-create','Creating encrypted file… (a few seconds)');
+  try{
+    await createNewStore(pendingFolderId,p1);
+    $('in-newpw1').value='';$('in-newpw2').value='';
+    afterUnlocked();
+  }catch(e){setMsg('msg-create',errMsg(e),'err');log('create failed:',errMsg(e))}
+  finally{btn.disabled=false}
+}
+async function doUnlock(){
+  const pw=$('in-pw').value;if(!pw)return;
+  const btn=$('btn-unlock');btn.disabled=true;setMsg('msg-unlock','Unlocking…');
+  try{await unlock(pw);$('in-pw').value='';setMsg('msg-unlock','');afterUnlocked()}
+  catch(e){
+    setMsg('msg-unlock',errMsg(e),'err');log('unlock failed:',e.code||errMsg(e));
+    if(e.code==='NOT_FOUND'||e.code==='FORBIDDEN'){lsDel(LS.fileId);fileId=null;setMsg('msg-unlock','The remembered file is no longer accessible. Choose a different file.','err')}
+  }finally{btn.disabled=false}
+}
+function afterUnlocked(){
+  show('panel');
+  resolveLockId().then(()=>renderPanel()).catch(e=>{log('lock file:',errMsg(e));renderPanel()});
+  setTimeout(()=>{backupIfDue().then(r=>{if(r&&r.ok)toast('Backup saved','success');renderPanel()}).catch(e=>{lastBackupErr=errMsg(e);log('auto-backup:',errMsg(e));toast('Backup problem: '+errMsg(e),'warning');renderPanel()})},CFG.backupDelayMs);
+}
+
+/* test panel */
+function renderLog(){const b=$('logBox');if(b)b.textContent=LOGS.slice(-60).join('\n')}
+function kvRow(parent,k,v,cls){
+  const a=document.createElement('div');a.className='k';a.textContent=k;
+  const b=document.createElement('div');b.className='v'+(cls?' '+cls:'');b.textContent=v;parent.appendChild(a);parent.appendChild(b);
+}
+function renderPanel(){
+  const kv=$('status-kv');if(!kv)return;kv.textContent='';
+  const ago=t=>t?Math.max(0,Math.round((nowMs()-t)/1000))+'s ago':'—';
+  kvRow(kv,'Signed in',ME?ME.email:'—');
+  kvRow(kv,'Encryption',CRYPTO?'unlocked (key in memory)':'locked',CRYPTO?'ok':'warn');
+  kvRow(kv,'Data file',fileId?fileId.slice(0,10)+'…':'—');
+  kvRow(kv,'Lock file',lockId?lockId.slice(0,10)+'…':'not opened yet',lockId?'':'warn');
+  kvRow(kv,'Records',DATA?liveCount('items')+' items · '+liveCount('events')+' events · '+liveCount('grades')+' grades':'—');
+  kvRow(kv,'Last pull',ago(lastPulledAt));
+  kvRow(kv,'Last save',ago(lastSavedAt));
+  kvRow(kv,'Unsaved edits',dirty?'YES':'no',dirty?'bad':'ok');
+  kvRow(kv,'Lock now',lastLockInfo&&lockActive(lastLockInfo)?'held by '+(lastLockInfo.name||lastLockInfo.holder):'free');
+  kvRow(kv,'Last backup',DATA&&DATA.settings.lastBackupAt?DATA.settings.lastBackupAt.slice(0,16).replace('T',' ')+' UTC':'never');
+  if(lastBackupErr)kvRow(kv,'Backup issue',lastBackupErr,'bad');
+  kvRow(kv,'Idle timeout','10 min · key only, no Google sign-out');
+  const po=$('probe-out');
+  if(po){po.textContent='';
+    if(!lastProbe)po.textContent='Not run yet. Tap “Check access”.';
+    else[['Lock file',lastProbe.lock],['Backups folder',lastProbe.backups],['Find by name',lastProbe.find]].forEach(([n,x])=>{
+      const d=document.createElement('div');d.className=x.ok?'ok':'bad';d.textContent=(x.ok?'✓ ':'✕ ')+n+' — '+x.note;po.appendChild(d)});
+  }
+  const bl=$('bk-list');
+  if(bl){bl.textContent='';const bs=liveBackups();$('bk-count').textContent=String(bs.length);
+    bs.forEach(b=>{const d=document.createElement('div');d.className='list-item';
+      const a=document.createElement('span');a.textContent=b.createdAt.slice(0,16).replace('T',' ')+' · '+(b.createdByName||'');
+      const c=document.createElement('span');c.textContent=Math.round((b.bytes||0)/1024)+' KB'+(b.pendingPrune?' · prune pending':'');
+      d.appendChild(a);d.appendChild(c);bl.appendChild(d)});
+    if(!bs.length)bl.textContent='None yet.';}
+  renderLog();
+}
+const testItems=()=>Object.values(DATA?DATA.items:{}).filter(i=>!i.deleted&&String(i.id).startsWith('test-')).sort((a,b)=>Date.parse(a.createdAt)-Date.parse(b.createdAt));
+async function tAdd(){
+  const n=Object.keys(DATA.items).filter(k=>k.startsWith('test-')).length+1;
+  const r=await upsert('items',{id:'test-'+compactStamp()+'-'+randHex(2),kidIds:[],type:'info',priority:'Info',title:'Phase 1 test item #'+n+' ('+ME.name+')',status:'open',statusUpdatedAt:iso(),statusUpdatedBy:ME.email});
+  if(r.ok)toast('Saved to Drive','success');
+}
+async function tToggle(){
+  const t=testItems().pop();if(!t)return toast('Add a test item first','info');
+  const r=await setStatus('items',t.id,t.status==='done'?'open':'done');
+  if(r.ok)toast('Saved: '+(t.status==='done'?'open':'done'),'success');
+}
+async function tEdit(){
+  const t=testItems().pop();if(!t)return toast('Add a test item first','info');
+  const r=await upsert('items',{id:t.id,title:'Edited by '+ME.name+' at '+iso().slice(11,19)});
+  if(r.ok)toast('Saved to Drive','success');
+}
+async function tClean(){
+  const ts_=testItems();for(const t of ts_)await removeRecord('items',t.id);
+  toast('Removed '+ts_.length+' test item(s)','success');
+}
+function wire(){
+  document.querySelectorAll('[data-ver]').forEach(e=>e.textContent=APP_NAME+' '+APP_VERSION);
+  const on=(id,fn)=>{const e=$(id);if(e)e.addEventListener('click',()=>Promise.resolve().then(fn).catch(err=>{toast(errMsg(err),'error');log('action failed:',errMsg(err));renderPanel()}))};
+  on('btn-signin',doSignIn);on('btn-reconnect',reconnect);
+  on('btn-pickfiles',doPickFiles);on('btn-firsttime',doFirstTime);
+  on('btn-savekey',()=>{const v=($('in-pickerkey').value||'').trim();if(v.length<20)return toast('That does not look like an API key','error');lsSet(LS.pickerKey,v);$('keybox').style.display='none';toast('Key saved on this device','success')});
+  on('btn-setup-signout',signOutGoogle);on('btn-unlock-signout',signOutGoogle);
+  on('btn-unlock-file',()=>{lsDel(LS.fileId);lsDel(LS.lockId);fileId=null;lockId=null;show('setup')});
+  on('btn-create-back',()=>show('setup'));on('btn-setup-back',()=>show('panel'));
+  on('btn-showpw',()=>{const i=$('in-pw');const s=i.type==='password';i.type=s?'text':'password';$('btn-showpw').textContent=s?'Hide':'Show'});
+  const fc=$('form-create');if(fc)fc.addEventListener('submit',e=>{e.preventDefault&&e.preventDefault();return doCreate()});
+  const fu=$('form-unlock');if(fu)fu.addEventListener('submit',e=>{e.preventDefault&&e.preventDefault();return doUnlock()});
+  on('t-add',tAdd);on('t-toggle',tToggle);on('t-edit',tEdit);on('t-clean',tClean);
+  on('t-pull',async()=>{await pullLatest();toast('Pulled latest','success')});
+  on('t-backup',async()=>{try{const r=await backupNow('manual');toast(r.ok?'Backup saved':r.message,r.ok?'success':'warning');lastBackupErr=''}catch(e){lastBackupErr=errMsg(e);toast(errMsg(e),'error')}renderPanel()});
+  on('t-probe',probeAccess);
+  on('t-repick',()=>{show('setup')});
+  on('t-backups-folder',doPickBackupsFolder);
+  on('t-lockapp',()=>lockApp('manual'));
+  on('t-signout',signOutGoogle);
+  on('t-copylog',async()=>{try{await navigator.clipboard.writeText(LOGS.join('\n'));toast('Log copied','success')}catch(e){toast('Could not copy — long-press the log to select it','warning')}});
+}
+function netWatch(){
+  const upd=()=>{const b=$('banner-offline');if(b)b.style.display=isOnline()?'none':'block'};
+  window.addEventListener('online',()=>{upd();log('back online');if(dirty&&CRYPTO)requestSave()});
+  window.addEventListener('offline',()=>{upd();log('offline')});upd();
+}
+function activityWatch(){
+  ['pointerdown','keydown','touchstart','wheel','scroll','input'].forEach(e=>document.addEventListener(e,touch,{passive:true,capture:true}));
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState!=='visible')return;
+    checkIdle();                                                   // timers are throttled in background tabs — check the wall clock
+    if(CRYPTO&&!dirty&&nowMs()-lastPulledAt>CFG.pullThrottleMs)pullLatest().catch(e=>log('pull:',errMsg(e)));
+  });
+}
+async function boot(){
+  wire();netWatch();activityWatch();
+  document.title='ApexTrack '+APP_VERSION+' — Family School Tracker';
+  if(restoreToken()){
+    try{await afterSignIn();return}
+    catch(e){log('resume failed:',errMsg(e))}
+  }
+  show('signin');
+}
+window.AT={           // test hooks (headless harness) — not used by the UI
+  CFG,mergeData,mergeRecord,newData,stable,encryptEnvelope,decryptEnvelope,parseEnvelope,deriveKey,b64e,b64d,
+  acquireLock,releaseLock,saveOnce,requestSave,upsert,setStatus,removeRecord,pullLatest,backupNow,backupIfDue,rotateBackups,probeAccess,
+  unlock,createNewStore,locateDataFile,lockApp,checkIdle,touch,show,boot,afterSignIn,openPicker,doPickFiles,doPickBackupsFolder,
+  get:()=>({ME,DATA,CRYPTO,fileId,lockId,dirty,driveDataLoaded,accessToken,saving}),
+  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly},
+  liveBackups,LS,LOGS
+};
+window.addEventListener('load',boot);
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</body>
+</html>
