@@ -1418,7 +1418,12 @@ function setView(v){VIEW=v;DETAIL_ID=null;const ab=$('app-body');if(ab)ab.classL
 }
 function renderView(){
   const root=$('view-root');if(!root)return;root.textContent='';
-  if(VIEW==='thisweek')return renderList(root,'This week',thisWeekItems(KFILTER,{showDone:SHOWDONE}),true);
+  if(VIEW==='thisweek'){
+    const li=liveItems(),tw=thisWeekItems(KFILTER,{showDone:SHOWDONE});
+    log('renderView: liveItems='+li.length+' thisWeek='+tw.length+' filter='+KFILTER+' DATA.items keys='+Object.keys(DATA.items||{}).length);
+    if(li.length&&!tw.length)log('  dates: '+li.map(i=>i.title+'|'+(i.dueDate||i.startDate||i.date||'nodate')+'|deleted='+!!i.deleted+'|status='+i.status).join(' ; '));
+    return renderList(root,'This week',tw,true);
+  }
   if(VIEW==='todo')return renderList(root,'To-do',todoItems(KFILTER,{showDone:SHOWDONE}),false);
   if(VIEW==='critical')return renderList(root,'Critical',criticalItems(KFILTER,{showDone:SHOWDONE}),false);
   if(VIEW==='calendar')return renderPlaceholder(root,'Calendar','ti-calendar','The calendar arrives in Phase 2b.');
