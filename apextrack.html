@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.1.0 | 2026-10-27 -->
+<!-- ApexTrack — Family School Tracker | v0.2.1 | 2026-10-28 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -82,14 +82,39 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .app-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
 .app-top .brand{font-family:var(--cond);font-size:22px;font-weight:700;color:var(--amber);letter-spacing:.4px;display:flex;align-items:center;gap:9px}
 .app-top .brand .mk{width:24px;height:24px;border-radius:6px;background:var(--amber);color:#000;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
-.app-top .top-right{display:flex;align-items:center;gap:14px}
-.top-stale{font-size:11px;color:var(--text3);white-space:nowrap}
-.top-stale.warn{color:var(--amber)}
+.app-top .top-right{display:flex;align-items:center;gap:10px}
+.topnav{display:none}
+.me{display:flex;align-items:center;gap:7px;background:none;border:none;padding:0;color:var(--text);font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer}
+.me .me-name,.me .me-chev{display:none}
+.menu-wrap{display:none;position:fixed;inset:0;z-index:210;background:rgba(0,0,0,.55)}
+.menu-wrap.open{display:block}
+.menu-panel{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--border2);border-radius:18px 18px 0 0;padding:8px 14px 18px}
+.menu-panel .handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:2px auto 12px}
+.menu-head{display:flex;align-items:center;gap:12px;padding:2px 6px 12px}
+.menu-head .avatar{width:38px;height:38px;font-size:15px}
+.mh-name{font-size:15px;font-weight:700;color:var(--text)}
+.mh-sub{font-size:12px;color:var(--text3)}
+.menu-panel .mi{display:flex;align-items:center;gap:12px;width:100%;padding:13px 6px;background:none;border:none;border-top:1px solid var(--border);color:var(--text);font-size:15px;font-weight:600;font-family:var(--font);text-align:left;cursor:pointer}
+.menu-panel .mi i{font-size:19px;color:var(--text2)}
+.menu-panel .mi .mi-l{flex:1}
+.menu-panel .mi .mi-note{font-size:11px;color:var(--text3);font-weight:600}
+.menu-panel .mi.soon{color:#556677}
+.menu-panel .mi.danger,.menu-panel .mi.danger i{color:#fca5a5}
+.week-head{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin-bottom:10px}
+.seg{display:flex;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:2px}
+.seg button{flex:1;white-space:nowrap;border:none;background:none;color:var(--text2);font-size:13px;font-weight:600;padding:6px 14px;border-radius:7px;cursor:pointer;font-family:var(--font)}
+.seg button.on{background:var(--both-bar);color:#fff}
+.week-range{font-size:12px;color:var(--text3);white-space:nowrap}
+.stale-inline{flex-basis:100%;font-size:11px;color:var(--text3);margin-top:2px}
+.stale-inline.warn{color:var(--amber)}
+.undo-line{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--border)}
+.undo-line i{font-size:19px;margin-top:1px}
+.undo-line .ul-t{font-size:14px;font-weight:600;color:var(--text)}
+.undo-line .ul-n{font-size:12px;color:var(--text3);margin-top:2px;word-break:break-word}
 .icon-btn{background:none;border:none;color:var(--text2);padding:4px;line-height:1;font-size:20px;display:flex;align-items:center}
 .icon-btn.accent{color:var(--both-txt)}
 .avatar{width:30px;height:30px;border-radius:50%;background:var(--both-tint);color:var(--both-txt);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
 .app-body{display:flex;flex:1;min-height:0}
-.sidebar{display:none}
 .main-col{flex:1;min-width:0;display:flex;flex-direction:column}
 .view-head{padding:12px 16px 8px;background:var(--bg2)}
 .view-title{font-family:var(--cond);font-size:26px;font-weight:700;color:var(--text);letter-spacing:.3px;display:none}
@@ -100,8 +125,6 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .fchip.iv{background:var(--iv-tint-soft);color:var(--iv-txt);border-color:var(--iv-edge)}
 .fchip.av.active{background:var(--av-tint)}
 .fchip.iv.active{background:var(--iv-tint)}
-.stale-line{font-size:11px;color:var(--text3);padding:6px 16px 0}
-.stale-line.warn{color:var(--amber)}
 .view-scroll{flex:1;overflow-y:auto;padding-bottom:88px}
 .sec-head{padding:14px 16px 6px;font-family:var(--cond);font-size:14px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;display:flex;align-items:center;gap:7px}
 .sec-head .pd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -141,6 +164,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .tabbar button{flex:1;background:none;border:none;color:var(--text3);font-size:10px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:4px 0}
 .tabbar button i{font-size:20px}
 .tabbar button.active{color:var(--both-txt)}
+.tabbar button.soon{color:#556677}
 /* detail view */
 .detail-head{display:flex;align-items:center;gap:10px;padding:13px 16px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
 .detail-head .dt-title{font-family:var(--cond);font-size:19px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -231,22 +255,37 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   .view-scroll{padding-bottom:16px}
   .detail-scroll{padding-bottom:16px}
   .app-body{min-height:0}
-  .sidebar{display:flex;flex-direction:column;width:168px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);padding:10px 0}
-  .sidebar .nav{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:13.5px;color:var(--text2);background:none;border:none;width:100%;text-align:left;cursor:pointer;font-family:var(--font);font-weight:600}
-  .sidebar .nav i{font-size:17px}
-  .sidebar .nav.active{background:var(--both-tint-soft);color:var(--both-txt);box-shadow:inset 2px 0 0 var(--both-bar)}
-  .sidebar .nav.disabled{color:#556677;cursor:default}
-  .sidebar .nav-spacer{flex:1}
+  .topnav{display:flex;align-items:center;gap:2px;flex:1;margin-left:18px}
+  .topnav .nav{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:8px;font-size:13.5px;color:var(--text2);background:none;border:none;cursor:pointer;font-family:var(--font);font-weight:600;white-space:nowrap}
+  .topnav .nav i{font-size:17px}
+  .topnav .nav.active{background:var(--both-tint);color:var(--both-txt)}
+  .topnav .nav.soon{color:#556677}
+  .me{background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:3px 10px 3px 4px}
+  .me .me-name,.me .me-chev{display:inline}
+  .me .me-chev{font-size:14px;color:var(--text3)}
+  .menu-wrap{background:transparent}
+  .menu-panel{left:auto;right:max(12px,calc((100vw - 1100px)/2 + 12px));top:54px;bottom:auto;width:208px;border:1px solid var(--border2);border-radius:12px;padding:6px 8px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+  .menu-panel .handle,.menu-panel .menu-head,.menu-panel .mob-only{display:none}
+  .menu-panel .mi{padding:9px 8px;font-size:13.5px;border-top:none;border-radius:7px}
+  .menu-panel .mi:hover{background:var(--both-tint-soft)}
+  .week-head{flex-direction:row;align-items:center;justify-content:space-between}
+  .seg{display:inline-flex}
+  .stale-inline{flex-basis:auto;margin-left:auto;margin-top:0}
   .main-col{flex-direction:row}
   .center-col{flex:1;min-width:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-  .detail-col{width:300px;flex-shrink:0;overflow-y:auto}
+  .detail-col{width:360px;flex-shrink:0;overflow-y:auto}
   .detail-col .detail-head{display:none}
   .sheet-wrap.open{align-items:center}
   .sheet{border-radius:16px;max-height:86vh}
   .sheet .handle{display:none}
   .detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px;padding:24px;text-align:center}
 }
+@media(min-width:860px) and (max-width:1099px){
+  .topnav .nav .nav-l{display:none}
+  .topnav .nav{padding:7px 12px}
+}
 @media(max-width:859px){
+  #btn-nav-add{display:none}                     /* the floating button covers Add on phones */
   .center-col .chips-row{padding-top:0}
   .detail-col{display:none;position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto}
   .detail-col.open{display:block}
@@ -315,21 +354,17 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   <div class="msg" id="msg-unlock"></div>
 </div></div>
 
-<!-- PHASE 1 FOUNDATION CHECK (temporary — replaced by real views in Phase 2a) -->
+<!-- APP SHELL -->
 <div class="screen" id="screen-app"><div class="app-shell">
   <div class="app-top">
     <div class="brand"><span class="mk">A</span>ApexTrack</div>
+    <nav class="topnav" id="topnav" aria-label="Main"></nav>
     <div class="top-right">
-      <span class="top-stale" id="top-stale"></span>
-      <button class="icon-btn" id="btn-nav-search" type="button" aria-label="Search"><i class="ti ti-search" aria-hidden="true"></i></button>
       <button class="icon-btn accent" id="btn-nav-add" type="button" aria-label="Add item"><i class="ti ti-plus" aria-hidden="true"></i></button>
-      <button class="icon-btn accent" id="btn-nav-import" type="button" aria-label="Import"><i class="ti ti-upload" aria-hidden="true"></i></button>
-      <button class="icon-btn" id="btn-nav-settings-top" type="button" aria-label="Settings"><i class="ti ti-settings" aria-hidden="true"></i></button>
-      <div class="avatar" id="app-avatar"></div>
+      <button class="me" id="btn-me" type="button" aria-label="Account menu" aria-haspopup="menu"><span class="avatar" id="app-avatar"></span><span class="me-name" id="me-name"></span><i class="ti ti-chevron-down me-chev" aria-hidden="true"></i></button>
     </div>
   </div>
   <div class="app-body" id="app-body">
-    <nav class="sidebar" id="sidebar"></nav>
     <div class="main-col">
       <div class="center-col">
         <div id="view-root"></div>
@@ -390,6 +425,20 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   </div>
 </div></div>
 
+<!-- account menu (desktop dropdown / mobile bottom sheet) -->
+<div class="menu-wrap" id="menu-wrap"><div class="menu-panel" id="menu-panel"></div></div>
+
+<!-- undo-last-import confirmation -->
+<div class="sheet-wrap" id="sheet-undo"><div class="sheet">
+  <div class="handle"></div>
+  <div class="sh-title"><span>Undo last import?</span><button class="x" id="undo-close" type="button" aria-label="Close">&times;</button></div>
+  <div id="undo-body"></div>
+  <div class="sheet-actions">
+    <button class="btn" id="undo-cancel" type="button">Cancel</button>
+    <button class="btn primary" id="undo-confirm" type="button">Undo import</button>
+  </div>
+</div></div>
+
 <div class="busy-wrap" id="busyEl"><div class="busy-spin"></div><div class="busy-msg" id="busyMsg"></div></div>
 <div id="toastEl"></div>
 
@@ -397,7 +446,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.1.0';
+const APP_VERSION='v0.2.1';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -1165,16 +1214,34 @@ const dayMs=86400000;
 function startOfToday(){const d=new Date(nowMs());d.setHours(0,0,0,0);return d.getTime()}
 function matchKid(it,filter){if(filter==='all')return true;return (it.kidIds||[]).includes(filter)}
 // This Week: overdue open + next 7 days + undated open Critical/Action. Grouped Crit/Action/Info.
-function thisWeekItems(filter='all',opts={}){
-  const t0=startOfToday(),t7=t0+7*dayMs;
+// Monday 00:00 (local) of the week containing today, shifted by n whole weeks. Uses calendar-date arithmetic
+// (setDate), never +7*24h, so a daylight-saving change inside the week cannot move a boundary.
+function weekStartMs(n){const d=new Date(startOfToday());const dow=(d.getDay()+6)%7;d.setDate(d.getDate()-dow+7*(n||0));return d.getTime()}
+function weekRange(which){
+  const n=which==='next'?1:0,s=weekStartMs(n),e=weekStartMs(n+1);
+  const sun=new Date(s);sun.setDate(sun.getDate()+6);
+  return {startMs:s,endMs:e,sundayMs:sun.getTime()};
+}
+function weekRangeLabel(which){
+  const r=weekRange(which),f=ms=>new Date(ms).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  return f(r.startMs)+' \u2013 '+f(r.sundayMs);
+}
+// This week = overdue + Mon–Sun of the current week + undated Critical/Action. Next week = the following Mon–Sun, dated items only.
+function weekItems(filter='all',opts={}){
+  const next=opts.week==='next';
+  const ws=weekStartMs(next?1:0),we=weekStartMs(next?2:1);
   return liveItems().filter(it=>{
     if(!matchKid(it,filter))return false;
     const done=it.status==='done'||it.status==='cancelled';
+    const dated=hasDate(it),m=dated?itemDateMs(it):0;
+    if(next){if(!dated||m<ws||m>=we)return false;return done?!!opts.showDone:true}
     if(done)return !!opts.showDone;
-    if(!hasDate(it))return it.priority==='Critical'||it.priority==='Action';
-    const m=itemDateMs(it);return m<t7; // includes overdue (m<t0) and this-week
+    if(!dated)return it.priority==='Critical'||it.priority==='Action';
+    return m<we; // includes overdue (m<today) and the rest of this week
   }).sort(itemSort);
 }
+function thisWeekItems(filter='all',opts={}){return weekItems(filter,Object.assign({},opts,{week:'this'}))}
+function nextWeekItems(filter='all',opts={}){return weekItems(filter,Object.assign({},opts,{week:'next'}))}
 function criticalItems(filter='all',opts={}){
   return liveItems().filter(it=>matchKid(it,filter)&&it.priority==='Critical'&&(opts.showDone||(it.status!=='done'&&it.status!=='cancelled'))).sort(itemSort);
 }
@@ -1339,43 +1406,56 @@ async function commitImport(rows){
   const r=await requestSave();  // single round-trip for the whole batch
   return {ok:true,count:journal.created.length+journal.updated.length,journal};
 }
+// Undo plan: what an undo would do right now. Pure read — the confirmation dialog shows it, undoLastImport applies it.
+// Created items that are already gone are ignored; anything edited since the import (updatedAt != recorded stamp) is kept.
+function planUndo(){
+  const j=DATA&&DATA.settings&&DATA.settings.lastImportJournal;if(!j)return {ok:false,message:'Nothing to undo.'};
+  const stamps=j.stamps||{};
+  const edited=(id,cur)=>stamps[id]&&cur.updatedAt!==stamps[id];
+  const remove=[],restore=[],skipped=[];
+  for(const id of (j.created||[])){
+    const cur=DATA.items[id];if(!cur||cur.deleted)continue;
+    (edited(id,cur)?skipped:remove).push({id,title:cur.title||'(untitled)'});
+  }
+  for(const u of (j.updated||[])){
+    const cur=DATA.items[u.id];
+    if(!cur){skipped.push({id:u.id,title:(u.prev&&u.prev.title)||'(untitled)'});continue}
+    (edited(u.id,cur)?skipped:restore).push({id:u.id,title:cur.title||'(untitled)'});
+  }
+  return {ok:true,remove,restore,skipped,journal:j};
+}
 // undo: tombstone created items, revert updated ones to prev — but skip any item edited since (spec §9.4 "one-click undo")
 // All mutations happen locally first (instant), then ONE save round-trip.
 async function undoLastImport(){
-  const j=DATA&&DATA.settings&&DATA.settings.lastImportJournal;if(!j)return {ok:false,message:'Nothing to undo.'};
+  const plan=planUndo();if(!plan.ok)return plan;
   assertWritable();
-  const stamps=j.stamps||{};let undone=0,skipped=0;
-  const edited=(id,cur)=>stamps[id]&&cur.updatedAt!==stamps[id];
-  for(const id of j.created){
-    const cur=DATA.items[id];if(!cur||cur.deleted)continue;
-    if(edited(id,cur)){skipped++;continue}
+  for(const r of plan.remove){
+    const cur=DATA.items[r.id];
     // local tombstone (same as removeRecord but without triggering a save per item)
-    const t=stampNow(cur);DATA.items[id]=Object.assign({},cur,{deleted:true,updatedAt:t,updatedBy:ME.email});mutationSeq++;undone++;
+    const t=stampNow(cur);DATA.items[r.id]=Object.assign({},cur,{deleted:true,updatedAt:t,updatedBy:ME.email});mutationSeq++;
   }
-  for(const u of j.updated){
-    const cur=DATA.items[u.id];if(!cur){skipped++;continue}
-    if(edited(u.id,cur)){skipped++;continue}
+  for(const r of plan.restore){
+    const u=plan.journal.updated.find(x=>x.id===r.id);
     // local revert
-    const prev=clone(u.prev);prev.updatedAt=stampNow(prev);prev.updatedBy=ME.email;DATA.items[u.id]=prev;mutationSeq++;undone++;
+    const prev=clone(u.prev);prev.updatedAt=stampNow(prev);prev.updatedBy=ME.email;DATA.items[r.id]=prev;mutationSeq++;
   }
   DATA.settings.lastImportJournal=null;DATA.settings.updatedAt=stampNow(DATA.settings);
   await requestSave();  // single round-trip
-  return {ok:true,undone,skipped};
+  return {ok:true,undone:plan.remove.length+plan.restore.length,skipped:plan.skipped.length};
 }
 function cap(s){s=String(s||'');return s?s[0].toUpperCase()+s.slice(1).toLowerCase():s}
 
 /* ════════════════════════════════════════════════════
    PHASE 2a — RENDERING
 ════════════════════════════════════════════════════ */
-let VIEW='thisweek',KFILTER='all',SHOWDONE=false,DETAIL_ID=null;
+let VIEW='thisweek',KFILTER='all',SHOWDONE=false,DETAIL_ID=null,WEEKSEL='this',MENU_OPEN=false;
+// tab = also in the mobile bottom bar; soon = dimmed, shows the message on tap
 const NAVS=[
   {id:'thisweek',label:'This week',icon:'ti-calendar-week',tab:true},
-  {id:'calendar',label:'Calendar',icon:'ti-calendar',tab:true,soon:true},
+  {id:'calendar',label:'Calendar',icon:'ti-calendar',tab:true,soon:'The calendar arrives in Phase 2b.'},
   {id:'todo',label:'To-do',icon:'ti-list-check',tab:true},
   {id:'critical',label:'Critical',icon:'ti-alert-triangle',tab:true},
-  {id:'grades',label:'Grades',icon:'ti-school',soon:true},
-  {id:'import',label:'Import',icon:'ti-upload'},
-  {id:'settings',label:'Settings',icon:'ti-settings'}
+  {id:'grades',label:'Grades',icon:'ti-school',soon:'Grades arrive in Phase 2c.'}
 ];
 const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
 function kidBadge(it){const k=kidKey(it);const b=el('span','kb '+(k==='both'?'both':k==='AV'?'av':'iv'),kidBadgeLabel(k));return b}
@@ -1388,56 +1468,85 @@ function staleText(){
   const warnDays=(DATA.settings.importStaleDays||3);
   return {text:lbl,warn:days>warnDays};
 }
+function myInitial(){const n=ME&&ME.name?String(ME.name).trim():'';return n?n[0].toUpperCase():'?'}
 function renderShell(){
   if(!DATA)return;
   recordMyName();
-  const av=$('app-avatar');if(av)av.textContent=(ME&&ME.name?ME.name[0]:'').toUpperCase()+(ME&&ME.email?'':'');
-  if(av&&ME)av.textContent=initialsOf(ME.name);
-  const st=staleText(),ts=$('top-stale');if(ts){ts.textContent=st.text;ts.className='top-stale'+(st.warn?' warn':'')}
-  // sidebar
-  const sb=$('sidebar');if(sb){sb.textContent='';
-    NAVS.forEach(n=>{const b=el('button','nav'+(n.id===VIEW?' active':'')+(n.soon?' disabled':''));
-      b.innerHTML='<i class="ti '+n.icon+'" aria-hidden="true"></i>'+n.label+(n.soon?' <span style="font-size:10px;opacity:.7;margin-left:auto">soon</span>':'');
-      if(n.id==='settings'){const sp=el('div','nav-spacer');sb.appendChild(sp)}
-      if(!n.soon)b.addEventListener('click',()=>{setView(n.id)});
-      sb.appendChild(b)});
+  const av=$('app-avatar');if(av)av.textContent=myInitial();       // mobile: the initial; desktop adds the first name beside it
+  const mn=$('me-name');if(mn)mn.textContent=ME&&ME.name?ME.name:'';
+  // top nav (desktop)
+  const tn=$('topnav');if(tn){tn.textContent='';
+    NAVS.forEach(n=>{const b=el('button','nav'+(n.id===VIEW?' active':'')+(n.soon?' soon':''));
+      b.innerHTML='<i class="ti '+n.icon+'" aria-hidden="true"></i>';b.appendChild(el('span','nav-l',n.label));
+      b.setAttribute('aria-label',n.label);b.title=n.label;
+      b.addEventListener('click',()=>{if(n.soon)toast(n.soon,'info');else setView(n.id)});
+      tn.appendChild(b)});
   }
   // tab bar (mobile)
   const tb=$('tabbar');if(tb){tb.textContent='';
     [...NAVS.filter(n=>n.tab),{id:'more',label:'More',icon:'ti-dots'}].forEach(n=>{
-      const b=el('button',(n.id===VIEW||(n.id==='more'&&['grades','import','settings'].includes(VIEW)))?'active':'');
+      const act=n.id===VIEW||(n.id==='more'&&(VIEW==='grades'||VIEW==='settings'));
+      const b=el('button',(act?'active':'')+(n.soon?' soon':''));
       b.innerHTML='<i class="ti '+n.icon+'" aria-hidden="true"></i>'+n.label;
-      b.addEventListener('click',()=>{n.id==='more'?setView('settings'):setView(n.id)});
+      b.addEventListener('click',()=>{if(n.id==='more')openMenu();else if(n.soon)toast(n.soon,'info');else setView(n.id)});
       tb.appendChild(b)});
   }
 }
+/* account menu: desktop dropdown / mobile bottom sheet (one element, styled per breakpoint) */
+function menuItem(icon,label,fn,cls,note){
+  const b=el('button','mi'+(cls?' '+cls:''));b.innerHTML='<i class="ti '+icon+'" aria-hidden="true"></i>';
+  b.appendChild(el('span','mi-l',label));if(note)b.appendChild(el('span','mi-note',note));
+  b.addEventListener('click',fn);return b;
+}
+function renderMenu(){
+  const p=$('menu-panel');if(!p)return;p.textContent='';
+  p.appendChild(el('div','handle'));
+  const hd=el('div','menu-head');hd.appendChild(el('div','avatar',myInitial()));
+  const nm=el('div');nm.appendChild(el('div','mh-name',ME&&ME.name?ME.name:''));nm.appendChild(el('div','mh-sub','Signed in'));
+  hd.appendChild(nm);p.appendChild(hd);
+  p.appendChild(menuItem('ti-school','Grades',()=>{toast('Grades arrive in Phase 2c.','info')},'mob-only soon','Soon'));
+  p.appendChild(menuItem('ti-upload','Import',()=>{closeMenu();openImport()}));
+  p.appendChild(menuItem('ti-settings','Settings',()=>{closeMenu();setView('settings')}));
+  p.appendChild(menuItem('ti-lock','Lock now',()=>{closeMenu();lockApp('manual')}));
+  p.appendChild(menuItem('ti-logout','Sign out',()=>{closeMenu();signOutGoogle()},'danger'));
+}
+function openMenu(){renderMenu();const w=$('menu-wrap');if(w)w.classList.add('open');MENU_OPEN=true}
+function closeMenu(){const w=$('menu-wrap');if(w)w.classList.remove('open');MENU_OPEN=false}
 function initialsOf(name){if(!name)return '?';const p=String(name).trim().split(/\s+/);return (p[0][0]||'')+(p[1]?p[1][0]:'');}
-function setView(v){VIEW=v;DETAIL_ID=null;const ab=$('app-body');if(ab)ab.classList.remove('in-detail');const dc=$('detail-col');if(dc)dc.classList.remove('open');
-  if(v==='import'){renderShell();renderView();openImport();return}
+function setView(v){
+  if(v==='import'){openImport();return}     // Import is a sheet, not a view — the screen underneath stays put
+  VIEW=v;DETAIL_ID=null;const ab=$('app-body');if(ab)ab.classList.remove('in-detail');const dc=$('detail-col');if(dc)dc.classList.remove('open');
   renderShell();renderView();
 }
 function renderView(){
   const root=$('view-root');if(!root)return;root.textContent='';
-  if(VIEW==='thisweek')return renderList(root,'This week',thisWeekItems(KFILTER,{showDone:SHOWDONE}),true);
+  if(VIEW==='thisweek')return renderList(root,WEEKSEL==='next'?'Next week':'This week',weekItems(KFILTER,{week:WEEKSEL,showDone:SHOWDONE}),true);
   if(VIEW==='todo')return renderList(root,'To-do',todoItems(KFILTER,{showDone:SHOWDONE}),false);
   if(VIEW==='critical')return renderList(root,'Critical',criticalItems(KFILTER,{showDone:SHOWDONE}),false);
   if(VIEW==='calendar')return renderPlaceholder(root,'Calendar','ti-calendar','The calendar arrives in Phase 2b.');
   if(VIEW==='grades')return renderPlaceholder(root,'Grades','ti-school','Grades arrive in Phase 2c.');
   if(VIEW==='settings')return renderSettings(root);
-  if(VIEW==='import')return renderList(root,'This week',thisWeekItems(KFILTER,{showDone:SHOWDONE}),true);
 }
-function chipsRow(){
+function weekSeg(){
+  const wrap=el('div','week-head');const seg=el('div','seg');
+  [['this','This week'],['next','Next week']].forEach(([id,label])=>{
+    const b=el('button',WEEKSEL===id?'on':'',label);b.addEventListener('click',()=>{WEEKSEL=id;renderView()});seg.appendChild(b)});
+  wrap.appendChild(seg);wrap.appendChild(el('span','week-range',weekRangeLabel(WEEKSEL)));return wrap;
+}
+function chipsRow(extra){
   const wrap=el('div','chips-row');
   const mk=(id,label,cls)=>{const c=el('button','fchip'+(cls?' '+cls:'')+(KFILTER===id?' active':''),label);c.addEventListener('click',()=>{KFILTER=id;renderView()});return c};
   wrap.appendChild(mk('all','All'));wrap.appendChild(mk('AV','AV','av'));wrap.appendChild(mk('IV','IV','iv'));
+  if(extra)wrap.appendChild(extra);
   return wrap;
 }
 function renderList(root,title,list,withStale){
   const head=el('div','view-head');
-  head.appendChild(el('div','view-title',title));
-  head.appendChild(chipsRow());
+  let stale=null;
+  if(withStale){head.appendChild(weekSeg());const st=staleText();stale=el('span','stale-inline'+(st.warn?' warn':''),st.text)}
+  else head.appendChild(el('div','view-title',title));
+  head.appendChild(chipsRow(stale));
   root.appendChild(head);
-  if(withStale){const st=staleText();const sl=el('div','stale-line'+(st.warn?' warn':''),st.text);root.appendChild(sl)}
   const scroll=el('div','view-scroll');
   if(!list.length){scroll.appendChild(emptyState(title));}
   else{
@@ -1479,7 +1588,7 @@ function itemRow(it){
 }
 function tagEl(cls,label,icon){const t=el('span','tag '+cls);if(icon)t.innerHTML='<i class="ti '+icon+'" style="font-size:12px" aria-hidden="true"></i>';t.appendChild(document.createTextNode(label));return t}
 function shortWhen(iso_){const d=new Date(iso_);const t0=startOfToday();return (d.getTime()>=t0?'Today':d.toLocaleDateString(undefined,{month:'short',day:'numeric'}))+', '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
-function emptyState(title){const e=el('div','empty');e.innerHTML='<i class="ti ti-checkbox" aria-hidden="true"></i>';e.appendChild(el('div','et','Nothing here'));e.appendChild(el('div','eb',title==='Critical'?'No critical items right now.':'Nothing due. Import a digest or add an item.'));return e}
+function emptyState(title){const e=el('div','empty');e.innerHTML='<i class="ti ti-checkbox" aria-hidden="true"></i>';e.appendChild(el('div','et','Nothing here'));e.appendChild(el('div','eb',title==='Critical'?'No critical items right now.':title==='Next week'?'Nothing due next week.':'Nothing due. Import a digest or add an item.'));return e}
 function renderPlaceholder(root,title,icon,msg){
   const head=el('div','view-head');head.appendChild(el('div','view-title',title));root.appendChild(head);
   const e=el('div','empty');e.innerHTML='<i class="ti '+icon+'" aria-hidden="true"></i>';e.appendChild(el('div','et',title));e.appendChild(el('div','eb',msg));root.appendChild(e);
@@ -1642,8 +1751,39 @@ function toastUndo(n){
   t.appendChild(i);t.appendChild(m);t.appendChild(u);
   const te=$('toastEl');if(te)te.appendChild(t);
   let gone=false;const kill=()=>{if(!gone){gone=true;t.remove()}};
-  t.addEventListener('click',async()=>{kill();busy('Undoing import\u2026');try{const r=await undoLastImport();busyDone();if(r.ok)toast('Undid import'+(r.skipped?' ('+r.skipped+' kept)':''),'success');renderView()}catch(e){busyDone();toast(errMsg(e),'error')}});
+  t.addEventListener('click',()=>{kill();requestUndo()});
   setTimeout(kill,6000);
+}
+
+/* undo-last-import confirmation */
+function undoNames(list){const n=list.slice(0,4).map(x=>'\u201C'+x.title+'\u201D').join(', ');return n+(list.length>4?' +'+(list.length-4)+' more':'')}
+function requestUndo(){
+  const plan=planUndo();
+  if(!plan.ok){toast(plan.message||'Nothing to undo','info');return}
+  const b=$('undo-body');b.textContent='';
+  const at=DATA.settings.lastImportAt;
+  b.appendChild(el('p','sub','Your last import'+(at?' ('+shortWhen(at)+')':'')+'. Here is what would change:'));
+  const line=(icon,color,title,list)=>{
+    const d=el('div','undo-line');d.innerHTML='<i class="ti '+icon+'" style="color:'+color+'" aria-hidden="true"></i>';
+    const t=el('div');t.appendChild(el('div','ul-t',title));t.appendChild(el('div','ul-n',undoNames(list)));d.appendChild(t);b.appendChild(d)};
+  const n1=plan.remove.length,n2=plan.restore.length,n3=plan.skipped.length;
+  if(n1)line('ti-trash','var(--crit-txt)',n1+' new item'+(n1===1?'':'s')+' will be removed',plan.remove);
+  if(n2)line('ti-arrow-back-up','var(--both-txt)',n2+' updated item'+(n2===1?'':'s')+' will go back to how '+(n2===1?'it was':'they were'),plan.restore);
+  if(n3)line('ti-lock','var(--text3)',n3+' item'+(n3===1?'':'s')+' will stay as '+(n3===1?'it is':'they are')+' \u2014 edited since the import',plan.skipped);
+  const nothing=!n1&&!n2;
+  if(nothing)b.appendChild(el('p','sub','Nothing can be undone \u2014 every imported item has been edited or removed since.'));
+  $('undo-confirm').textContent=nothing?'Clear import record':'Undo import';
+  openSheet('sheet-undo');
+}
+async function runUndo(){
+  closeSheet('sheet-undo');busy('Undoing import\u2026');
+  try{
+    const r=await undoLastImport();busyDone();
+    if(!r.ok)toast(r.message||'Nothing to undo','info');
+    else if(!r.undone)toast('Nothing was undone \u2014 every item was edited since','info');
+    else toast('Undid import'+(r.skipped?' ('+r.skipped+' kept \u2014 edited since)':''),'success');
+    renderView();if(DETAIL_ID)renderDetail();
+  }catch(e){busyDone();toast(errMsg(e),'error')}
 }
 
 /* settings view */
@@ -1664,7 +1804,7 @@ function renderSettings(root){
   const lastImp=DATA.settings.lastImportJournal;
   grp('Import',[
     line('Last import',el('span',null,DATA.settings.lastImportAt?shortWhen(DATA.settings.lastImportAt):'never')),
-    line('Undo last import',mkBtn(lastImp?'Undo':'Nothing to undo',async()=>{busy('Undoing import\u2026');try{const r=await undoLastImport();busyDone();if(r.ok)toast('Undid import'+(r.skipped?' ('+r.skipped+' kept — edited since)':''),'success');else toast(r.message||'Nothing to undo','info');renderView()}catch(e){busyDone();toast(errMsg(e),'error')}}))
+    line('Undo last import',mkBtn(lastImp?'Undo':'Nothing to undo',()=>requestUndo()))
   ]);
   // backups
   grp('Backups',[
@@ -1712,9 +1852,10 @@ function wire(){
   // Phase 2a app UI
   on('fab-add',()=>openEdit(null));
   on('btn-nav-add',()=>openEdit(null));
-  on('btn-nav-import',()=>setView('import'));
-  on('btn-nav-settings-top',()=>setView('settings'));
-  on('btn-nav-search',()=>toast('Search arrives in a later phase','info'));
+  on('btn-me',openMenu);
+  const mw=$('menu-wrap');if(mw)mw.addEventListener('click',e=>{if(e.target===mw)closeMenu()});
+  document.addEventListener('keydown',e=>{if(e&&e.key==='Escape'){closeMenu();closeSheet('sheet-undo')}});
+  on('undo-close',()=>closeSheet('sheet-undo'));on('undo-cancel',()=>closeSheet('sheet-undo'));on('undo-confirm',runUndo);
   on('sheet-edit-close',()=>closeSheet('sheet-edit'));
   on('sheet-edit-cancel',()=>closeSheet('sheet-edit'));
   on('sheet-edit-save',saveEdit);
@@ -1754,10 +1895,10 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   unlock,createNewStore,locateDataFile,lockApp,checkIdle,touch,show,boot,afterSignIn,openPicker,doPickFiles,doPickBackupsFolder,
   // Phase 2a logic
   parseImport,normalizeImportItem,previewImport,commitImport,undoLastImport,
-  liveItems,thisWeekItems,todoItems,criticalItems,groupByPriority,kidKey,itemSort,
+  liveItems,thisWeekItems,nextWeekItems,weekItems,weekStartMs,weekRange,weekRangeLabel,todoItems,criticalItems,groupByPriority,kidKey,itemSort,planUndo,requestUndo,runUndo,openMenu,closeMenu,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
-  get:()=>({ME,DATA,CRYPTO,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS}),
-  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS},
+  get:()=>({ME,DATA,CRYPTO,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN}),
+  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS},
   liveBackups,LS,LOGS
 };
 window.addEventListener('load',boot);
