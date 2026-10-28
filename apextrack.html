@@ -1314,21 +1314,21 @@ async function commitImport(rows){
   for(const r of rows){
     if(r.status==='new'||r.status==='needsReview'){
       const rec=Object.assign({},r.rec,{statusUpdatedAt:iso(),statusUpdatedBy:ME.email});
-      const old=DATA.items[rec.id],t=stampNow(old);
-      const fin=Object.assign({},old||{},rec);if(!old){fin.createdAt=t;fin.createdBy=ME.email}
+      const old=DATA.items[rec.id],alive=old&&!old.deleted?old:null,t=stampNow(alive);
+      const fin=Object.assign({},alive||{},rec,{deleted:false});if(!alive){fin.createdAt=t;fin.createdBy=ME.email}
       fin.updatedAt=t;fin.updatedBy=ME.email;DATA.items[fin.id]=fin;mutationSeq++;
       journal.created.push(fin.id);journal.stamps[fin.id]=fin.updatedAt;
     }else if(r.status==='update'){
       if(r.choice==='new'){
         const nid=r.rec.id+'-'+compactStamp();
-        const rec=Object.assign({},r.rec,{id:nid,statusUpdatedAt:iso(),statusUpdatedBy:ME.email});
+        const rec=Object.assign({},r.rec,{id:nid,deleted:false,statusUpdatedAt:iso(),statusUpdatedBy:ME.email});
         const t=stampNow(null);Object.assign(rec,{createdAt:t,createdBy:ME.email,updatedAt:t,updatedBy:ME.email});
         DATA.items[nid]=rec;mutationSeq++;
         journal.created.push(nid);journal.stamps[nid]=rec.updatedAt;
       }else{
         journal.updated.push({id:r.rec.id,prev:clone(r.existing)});
         const keep={status:r.existing.status,statusUpdatedAt:r.existing.statusUpdatedAt,statusUpdatedBy:r.existing.statusUpdatedBy,pushedToCalendar:r.existing.pushedToCalendar};
-        const rec=Object.assign({},r.rec,keep);
+        const rec=Object.assign({},r.rec,keep,{deleted:false});
         const old=DATA.items[rec.id],t=stampNow(old);
         Object.assign(rec,{updatedAt:t,updatedBy:ME.email});DATA.items[rec.id]=Object.assign({},old||{},rec);mutationSeq++;
         journal.stamps[rec.id]=DATA.items[rec.id].updatedAt;
@@ -1418,12 +1418,7 @@ function setView(v){VIEW=v;DETAIL_ID=null;const ab=$('app-body');if(ab)ab.classL
 }
 function renderView(){
   const root=$('view-root');if(!root)return;root.textContent='';
-  if(VIEW==='thisweek'){
-    const li=liveItems(),tw=thisWeekItems(KFILTER,{showDone:SHOWDONE});
-    log('renderView: liveItems='+li.length+' thisWeek='+tw.length+' filter='+KFILTER+' DATA.items keys='+Object.keys(DATA.items||{}).length);
-    if(li.length&&!tw.length)log('  dates: '+li.map(i=>i.title+'|'+(i.dueDate||i.startDate||i.date||'nodate')+'|deleted='+!!i.deleted+'|status='+i.status).join(' ; '));
-    return renderList(root,'This week',tw,true);
-  }
+  if(VIEW==='thisweek')return renderList(root,'This week',thisWeekItems(KFILTER,{showDone:SHOWDONE}),true);
   if(VIEW==='todo')return renderList(root,'To-do',todoItems(KFILTER,{showDone:SHOWDONE}),false);
   if(VIEW==='critical')return renderList(root,'Critical',criticalItems(KFILTER,{showDone:SHOWDONE}),false);
   if(VIEW==='calendar')return renderPlaceholder(root,'Calendar','ti-calendar','The calendar arrives in Phase 2b.');
@@ -1759,7 +1754,7 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   unlock,createNewStore,locateDataFile,lockApp,checkIdle,touch,show,boot,afterSignIn,openPicker,doPickFiles,doPickBackupsFolder,
   // Phase 2a logic
   parseImport,normalizeImportItem,previewImport,commitImport,undoLastImport,
-  thisWeekItems,todoItems,criticalItems,groupByPriority,kidKey,itemSort,
+  liveItems,thisWeekItems,todoItems,criticalItems,groupByPriority,kidKey,itemSort,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
   get:()=>({ME,DATA,CRYPTO,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS}),
   set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS},
