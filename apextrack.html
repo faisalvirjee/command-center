@@ -217,6 +217,12 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .settings-grp{margin-bottom:22px}
 .settings-grp .gl{font-family:var(--cond);font-size:13px;letter-spacing:.7px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px}
 .set-line{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;padding:7px 0;color:var(--text2)}
+/* busy overlay */
+.busy-wrap{display:none;position:fixed;inset:0;z-index:999;background:rgba(6,11,24,.7);align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.busy-wrap.on{display:flex}
+.busy-spin{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--both-txt);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.busy-msg{font-size:14px;color:var(--text2);font-weight:600;text-align:center}
 @media(min-width:860px){
   .view-title{display:block}
   .fab{display:none}
@@ -383,6 +389,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   </div>
 </div></div>
 
+<div class="busy-wrap" id="busyEl"><div class="busy-spin"></div><div class="busy-msg" id="busyMsg"></div></div>
 <div id="toastEl"></div>
 
 <script>
@@ -1332,21 +1339,26 @@ async function commitImport(rows){
   return {ok:true,count:journal.created.length+journal.updated.length,journal};
 }
 // undo: tombstone created items, revert updated ones to prev — but skip any item edited since (spec §9.4 "one-click undo")
+// All mutations happen locally first (instant), then ONE save round-trip.
 async function undoLastImport(){
   const j=DATA&&DATA.settings&&DATA.settings.lastImportJournal;if(!j)return {ok:false,message:'Nothing to undo.'};
+  assertWritable();
   const stamps=j.stamps||{};let undone=0,skipped=0;
-  const edited=(id,cur)=>stamps[id]&&cur.updatedAt!==stamps[id];   // content changed since commit (status-only check-offs don't touch updatedAt, so they don't block undo)
+  const edited=(id,cur)=>stamps[id]&&cur.updatedAt!==stamps[id];
   for(const id of j.created){
     const cur=DATA.items[id];if(!cur||cur.deleted)continue;
     if(edited(id,cur)){skipped++;continue}
-    await removeRecord('items',id);undone++;
+    // local tombstone (same as removeRecord but without triggering a save per item)
+    const t=stampNow(cur);DATA.items[id]=Object.assign({},cur,{deleted:true,updatedAt:t,updatedBy:ME.email});mutationSeq++;undone++;
   }
   for(const u of j.updated){
     const cur=DATA.items[u.id];if(!cur){skipped++;continue}
     if(edited(u.id,cur)){skipped++;continue}
-    await upsert('items',clone(u.prev));undone++;
+    // local revert
+    const prev=clone(u.prev);prev.updatedAt=stampNow(prev);prev.updatedBy=ME.email;DATA.items[u.id]=prev;mutationSeq++;undone++;
   }
-  DATA.settings.lastImportJournal=null;DATA.settings.updatedAt=stampNow(DATA.settings);await requestSave();
+  DATA.settings.lastImportJournal=null;DATA.settings.updatedAt=stampNow(DATA.settings);
+  await requestSave();  // single round-trip
   return {ok:true,undone,skipped};
 }
 function cap(s){s=String(s||'');return s?s[0].toUpperCase()+s.slice(1).toLowerCase():s}
@@ -1613,11 +1625,13 @@ function importRow(r,idx){
 async function doCommitImport(){
   if(!IMPORT_ROWS)return;
   const btn=$('import-commit');btn.disabled=true;
+  const n=IMPORT_ROWS.filter(r=>r.status==='new'||r.status==='needsReview'||r.status==='update').length;
+  busy('Importing '+n+' item'+(n===1?'':'s')+'\u2026');
   try{const r=await commitImport(IMPORT_ROWS);
-    closeSheet('sheet-import');
+    busyDone();closeSheet('sheet-import');
     if(r.count){toastUndo(r.count)}else toast('Nothing to import','info');
     setView('thisweek');
-  }catch(e){toast(errMsg(e),'error');btn.disabled=false}
+  }catch(e){busyDone();toast(errMsg(e),'error');btn.disabled=false}
 }
 function toastUndo(n){
   const t=document.createElement('div');t.className='toast success';t.style.cursor='pointer';t.style.pointerEvents='auto';
@@ -1627,7 +1641,7 @@ function toastUndo(n){
   t.appendChild(i);t.appendChild(m);t.appendChild(u);
   const te=$('toastEl');if(te)te.appendChild(t);
   let gone=false;const kill=()=>{if(!gone){gone=true;t.remove()}};
-  t.addEventListener('click',async()=>{kill();try{const r=await undoLastImport();if(r.ok)toast('Undid import'+(r.skipped?' ('+r.skipped+' kept)':''),'success');renderView()}catch(e){toast(errMsg(e),'error')}});
+  t.addEventListener('click',async()=>{kill();busy('Undoing import\u2026');try{const r=await undoLastImport();busyDone();if(r.ok)toast('Undid import'+(r.skipped?' ('+r.skipped+' kept)':''),'success');renderView()}catch(e){busyDone();toast(errMsg(e),'error')}});
   setTimeout(kill,6000);
 }
 
@@ -1649,12 +1663,12 @@ function renderSettings(root){
   const lastImp=DATA.settings.lastImportJournal;
   grp('Import',[
     line('Last import',el('span',null,DATA.settings.lastImportAt?shortWhen(DATA.settings.lastImportAt):'never')),
-    line('Undo last import',mkBtn(lastImp?'Undo':'Nothing to undo',async()=>{const r=await undoLastImport();if(r.ok)toast('Undid import'+(r.skipped?' ('+r.skipped+' kept — edited since)':''),'success');else toast(r.message||'Nothing to undo','info');renderView()}))
+    line('Undo last import',mkBtn(lastImp?'Undo':'Nothing to undo',async()=>{busy('Undoing import\u2026');try{const r=await undoLastImport();busyDone();if(r.ok)toast('Undid import'+(r.skipped?' ('+r.skipped+' kept — edited since)':''),'success');else toast(r.message||'Nothing to undo','info');renderView()}catch(e){busyDone();toast(errMsg(e),'error')}}))
   ]);
   // backups
   grp('Backups',[
     line('Last backup',el('span',null,DATA.settings.lastBackupAt?DATA.settings.lastBackupAt.slice(0,16).replace('T',' ')+' UTC':'never')),
-    line('Backup now',mkBtn('Backup',async()=>{try{const r=await backupNow('manual');toast(r.ok?'Backup saved':r.message,r.ok?'success':'warning')}catch(e){toast(errMsg(e),'error')}renderView()})),
+    line('Backup now',mkBtn('Backup',async()=>{busy('Creating backup\u2026');try{const r=await backupNow('manual');busyDone();toast(r.ok?'Backup saved':r.message,r.ok?'success':'warning')}catch(e){busyDone();toast(errMsg(e),'error')}renderView()})),
     line('Backups kept',el('span',null,String(liveBackups().length)+' of '+KEEP_BACKUPS))
   ]);
   // files / access
@@ -1662,7 +1676,7 @@ function renderSettings(root){
     line('Data file',el('span',null,fileId?fileId.slice(0,10)+'…':'—')),
     line('Re-pick shared files',mkBtn('Re-pick',()=>show('setup'))),
     line('Grant Backups folder',mkBtn('Grant',()=>doPickBackupsFolder())),
-    line('Check access',mkBtn('Check',async()=>{await probeAccess();const p=lastProbe;toast(p&&p.lock.ok&&p.backups.ok?'Access looks good':'Access check — see details','info')}))
+    line('Check access',mkBtn('Check',async()=>{busy('Checking access\u2026');await probeAccess();busyDone();const p=lastProbe;toast(p&&p.lock.ok&&p.backups.ok?'Access looks good':'Access check — see details','info')}))
   ]);
   grp('About',[
     line('Version',el('span',null,APP_NAME+' '+APP_VERSION)),
@@ -1674,6 +1688,10 @@ function renderSettings(root){
 /* sheet open/close */
 function openSheet(id){const w=$(id);if(w&&w.classList)w.classList.add('open')}
 function closeSheet(id){const w=$(id);if(w&&w.classList)w.classList.remove('open')}
+
+/* busy overlay — shows a spinner + message during Drive operations */
+function busy(msg){const el=$('busyEl');if(el)el.classList.add('on');const m=$('busyMsg');if(m)m.textContent=msg||'Saving\u2026'}
+function busyDone(){const el=$('busyEl');if(el)el.classList.remove('on')}
 
 /* renderPanel is now the whole-app render entry point (kept name so existing callers work) */
 function renderPanel(){if(!$('view-root'))return;renderShell();renderView();if(DETAIL_ID)renderDetail()}
