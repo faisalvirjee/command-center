@@ -315,6 +315,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
     <div class="top-right">
       <span class="top-stale" id="top-stale"></span>
       <button class="icon-btn" id="btn-nav-search" type="button" aria-label="Search"><i class="ti ti-search" aria-hidden="true"></i></button>
+      <button class="icon-btn accent" id="btn-nav-add" type="button" aria-label="Add item"><i class="ti ti-plus" aria-hidden="true"></i></button>
       <button class="icon-btn accent" id="btn-nav-import" type="button" aria-label="Import"><i class="ti ti-upload" aria-hidden="true"></i></button>
       <button class="icon-btn" id="btn-nav-settings-top" type="button" aria-label="Settings"><i class="ti ti-settings" aria-hidden="true"></i></button>
       <div class="avatar" id="app-avatar"></div>
@@ -1295,31 +1296,39 @@ function previewImport(parsed){
 const IMPORT_CONTENT_KEYS=['kidIds','type','priority','title','summary','details','dueDate','startDate','endDate','allDay'];
 function sameContent(a,b){return IMPORT_CONTENT_KEYS.every(k=>stable(a[k]??null)===stable(b[k]??null))}
 // commit atomically with an auto-backup and an undo journal entry (spec §9.4)
+// All mutations happen locally first (instant), then ONE save round-trip at the end.
 async function commitImport(rows){
   const apply=rows.filter(r=>(r.status==='new'||r.status==='needsReview')||(r.status==='update'&&r.choice!=='new')||(r.status==='update'&&r.choice==='new'));
   if(!apply.length)return {ok:true,count:0};
   try{await backupNow('pre-import')}catch(e){log('pre-import backup:',errMsg(e))}  // non-fatal
-  // journal stamps[id] = the updatedAt commit leaves on each item, so undo can tell "edited since" exactly (no wall-clock guessing)
+  assertWritable();
   const journal={id:'imp-'+compactStamp()+'-'+randHex(2),at:iso(),by:ME.email,created:[],updated:[],stamps:{}};
   for(const r of rows){
     if(r.status==='new'||r.status==='needsReview'){
-      await upsert('items',Object.assign({},r.rec,{statusUpdatedAt:iso(),statusUpdatedBy:ME.email}));
-      journal.created.push(r.rec.id);journal.stamps[r.rec.id]=DATA.items[r.rec.id].updatedAt;
+      const rec=Object.assign({},r.rec,{statusUpdatedAt:iso(),statusUpdatedBy:ME.email});
+      const old=DATA.items[rec.id],t=stampNow(old);
+      const fin=Object.assign({},old||{},rec);if(!old){fin.createdAt=t;fin.createdBy=ME.email}
+      fin.updatedAt=t;fin.updatedBy=ME.email;DATA.items[fin.id]=fin;mutationSeq++;
+      journal.created.push(fin.id);journal.stamps[fin.id]=fin.updatedAt;
     }else if(r.status==='update'){
       if(r.choice==='new'){
         const nid=r.rec.id+'-'+compactStamp();
-        await upsert('items',Object.assign({},r.rec,{id:nid,statusUpdatedAt:iso(),statusUpdatedBy:ME.email}));
-        journal.created.push(nid);journal.stamps[nid]=DATA.items[nid].updatedAt;
+        const rec=Object.assign({},r.rec,{id:nid,statusUpdatedAt:iso(),statusUpdatedBy:ME.email});
+        const t=stampNow(null);Object.assign(rec,{createdAt:t,createdBy:ME.email,updatedAt:t,updatedBy:ME.email});
+        DATA.items[nid]=rec;mutationSeq++;
+        journal.created.push(nid);journal.stamps[nid]=rec.updatedAt;
       }else{
         journal.updated.push({id:r.rec.id,prev:clone(r.existing)});
         const keep={status:r.existing.status,statusUpdatedAt:r.existing.statusUpdatedAt,statusUpdatedBy:r.existing.statusUpdatedBy,pushedToCalendar:r.existing.pushedToCalendar};
-        await upsert('items',Object.assign({},r.rec,keep));
-        journal.stamps[r.rec.id]=DATA.items[r.rec.id].updatedAt;
+        const rec=Object.assign({},r.rec,keep);
+        const old=DATA.items[rec.id],t=stampNow(old);
+        Object.assign(rec,{updatedAt:t,updatedBy:ME.email});DATA.items[rec.id]=Object.assign({},old||{},rec);mutationSeq++;
+        journal.stamps[rec.id]=DATA.items[rec.id].updatedAt;
       }
     }
   }
   DATA.settings.lastImportAt=iso();DATA.settings.lastImportJournal=journal;DATA.settings.updatedAt=stampNow(DATA.settings);
-  await requestSave();
+  const r=await requestSave();  // single round-trip for the whole batch
   return {ok:true,count:journal.created.length+journal.updated.length,journal};
 }
 // undo: tombstone created items, revert updated ones to prev — but skip any item edited since (spec §9.4 "one-click undo")
@@ -1464,9 +1473,11 @@ function renderPlaceholder(root,title,icon,msg){
 }
 async function toggleItem(it){
   const open=it.status!=='done';
-  try{const r=await setStatus('items',it.id,open?'done':'open');if(r&&r.ok)toast(open?'Marked done':'Reopened','success')}
-  catch(e){toast(errMsg(e),'error')}
-  renderView();if(DETAIL_ID===it.id)renderDetail();
+  try{
+    setStatus('items',it.id,open?'done':'open');  // mutates locally (sync) then saves in background — no await
+    renderView();if(DETAIL_ID===it.id)renderDetail();
+    toast(open?'Marked done':'Reopened','success');
+  }catch(e){toast(errMsg(e),'error')}
 }
 
 /* detail view */
@@ -1511,7 +1522,8 @@ function renderDetail(){
   dc.appendChild(s);
 }
 async function deleteItem(id){
-  await removeRecord('items',id);toast('Item deleted','success');closeDetail();renderView();
+  removeRecord('items',id);  // mutates locally (sync) then saves in background — no await
+  toast('Item deleted','success');closeDetail();renderView();
 }
 
 /* quick-add / edit sheet */
@@ -1547,7 +1559,7 @@ async function saveEdit(){
   rec.dueDate=null;rec.startDate=null;rec.endDate=null;
   if(dateVal){if(type==='form/payment'||type==='assignment'||type==='test'||type==='grade-flag')rec.dueDate=dateVal;else rec.startDate=dateVal}
   if(!EDIT_ID){rec.status='open';rec.statusUpdatedAt=iso();rec.statusUpdatedBy=ME.email}
-  try{const r=await upsert('items',rec);if(r&&r.ok)toast(EDIT_ID?'Item updated':'Item added','success')}
+  try{upsert('items',rec);toast(EDIT_ID?'Item updated':'Item added','success')}  // mutates locally (sync) — save runs in background
   catch(e){toast(errMsg(e),'error');return}
   closeSheet('sheet-edit');renderView();if(EDIT_ID===DETAIL_ID&&DETAIL_ID)renderDetail();
 }
@@ -1680,6 +1692,7 @@ function wire(){
   const fu=$('form-unlock');if(fu)fu.addEventListener('submit',e=>{e.preventDefault&&e.preventDefault();return doUnlock()});
   // Phase 2a app UI
   on('fab-add',()=>openEdit(null));
+  on('btn-nav-add',()=>openEdit(null));
   on('btn-nav-import',()=>setView('import'));
   on('btn-nav-settings-top',()=>setView('settings'));
   on('btn-nav-search',()=>toast('Search arrives in a later phase','info'));
