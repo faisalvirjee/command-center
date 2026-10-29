@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.2.1 | 2026-10-28 -->
+<!-- ApexTrack — Family School Tracker | v0.3.0 | 2026-10-29 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -75,6 +75,65 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .toast.info{background:#1e3a5f;border:1px solid var(--blue);color:#93c5fd}
 .toast.warning{background:#451a03;border:1px solid var(--amber);color:#fde68a}
 
+
+/* ───────── Phase 2b: calendar views ───────── */
+.cal-bar{display:flex;align-items:center;gap:8px;padding:10px 14px 6px;flex-wrap:wrap}
+.cal-bar .month-label{font-weight:600;font-size:16px;min-width:120px}
+.cal-bar .nb{width:28px;height:28px;border-radius:7px;background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text2);flex-shrink:0}
+.cal-bar .today-btn{padding:4px 11px;border-radius:7px;border:1px solid var(--border2);font-size:12px;color:var(--text);background:none;font-weight:600;font-family:var(--font)}
+.cal-seg{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:2px;margin-left:auto}
+.cal-seg button{border:none;background:none;color:var(--text2);font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer;font-family:var(--font);white-space:nowrap}
+.cal-seg button.on{background:var(--both-bar);color:#fff}
+.cal-dow{display:none;grid-template-columns:repeat(7,1fr);font-size:11px;color:var(--text3);padding:2px 8px;text-align:center}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--border);border-left:1px solid var(--border);margin:0 8px}
+.cal-cell{min-height:70px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:2px 3px;overflow:hidden;cursor:pointer}
+.cal-cell.other{background:rgba(255,255,255,.02)}.cal-cell.other .cn{color:#556677}
+.cal-cell.sel{box-shadow:inset 0 0 0 1.5px var(--both-bar)}
+.cn{font-size:11px;color:var(--text3);height:16px;display:flex;align-items:center}
+.cn b{font-weight:500;width:18px;height:18px;border-radius:50%;background:var(--both-bar);color:#04342C;display:flex;align-items:center;justify-content:center;font-size:10.5px}
+.cal-ev{font-size:10.5px;line-height:1.2;padding:1px 4px;margin-top:2px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-ev.ev{border-left:2.5px solid}
+.cal-ev.du{border:1px dashed;background:transparent}
+.cal-more{font-size:10px;color:var(--text3);margin-top:1px;padding-left:2px}
+.cal-day-hd{padding:9px 14px 4px;border-top:1px solid var(--border);font-size:13px;font-weight:600}
+.cal-day-hd .cnt{font-weight:400;color:var(--text3);font-size:12px;margin-left:6px}
+.cal-add{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px;border-radius:8px;border:1px solid rgba(29,158,117,.4);color:var(--both-txt);font-size:12.5px;font-weight:600;margin:10px 14px 0;background:none;width:calc(100% - 28px);font-family:var(--font);cursor:pointer}
+.cal-empty{color:var(--text3);font-size:13px;padding:14px;text-align:center}
+/* agenda */
+.agenda-hd{padding:10px 14px 4px;font-size:12.5px;color:var(--text3);display:flex;justify-content:space-between;border-top:1px solid var(--border)}
+.agenda-hd b{color:var(--text);font-weight:600}
+.agenda-row{display:flex;gap:8px;margin:0 14px 5px;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,.04);border-left:3px solid;cursor:pointer}
+.agenda-row.du{background:transparent;border:1px dashed;border-left-width:3px}
+.agenda-tm{font-size:11.5px;color:var(--text3);width:48px;flex-shrink:0}
+/* mobile month: compact with dots */
+.cal-mgrid{display:none;grid-template-columns:repeat(7,1fr);padding:2px 8px 0;text-align:center}
+.cal-md{height:42px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:3px;font-size:12.5px;border-radius:8px;cursor:pointer}
+.cal-md.other{color:#556677}
+.cal-md.sel{box-shadow:inset 0 0 0 1.5px var(--both-bar)}
+.cal-md b{font-weight:500;width:22px;height:22px;border-radius:50%;background:var(--both-bar);color:#04342C;display:flex;align-items:center;justify-content:center;font-size:12px}
+.cal-dots{display:flex;gap:3px;margin-top:3px;height:6px}
+.cal-dt{width:5px;height:5px;border-radius:50%}
+.cal-dt.du{background:transparent!important;border:1.5px solid}
+/* week view (desktop: 7 col, mobile: day list) */
+.wk-grid{display:none;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--border);border-left:1px solid var(--border);margin:0 8px}
+.wk-col{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px 4px;min-height:100px}
+.wk-dh{font-size:11.5px;color:var(--text3);font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between}
+.wk-dh b{color:var(--text);font-weight:500}
+.wk-dh .today-dot{width:6px;height:6px;border-radius:50%;background:var(--both-bar);margin-left:4px}
+.wk-row{font-size:11.5px;padding:3px 5px;border-radius:4px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wk-row.ev{border-left:2.5px solid;background:rgba(255,255,255,.04)}
+.wk-row.du{border:1px dashed;background:transparent}
+/* confirm modal */
+.confirm-wrap{display:none;position:fixed;inset:0;z-index:300;background:rgba(6,11,24,.7);align-items:center;justify-content:center}
+.confirm-wrap.open{display:flex}
+.confirm-box{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:16px 18px;max-width:360px;width:calc(100% - 40px);box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.confirm-box .ct{font-weight:600;font-size:16px;margin-bottom:6px}
+.confirm-box .cm{font-size:13px;color:var(--text2);margin-bottom:14px}
+.confirm-box .cbtns{display:flex;gap:8px}
+.confirm-box .cbtns .btn{flex:1}
+/* event time fields */
+.fld-time{display:flex;gap:8px;align-items:flex-end}
+.fld-time .fld{flex:1}
 /* ───────── Phase 2a: app shell + views ───────── */
 #screen-app{display:none;min-height:100vh;padding:0}
 #screen-app.active{display:block}
@@ -255,6 +314,8 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   .view-scroll{padding-bottom:16px}
   .detail-scroll{padding-bottom:16px}
   .app-body{min-height:0}
+  .cal-mgrid,.cal-dow-m,.cal-wk-mob{display:none}
+  .cal-grid,.wk-grid,.cal-dow-d{display:grid}
   .topnav{display:flex;align-items:center;gap:2px;flex:1;margin-left:18px}
   .topnav .nav{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:8px;font-size:13.5px;color:var(--text2);background:none;border:none;cursor:pointer;font-family:var(--font);font-weight:600;white-space:nowrap}
   .topnav .nav i{font-size:17px}
@@ -285,7 +346,11 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   .topnav .nav{padding:7px 12px}
 }
 @media(max-width:859px){
-  #btn-nav-add{display:none}                     /* the floating button covers Add on phones */
+  #btn-nav-add{display:none}
+  .cal-grid,.wk-grid,.cal-dow-d{display:none}
+  .cal-mgrid,.cal-wk-mob{display:grid}
+  .cal-dow-m{display:grid}
+                     /* the floating button covers Add on phones */
   .center-col .chips-row{padding-top:0}
   .detail-col{display:none;position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto}
   .detail-col.open{display:block}
@@ -395,6 +460,10 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   </div>
   <div class="fld"><label for="f-date">Date</label><input id="f-date" type="date"></div>
   <div class="fld" style="display:flex;align-items:center;gap:8px;flex-direction:row"><input id="f-allday" type="checkbox" style="width:auto"><label for="f-allday" style="margin:0">All day</label></div>
+  <div class="fld-time" id="time-fields" style="display:none">
+    <div class="fld"><label for="f-start-time">Start time</label><input id="f-start-time" type="time"></div>
+    <div class="fld"><label for="f-end-time">End time</label><input id="f-end-time" type="time"></div>
+  </div>
   <div class="fld"><label for="f-summary">Summary</label><input id="f-summary" type="text" placeholder="One-line summary"></div>
   <div class="fld"><label for="f-details">Details</label><textarea id="f-details" placeholder="Optional details"></textarea></div>
   <div class="sheet-actions">
@@ -439,6 +508,17 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   </div>
 </div></div>
 
+<!-- generic confirm modal -->
+<div class="confirm-wrap" id="confirm-wrap">
+  <div class="confirm-box">
+    <div class="ct" id="confirm-title"></div>
+    <div class="cm" id="confirm-msg"></div>
+    <div class="cbtns">
+      <button class="btn" id="confirm-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="confirm-ok" type="button">OK</button>
+    </div>
+  </div>
+</div>
 <div class="busy-wrap" id="busyEl"><div class="busy-spin"></div><div class="busy-msg" id="busyMsg"></div></div>
 <div id="toastEl"></div>
 
@@ -446,7 +526,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.2.1';
+const APP_VERSION='v0.3.0';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -1208,6 +1288,55 @@ function nameFor(email){if(!email)return '';if(ME&&email===ME.email)return ME.na
 function recordMyName(){if(!DATA||!ME)return;const m=DATA.settings.nameMap=DATA.settings.nameMap||{};if(m[ME.email]!==ME.name){m[ME.email]=ME.name;DATA.settings.updatedAt=stampNow(DATA.settings)}}
 
 const liveItems=()=>DATA?Object.values(DATA.items).filter(i=>!i.deleted):[];
+const liveEvents=()=>DATA?Object.values(DATA.events).filter(e=>!e.deleted):[];
+// All calendar-visible entries: items with a date + events. Returned as [{kind:'item'|'event',rec,dateMs,timeStr}].
+function calEntries(filter,dateStr){
+  const out=[];
+  liveItems().forEach(it=>{
+    if(!matchKid(it,filter))return;if(!hasDate(it))return;
+    const d=it.dueDate||it.startDate||it.date||'';
+    if(dateStr&&d.slice(0,10)!==dateStr)return;
+    const ms=itemDateMs(it);
+    const ts=(!it.allDay&&/T\d\d:/.test(d))?d.replace(/.*T/,'').slice(0,5):'';
+    out.push({kind:'item',rec:it,dateMs:ms,dateStr:d.slice(0,10),timeStr:ts,isDue:!!it.dueDate,allDay:it.allDay!==false});
+  });
+  liveEvents().forEach(ev=>{
+    if(!matchKid(ev,filter))return;
+    const d=ev.startDate||ev.date||'';if(!d)return;
+    if(dateStr&&d.slice(0,10)!==dateStr)return;
+    const ms=Date.parse(d.length<=10?d+'T00:00:00':d)||0;
+    const ts=(!ev.allDay&&/T\d\d:/.test(d))?d.replace(/.*T/,'').slice(0,5):'';
+    out.push({kind:'event',rec:ev,dateMs:ms,dateStr:d.slice(0,10),timeStr:ts,isDue:false,allDay:ev.allDay!==false});
+  });
+  out.sort((a,b)=>{
+    // timed events first, then all-day events, then due items
+    const rank=e=>e.isDue?2:e.allDay?1:0;
+    const ra=rank(a),rb=rank(b);if(ra!==rb)return ra-rb;
+    if(a.timeStr!==b.timeStr)return a.timeStr<b.timeStr?-1:1;
+    return (a.rec.title||'').localeCompare(b.rec.title||'');
+  });
+  return out;
+}
+function calEntriesForMonth(filter,year,month){
+  // all entries whose dateStr falls in the given month (or spills into leading/trailing weeks)
+  const first=new Date(year,month,1),last=new Date(year,month+1,0);
+  const startPad=new Date(first);startPad.setDate(1-(first.getDay()+6)%7);   // Monday of first week
+  const endPad=new Date(last);endPad.setDate(last.getDate()+(7-last.getDay())%7);  // Sunday of last week
+  const pad=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const s0=pad(startPad),s1=pad(endPad);
+  return calEntries(filter).filter(e=>e.dateStr>=s0&&e.dateStr<=s1);
+}
+function kidColorFor(entry){
+  const k=kidKey(entry.rec);
+  if(k==='AV')return {bar:'var(--av-bar)',txt:'var(--av-txt)',tint:'var(--av-tint)',edge:'var(--av-edge)'};
+  if(k==='IV')return {bar:'var(--iv-bar)',txt:'var(--iv-txt)',tint:'var(--iv-tint)',edge:'var(--iv-edge)'};
+  return {bar:'var(--both-bar)',txt:'var(--both-txt)',tint:'var(--both-tint)',edge:'var(--both-edge)'};
+}
+function fmtTime(t){if(!t)return '';const [h,m]=t.split(':');const hh=+h;return (hh>12?hh-12:hh||12)+':'+m+(hh>=12?' pm':' am')}
+function calInit(){const d=new Date(nowMs());CAL_YEAR=d.getFullYear();CAL_MONTH=d.getMonth();CAL_SEL_DATE=calPad(d)}
+function calPad(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function calToday(){return calPad(new Date(nowMs()))}
+
 function itemDateMs(it){const d=it.dueDate||it.startDate||it.date;return d?Date.parse(d.length<=10?d+'T00:00:00':d)||0:0}
 function hasDate(it){return !!(it.dueDate||it.startDate||it.date)}
 const dayMs=86400000;
@@ -1272,6 +1401,159 @@ function relLabel(it){
   if(m<t0)return 'Overdue';if(m<t0+dayMs)return 'Today';if(m<t0+2*dayMs)return 'Tomorrow';return '';
 }
 
+
+/* ════════════════════════════════════════════════════
+   CALENDAR VIEWS (Phase 2b, v0.3.0)
+════════════════════════════════════════════════════ */
+function renderCalendar(root){
+  if(!CAL_YEAR)calInit();
+  // bar: ← month → | Today | chips | Month Week Agenda
+  const bar=el('div','cal-bar');
+  const prev=el('button','nb');prev.innerHTML='<i class="ti ti-chevron-left" aria-hidden="true"></i>';
+  prev.addEventListener('click',()=>{if(CAL_SUB==='month'){CAL_MONTH--;if(CAL_MONTH<0){CAL_MONTH=11;CAL_YEAR--}}else{calWeekNav(-1)}renderView()});
+  const next=el('button','nb');next.innerHTML='<i class="ti ti-chevron-right" aria-hidden="true"></i>';
+  next.addEventListener('click',()=>{if(CAL_SUB==='month'){CAL_MONTH++;if(CAL_MONTH>11){CAL_MONTH=0;CAL_YEAR++}}else{calWeekNav(1)}renderView()});
+  const lbl=el('span','month-label',calBarLabel());
+  bar.appendChild(prev);bar.appendChild(lbl);bar.appendChild(next);
+  const tb=el('button','today-btn','Today');tb.addEventListener('click',()=>{calInit();renderView()});bar.appendChild(tb);
+  bar.appendChild(chipsRow());
+  const seg=el('div','cal-seg');
+  ['month','week','agenda'].forEach(v=>{const b=el('button',CAL_SUB===v?'on':'',cap(v));b.addEventListener('click',()=>{CAL_SUB=v;renderView()});seg.appendChild(b)});
+  bar.appendChild(seg);
+  root.appendChild(bar);
+  if(CAL_SUB==='month')renderMonth(root);
+  else if(CAL_SUB==='week')renderCalWeek(root);
+  else renderAgenda(root);
+}
+function calBarLabel(){
+  if(CAL_SUB==='agenda')return 'Next 30 days';
+  if(CAL_SUB==='week'){const ws=weekStartMs(calWeekOff());const d=new Date(ws);return d.toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})+' week'}
+  return new Date(CAL_YEAR,CAL_MONTH).toLocaleDateString(undefined,{month:'long',year:'numeric'});
+}
+// ─── Month ───
+function renderMonth(root){
+  const today=calToday();
+  const first=new Date(CAL_YEAR,CAL_MONTH,1),dow1=(first.getDay()+6)%7;
+  const daysInMonth=new Date(CAL_YEAR,CAL_MONTH+1,0).getDate();
+  const startDate=new Date(first);startDate.setDate(1-dow1);
+  const entries=calEntriesForMonth(KFILTER,CAL_YEAR,CAL_MONTH);
+  const byDate={};entries.forEach(e=>{(byDate[e.dateStr]=byDate[e.dateStr]||[]).push(e)});
+  const totalCells=Math.ceil((dow1+daysInMonth)/7)*7;
+  // desktop grid
+  const dowRow=el('div','cal-dow cal-dow-d');['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d=>dowRow.appendChild(el('span',null,d)));
+  root.appendChild(dowRow);
+  const grid=el('div','cal-grid');
+  // mobile grid
+  const mdow=el('div','cal-dow cal-dow-m');['M','T','W','T','F','S','S'].forEach(d=>mdow.appendChild(el('span',null,d)));
+  root.appendChild(mdow);
+  const mgrid=el('div','cal-mgrid');
+  for(let i=0;i<totalCells;i++){
+    const d=new Date(startDate);d.setDate(d.getDate()+i);
+    const ds=calPad(d),inMonth=d.getMonth()===CAL_MONTH;
+    const sel=ds===CAL_SEL_DATE,isToday=ds===today;
+    const dayEntries=byDate[ds]||[];
+    // desktop cell
+    const cell=el('div','cal-cell'+(inMonth?'':' other')+(sel?' sel':''));
+    cell.addEventListener('click',()=>{CAL_SEL_DATE=ds;renderView()});
+    const cn=el('div','cn');cn.innerHTML=isToday?'<b>'+d.getDate()+'</b>':''+d.getDate();cell.appendChild(cn);
+    dayEntries.slice(0,2).forEach(e=>{
+      const c=kidColorFor(e),x=el('div','cal-ev '+(e.isDue?'du':'ev'));
+      x.textContent=(e.rec.recurrenceRule?'\u21BB ':'')+((e.timeStr&&!e.isDue)?fmtTime(e.timeStr)+' ':'')+e.rec.title;
+      x.style.color=c.txt;
+      if(e.isDue){x.style.borderColor=c.bar}else{x.style.background=c.tint;x.style.borderLeftColor=c.bar}
+      cell.appendChild(x);
+    });
+    if(dayEntries.length>2){cell.appendChild(el('div','cal-more','+'+(dayEntries.length-2)+' more'))}
+    grid.appendChild(cell);
+    // mobile cell
+    const md=el('div','cal-md'+(inMonth?'':' other')+(sel?' sel':''));
+    md.addEventListener('click',()=>{CAL_SEL_DATE=ds;renderView()});
+    md.innerHTML=isToday?'<b>'+d.getDate()+'</b>':'<span>'+d.getDate()+'</span>';
+    const dots=el('div','cal-dots');
+    dayEntries.slice(0,3).forEach(e=>{const dt=el('span','cal-dt'+(e.isDue?' du':''));const c=kidColorFor(e);dt.style.background=c.bar;dt.style.borderColor=c.bar;dots.appendChild(dt)});
+    md.appendChild(dots);mgrid.appendChild(md);
+  }
+  root.appendChild(grid);root.appendChild(mgrid);
+  // selected-day panel
+  const selEntries=byDate[CAL_SEL_DATE]||[];
+  const hd=el('div','cal-day-hd');
+  const dd=new Date(CAL_SEL_DATE+'T00:00:00');
+  hd.textContent=dd.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+  if(selEntries.length)hd.appendChild(el('span','cnt',selEntries.length+' item'+(selEntries.length===1?'':'s')));
+  root.appendChild(hd);
+  if(!selEntries.length){root.appendChild(el('div','cal-empty','Nothing on this day.'))}
+  else selEntries.forEach(e=>root.appendChild(calDayRow(e)));
+  const add=el('button','cal-add');add.innerHTML='<i class="ti ti-plus" style="font-size:14px" aria-hidden="true"></i> Add event';
+  add.addEventListener('click',()=>openEdit(null,{date:CAL_SEL_DATE,isEvent:true}));root.appendChild(add);
+}
+// ─── Week ───
+let CAL_WEEK_OFF=0;  // 0 = current week, -1 = last week, +1 = next week
+function calWeekOff(){return CAL_WEEK_OFF||0}
+function calWeekNav(dir){CAL_WEEK_OFF=(CAL_WEEK_OFF||0)+dir}
+function renderCalWeek(root){
+  const today=calToday();
+  const ws=weekStartMs(calWeekOff());
+  const wgrid=el('div','wk-grid');
+  const mlist=el('div','cal-wk-mob');
+  for(let i=0;i<7;i++){
+    const d=new Date(ws);d.setDate(d.getDate()+i);
+    const ds=calPad(d),isToday=ds===today;
+    const dayEntries=calEntries(KFILTER,ds);
+    // desktop col
+    const col=el('div','wk-col');
+    const dh=el('div','wk-dh');
+    dh.innerHTML=(isToday?'<b>':'')+'<span>'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]+' '+d.getDate()+'</span>'+(isToday?'</b>':'');
+    if(isToday){const dot=el('span','today-dot');dh.appendChild(dot)}
+    col.appendChild(dh);
+    dayEntries.forEach(e=>{
+      const c=kidColorFor(e),r=el('div','wk-row '+(e.isDue?'du':'ev'));
+      r.textContent=(e.rec.recurrenceRule?'\u21BB ':'')+(e.timeStr&&!e.isDue?fmtTime(e.timeStr)+' ':e.isDue?'Due ':e.allDay?'':'')+(e.rec.title||'');
+      r.style.color=c.txt;
+      if(e.isDue){r.style.borderColor=c.bar}else{r.style.borderLeftColor=c.bar}
+      r.addEventListener('click',()=>openDetail(e.rec.id));col.appendChild(r);
+    });
+    wgrid.appendChild(col);
+    // mobile: agenda-style day
+    const ah=el('div','agenda-hd');ah.innerHTML=(isToday?'<b>Today \u00b7 ':'<b>')+d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+'</b>';
+    mlist.appendChild(ah);
+    if(!dayEntries.length){mlist.appendChild(el('div','cal-empty','No items'))}
+    else dayEntries.forEach(e=>mlist.appendChild(calDayRow(e)));
+  }
+  root.appendChild(wgrid);root.appendChild(mlist);
+}
+// ─── Agenda ───
+function renderAgenda(root){
+  const today=calToday();
+  const d0=new Date(nowMs());d0.setHours(0,0,0,0);
+  const d30=new Date(d0);d30.setDate(d30.getDate()+30);
+  const entries=calEntries(KFILTER).filter(e=>{
+    const m=e.dateMs;return m>=d0.getTime()&&m<d30.getTime();
+  });
+  const byDate={};entries.forEach(e=>{(byDate[e.dateStr]=byDate[e.dateStr]||[]).push(e)});
+  const dates=Object.keys(byDate).sort();
+  if(!dates.length){root.appendChild(el('div','cal-empty','Nothing in the next 30 days.'));return}
+  dates.forEach(ds=>{
+    const dd=new Date(ds+'T00:00:00');
+    const hd=el('div','agenda-hd');
+    hd.innerHTML=(ds===today?'<b>Today \u00b7 ':'<b>')+dd.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+'</b>';
+    root.appendChild(hd);
+    byDate[ds].forEach(e=>root.appendChild(calDayRow(e)));
+  });
+}
+// shared day-row for agenda + mobile month panel
+function calDayRow(e){
+  const c=kidColorFor(e),row=el('div','agenda-row'+(e.isDue?' du':''));
+  row.style.borderColor=c.bar;if(!e.isDue)row.style.background=c.tint;
+  const tm=el('span','agenda-tm',e.isDue?'Due':(e.allDay?'All day':fmtTime(e.timeStr)||''));
+  row.appendChild(tm);
+  const body=el('div','');body.style.flex='1';body.style.minWidth='0';
+  body.appendChild(el('div','rt',(e.rec.recurrenceRule?'\u21BB ':'')+e.rec.title));
+  if(e.rec.summary)body.appendChild(el('div','rs',e.rec.summary));
+  row.appendChild(body);
+  row.appendChild(kidBadge(e.rec));
+  row.addEventListener('click',()=>openDetail(e.rec.id));
+  return row;
+}
 /* ════════════════════════════════════════════════════
    IMPORT PARSER — APEXTRACK-IMPORT v1 (Lane 1, spec §9.2/§9.4)
    Line-oriented: header, @item blocks of key:value, @body sentinel → free text, @end, @end-import.
@@ -1334,7 +1616,13 @@ function normalizeImportItem(raw){
     else dateErr=true;
   }
   if(dateErr)errs.push('bad date "'+dval+'"');
-  const allDay=/^(yes|true|1)$/i.test(r.allday||'')? true : (/^(no|false|0)$/i.test(r.allday||'')?false:!/T\d\d:/.test(startDate||dueDate||''));
+  // time: field (optional, e.g. "18:00" or "18:00-19:30")
+  const timeRaw=(r.time||'').trim();let startTime='',endTime='';
+  if(timeRaw){const tp=timeRaw.split(/[-–]/);if(/^\d\d:\d\d$/.test(tp[0])){startTime=tp[0];if(tp[1]&&/^\d\d:\d\d$/.test(tp[1].trim()))endTime=tp[1].trim()}else{errs.push('bad time "'+timeRaw+'"')}}
+  if(startTime&&startDate)startDate=startDate+'T'+startTime;
+  if(startTime&&dueDate)dueDate=dueDate+'T'+startTime;
+  if(endTime&&startDate){const base=startDate.slice(0,10);endDate=base+'T'+endTime}
+  const allDay=/^(yes|true|1)$/i.test(r.allday||'')? true : (/^(no|false|0)$/i.test(r.allday||'')?false:!startTime&&!/T\d\d:/.test(startDate||dueDate||''));
   const seq=(r.id||'').trim();
   const stableId=seq||('imp-'+(src||'x')+'-'+(kid||'x'));
   const needsReview=/^(yes|true|1)$/i.test(r.review||'');
@@ -1449,10 +1737,11 @@ function cap(s){s=String(s||'');return s?s[0].toUpperCase()+s.slice(1).toLowerCa
    PHASE 2a — RENDERING
 ════════════════════════════════════════════════════ */
 let VIEW='thisweek',KFILTER='all',SHOWDONE=false,DETAIL_ID=null,WEEKSEL='this',MENU_OPEN=false;
+let CAL_SUB='month',CAL_YEAR=0,CAL_MONTH=0,CAL_SEL_DATE='';  // calendar state, initialized in calInit
 // tab = also in the mobile bottom bar; soon = dimmed, shows the message on tap
 const NAVS=[
   {id:'thisweek',label:'This week',icon:'ti-calendar-week',tab:true},
-  {id:'calendar',label:'Calendar',icon:'ti-calendar',tab:true,soon:'The calendar arrives in Phase 2b.'},
+  {id:'calendar',label:'Calendar',icon:'ti-calendar',tab:true},
   {id:'todo',label:'To-do',icon:'ti-list-check',tab:true},
   {id:'critical',label:'Critical',icon:'ti-alert-triangle',tab:true},
   {id:'grades',label:'Grades',icon:'ti-school',soon:'Grades arrive in Phase 2c.'}
@@ -1515,6 +1804,7 @@ function closeMenu(){const w=$('menu-wrap');if(w)w.classList.remove('open');MENU
 function initialsOf(name){if(!name)return '?';const p=String(name).trim().split(/\s+/);return (p[0][0]||'')+(p[1]?p[1][0]:'');}
 function setView(v){
   if(v==='import'){openImport();return}     // Import is a sheet, not a view — the screen underneath stays put
+  if(v==='calendar'&&!CAL_YEAR)calInit();
   VIEW=v;DETAIL_ID=null;const ab=$('app-body');if(ab)ab.classList.remove('in-detail');const dc=$('detail-col');if(dc)dc.classList.remove('open');
   renderShell();renderView();
 }
@@ -1523,7 +1813,7 @@ function renderView(){
   if(VIEW==='thisweek')return renderList(root,WEEKSEL==='next'?'Next week':'This week',weekItems(KFILTER,{week:WEEKSEL,showDone:SHOWDONE}),true);
   if(VIEW==='todo')return renderList(root,'To-do',todoItems(KFILTER,{showDone:SHOWDONE}),false);
   if(VIEW==='critical')return renderList(root,'Critical',criticalItems(KFILTER,{showDone:SHOWDONE}),false);
-  if(VIEW==='calendar')return renderPlaceholder(root,'Calendar','ti-calendar','The calendar arrives in Phase 2b.');
+  if(VIEW==='calendar')return renderCalendar(root);
   if(VIEW==='grades')return renderPlaceholder(root,'Grades','ti-school','Grades arrive in Phase 2c.');
   if(VIEW==='settings')return renderSettings(root);
 }
@@ -1607,7 +1897,7 @@ function openDetail(id){DETAIL_ID=id;const ab=$('app-body');if(ab)ab.classList.a
 function closeDetail(){DETAIL_ID=null;const ab=$('app-body');if(ab)ab.classList.remove('in-detail');const dc=$('detail-col');if(dc)dc.classList.remove('open');}
 function renderDetail(){
   const dc=$('detail-col');if(!dc)return;dc.textContent='';
-  const it=DETAIL_ID&&DATA.items[DETAIL_ID];
+  const it=DETAIL_ID&&(DATA.items[DETAIL_ID]||DATA.events[DETAIL_ID]);
   if(!it||it.deleted){dc.innerHTML='<div class="detail-empty">Select an item to see its details.</div>';return}
   const head=el('div','detail-head');
   const back=el('button','icon-btn');back.innerHTML='<i class="ti ti-arrow-left" aria-hidden="true"></i>';back.addEventListener('click',closeDetail);
@@ -1644,25 +1934,53 @@ function renderDetail(){
   dc.appendChild(s);
 }
 async function deleteItem(id){
-  removeRecord('items',id);  // mutates locally (sync) then saves in background — no await
-  toast('Item deleted','success');closeDetail();renderView();
+  const it=DATA.items[id]||DATA.events[id];
+  const title=it?it.title||'(untitled)':'this item';
+  confirmDialog('Delete \u201C'+title+'\u201D?','This removes it for both of you.',()=>{
+    const coll=DATA.events[id]?'events':'items';
+    removeRecord(coll,id);
+    toast('Deleted','success');closeDetail();renderView();
+  },'Delete','danger');
 }
+// generic confirm dialog
+let _confirmFn=null;
+function confirmDialog(title,msg,fn,okLabel,okCls){
+  $('confirm-title').textContent=title;$('confirm-msg').textContent=msg;
+  const ob=$('confirm-ok');ob.textContent=okLabel||'OK';ob.className='btn '+(okCls||'primary');
+  _confirmFn=fn;const w=$('confirm-wrap');if(w)w.classList.add('open');
+}
+function closeConfirm(){const w=$('confirm-wrap');if(w)w.classList.remove('open');_confirmFn=null}
+function doConfirm(){if(_confirmFn)_confirmFn();closeConfirm()}
 
 /* quick-add / edit sheet */
 let EDIT_ID=null,EDIT_KID='AV';
-function openEdit(id){
-  EDIT_ID=id||null;const it=id?DATA.items[id]:null;
-  $('sheet-edit-title').textContent=id?'Edit item':'Add item';
+function openEdit(id,opts){
+  opts=opts||{};
+  EDIT_ID=id||null;
+  // resolve source: could be an item or an event
+  const it=id?(DATA.items[id]||DATA.events[id]):null;
+  const isEvent=opts.isEvent||(it&&!it.dueDate&&!it.type)||(VIEW==='calendar');
+  $('sheet-edit-title').textContent=id?'Edit '+(isEvent?'event':'item'):(isEvent?'Add event':'Add item');
   $('f-title').value=it?it.title||'':'';
   EDIT_KID=it?kidKey(it):'AV';paintKidPick();
-  $('f-type').value=it?it.type||'info':'form/payment';
-  $('f-priority').value=it?it.priority||'Action':'Action';
-  const d=it?(it.dueDate||it.startDate||it.date||''):'';$('f-date').value=d?d.slice(0,10):'';
-  $('f-allday').checked=it?!!it.allDay:true;
+  $('f-type').value=it?it.type||'info':(isEvent?'event':'form/payment');
+  $('f-priority').value=it?it.priority||'Action':(isEvent?'Info':'Action');
+  const d=it?(it.dueDate||it.startDate||it.date||''):(opts.date||'');
+  $('f-date').value=d?d.slice(0,10):'';
+  const allDay=it?!!it.allDay:!opts.time;
+  $('f-allday').checked=allDay;
+  toggleTimeFields(!allDay);
+  const startTime=(!allDay&&d&&/T\d\d:/.test(d))?d.replace(/.*T/,'').slice(0,5):(opts.time||'');
+  $('f-start-time').value=startTime;
+  const endTime=it&&it.endDate&&/T\d\d:/.test(it.endDate)?it.endDate.replace(/.*T/,'').slice(0,5):'';
+  $('f-end-time').value=endTime;
   $('f-summary').value=it?it.summary||'':'';
   $('f-details').value=it?it.details||'':'';
   clearFieldErr();
   openSheet('sheet-edit');setTimeout(()=>{const t=$('f-title');if(t&&t.focus)t.focus()},60);
+}
+function toggleTimeFields(show){
+  const tf=$('time-fields');if(tf)tf.style.display=show?'':'none';
 }
 function paintKidPick(){document.querySelectorAll('#f-kid button').forEach(b=>{b.className='';const k=b.getAttribute('data-kid');if(k===EDIT_KID)b.className='sel-'+(k==='both'?'both':k==='AV'?'av':'iv')})}
 function clearFieldErr(){['f-title'].forEach(id=>{const f=$(id);if(f&&f.parentElement)f.parentElement.classList.remove('err')});const kp=$('f-kid');if(kp&&kp.parentElement)kp.parentElement.classList.remove('err')}
@@ -1679,9 +1997,24 @@ async function saveEdit(){
     summary:($('f-summary').value||'').trim(),details:($('f-details').value||'').trim(),allDay};
   // date routing: due-type vs event-type
   rec.dueDate=null;rec.startDate=null;rec.endDate=null;
-  if(dateVal){if(type==='form/payment'||type==='assignment'||type==='test'||type==='grade-flag')rec.dueDate=dateVal;else rec.startDate=dateVal}
+  const startTime=allDay?'':($('f-start-time').value||'');
+  const endTime=allDay?'':($('f-end-time').value||'');
+  if(dateVal){
+    const dWithTime=startTime?(dateVal+'T'+startTime):(dateVal);
+    if(type==='form/payment'||type==='assignment'||type==='test'||type==='grade-flag')rec.dueDate=dWithTime;
+    else rec.startDate=dWithTime;
+    if(endTime)rec.endDate=dateVal+'T'+endTime;
+  }
+  // decide collection: event types go in events, everything else in items
+  const coll=(type==='event')?'events':'items';
   if(!EDIT_ID){rec.status='open';rec.statusUpdatedAt=iso();rec.statusUpdatedBy=ME.email}
-  try{upsert('items',rec);toast(EDIT_ID?'Item updated':'Item added','success')}  // mutates locally (sync) — save runs in background
+  // if editing and the item moved collections, remove from old
+  if(EDIT_ID){
+    const oldInItems=!!DATA.items[EDIT_ID],oldInEvents=!!DATA.events[EDIT_ID];
+    if(oldInItems&&coll==='events'){removeRecord('items',EDIT_ID)}
+    else if(oldInEvents&&coll==='items'){removeRecord('events',EDIT_ID)}
+  }
+  try{upsert(coll,rec);toast(EDIT_ID?'Updated':'Added','success')}  // mutates locally (sync) — save runs in background
   catch(e){toast(errMsg(e),'error');return}
   closeSheet('sheet-edit');renderView();if(EDIT_ID===DETAIL_ID&&DETAIL_ID)renderDetail();
 }
@@ -1859,6 +2192,9 @@ function wire(){
   on('sheet-edit-close',()=>closeSheet('sheet-edit'));
   on('sheet-edit-cancel',()=>closeSheet('sheet-edit'));
   on('sheet-edit-save',saveEdit);
+  const ad=$('f-allday');if(ad)ad.addEventListener('change',()=>toggleTimeFields(!ad.checked));
+  on('confirm-cancel',closeConfirm);on('confirm-ok',doConfirm);
+  const cw=$('confirm-wrap');if(cw)cw.addEventListener('click',e=>{if(e.target===cw)closeConfirm()});
   document.querySelectorAll('#f-kid button').forEach(b=>b.addEventListener('click',()=>{EDIT_KID=b.getAttribute('data-kid');paintKidPick();const kp=$('f-kid');if(kp&&kp.parentElement)kp.parentElement.classList.remove('err')}));
   const ft=$('f-title');if(ft)ft.addEventListener('input',()=>{if(ft.parentElement)ft.parentElement.classList.remove('err')});
   on('sheet-import-close',()=>closeSheet('sheet-import'));
@@ -1895,10 +2231,13 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   unlock,createNewStore,locateDataFile,lockApp,checkIdle,touch,show,boot,afterSignIn,openPicker,doPickFiles,doPickBackupsFolder,
   // Phase 2a logic
   parseImport,normalizeImportItem,previewImport,commitImport,undoLastImport,
-  liveItems,thisWeekItems,nextWeekItems,weekItems,weekStartMs,weekRange,weekRangeLabel,todoItems,criticalItems,groupByPriority,kidKey,itemSort,planUndo,requestUndo,runUndo,openMenu,closeMenu,
+  liveItems,liveEvents,calEntries,calEntriesForMonth,calInit,calToday,calPad,weekStartMs,weekRange,weekRangeLabel,
+  thisWeekItems,nextWeekItems,weekItems,todoItems,criticalItems,groupByPriority,kidKey,itemSort,
+  planUndo,requestUndo,runUndo,openMenu,closeMenu,confirmDialog,closeConfirm,doConfirm,
+  fmtTime,kidColorFor,weekItems,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
-  get:()=>({ME,DATA,CRYPTO,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN}),
-  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS},
+  get:()=>({ME,DATA,CRYPTO,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF}),
+  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS},
   liveBackups,LS,LOGS
 };
 window.addEventListener('load',boot);
