@@ -229,9 +229,16 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .row .exp-chk{width:20px;height:20px;border-radius:4px;border:1.5px solid var(--border2);flex-shrink:0;background:transparent;cursor:pointer;margin-right:-3px;padding:0;position:relative}
 .row .exp-chk.on{background:var(--both-bar);border-color:var(--both-bar)}
 .row .exp-chk.on::after{content:'';position:absolute;top:4px;left:4px;width:8px;height:4px;border-left:2px solid var(--bg);border-bottom:2px solid var(--bg);transform:rotate(-45deg)}
-.exp-bar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--border2);font-size:13px;font-weight:600;color:var(--text2)}
-.exp-bar .exp-count{flex:1}
+.exp-bar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--border2);font-size:13px;font-weight:600;color:var(--text2);flex-wrap:wrap}
+.exp-bar .exp-count{flex:1;min-width:120px}
 .exp-bar .btn{margin-top:0;min-height:34px;width:auto;font-size:13px;padding:6px 14px}
+.exp-seg{display:inline-flex;border-radius:8px;border:1px solid var(--border2);overflow:hidden}
+.exp-seg button{padding:5px 12px;font-size:12px;font-weight:600;font-family:var(--font);border:none;background:transparent;color:var(--text2);cursor:pointer}
+.exp-seg button.on{background:var(--both-bar);color:#04342C}
+.exp-seg .badge{display:inline-block;min-width:16px;padding:0 5px;height:16px;line-height:16px;border-radius:8px;font-size:10px;font-weight:700;text-align:center;margin-left:4px}
+.exp-seg button.on .badge{background:rgba(0,0,0,.2);color:#04342C}
+.exp-seg button:not(.on) .badge{background:var(--border2);color:var(--text2)}
+.grp-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 16px 4px;color:var(--text3)}
 .tag.new{background:var(--both-tint);color:var(--both-txt)}
 .tag.upd{background:var(--upd-tint);color:var(--upd-txt)}
 .tag.dup{color:var(--text3)}
@@ -1942,12 +1949,8 @@ function renderView(){
   const root=$('view-root');if(!root)return;root.textContent='';
   if(VIEW==='thisweek')return renderList(root,WEEKSEL==='next'?'Next week':'This week',weekItems(KFILTER,{week:WEEKSEL,showDone:SHOWDONE}),true);
   if(VIEW==='todo'){
-    let list=todoItems(KFILTER,{showDone:SHOWDONE});
-    if(EXPORT_MODE){
-      const evts=liveEvents().filter(ev=>matchKid(ev,KFILTER)&&(SHOWDONE||(ev.status!=='done'&&ev.status!=='cancelled')));
-      list=list.concat(evts).sort(itemSort);
-    }
-    return renderList(root,EXPORT_MODE?'Export':'To-do',list,false);
+    if(EXPORT_MODE)return renderList(root,'Export',exportableList(KFILTER).sort(itemSort),false);
+    return renderList(root,'To-do',todoItems(KFILTER,{showDone:SHOWDONE}),false);
   }
   if(VIEW==='critical')return renderList(root,'Critical',criticalItems(KFILTER,{showDone:SHOWDONE}),false);
   if(VIEW==='calendar')return renderCalendar(root);
@@ -1975,15 +1978,41 @@ function renderList(root,title,list,withStale){
   head.appendChild(chipsRow(stale));
   root.appendChild(head);
   if(EXPORT_MODE){
+    const allRecs=[...liveItems(),...liveEvents()].filter(r=>r.priority!=='Info'&&!r.deleted);
+    const nNew=allRecs.filter(r=>!r.pushedToCalendar).length;
+    const nChg=allRecs.filter(r=>r.pushedToCalendar&&r.changedSincePushed).length;
+    const nNeeds=nNew+nChg;
     const bar=el('div','exp-bar');
-    bar.appendChild(el('span','exp-count',EXPORT_SEL.size?EXPORT_SEL.size+' selected':'Select items to export'));
+    // segment: Needs push | Show all
+    const seg=el('div','exp-seg');
+    const bNeed=el('button',EXPORT_FILTER==='needs'?'on':'');
+    bNeed.innerHTML='Needs push<span class="badge">'+nNeeds+'</span>';
+    bNeed.addEventListener('click',()=>setExportFilter('needs'));seg.appendChild(bNeed);
+    const bAll=el('button',EXPORT_FILTER==='all'?'on':'');
+    bAll.innerHTML='Show all<span class="badge">'+allRecs.length+'</span>';
+    bAll.addEventListener('click',()=>setExportFilter('all'));seg.appendChild(bAll);
+    bar.appendChild(seg);
+    bar.appendChild(el('span','exp-count',EXPORT_SEL.size?EXPORT_SEL.size+' selected':''));
     const sa=el('button','btn small','Select all');sa.addEventListener('click',selectAllExportable);bar.appendChild(sa);
     const xb=el('button','btn small primary','Export .ics');xb.disabled=!EXPORT_SEL.size;xb.addEventListener('click',doExport);bar.appendChild(xb);
     const cb=el('button','btn small','Cancel');cb.addEventListener('click',toggleExportMode);bar.appendChild(cb);
     root.appendChild(bar);
   }
   const scroll=el('div','view-scroll');
-  if(!list.length){scroll.appendChild(emptyState(title));}
+  if(!list.length){
+    if(EXPORT_MODE&&EXPORT_FILTER==='needs'){
+      const emp=el('div','empty-state');emp.innerHTML='<i class="ti ti-circle-check" aria-hidden="true" style="font-size:40px;color:var(--both-bar);display:block;margin-bottom:8px"></i>';
+      emp.appendChild(el('div','empty-msg','All caught up'));
+      emp.appendChild(el('div','empty-sub','Everything has been pushed to calendar.'));
+      scroll.appendChild(emp);
+    } else scroll.appendChild(emptyState(title));
+  }
+  else if(EXPORT_MODE&&EXPORT_FILTER==='needs'){
+    const newRecs=list.filter(r=>!r.pushedToCalendar);
+    const chgRecs=list.filter(r=>r.pushedToCalendar&&r.changedSincePushed);
+    if(newRecs.length){scroll.appendChild(el('div','grp-label','New — never exported'));newRecs.forEach(it=>scroll.appendChild(itemRow(it)))}
+    if(chgRecs.length){scroll.appendChild(el('div','grp-label','Changed — needs re-export'));chgRecs.forEach(it=>scroll.appendChild(itemRow(it)))}
+  }
   else{
     const g=groupByPriority(list);
     [['Critical','sec-crit','crit-dot'],['Action','sec-act','act-dot'],['Info','sec-info','info-dot']].forEach(([p,cls,dot])=>{
@@ -1992,10 +2021,11 @@ function renderList(root,title,list,withStale){
       g[p].forEach(it=>scroll.appendChild(itemRow(it)));
     });
   }
-  const anyDone=list.length||SHOWDONE;
-  const td=el('button','toggle-done',SHOWDONE?'Hide done':'Show done');
-  td.addEventListener('click',()=>{SHOWDONE=!SHOWDONE;renderView()});
-  scroll.appendChild(td);
+  if(!EXPORT_MODE){
+    const td=el('button','toggle-done',SHOWDONE?'Hide done':'Show done');
+    td.addEventListener('click',()=>{SHOWDONE=!SHOWDONE;renderView()});
+    scroll.appendChild(td);
+  }
   root.appendChild(scroll);
 }
 function itemRow(it){
@@ -2464,17 +2494,23 @@ function flagChangedSincePush(id){
 }
 
 // Export selection state
-let EXPORT_MODE=false,EXPORT_SEL=new Set();
+let EXPORT_MODE=false,EXPORT_SEL=new Set(),EXPORT_FILTER='needs';
 function toggleExportMode(){
-  EXPORT_MODE=!EXPORT_MODE;EXPORT_SEL.clear();renderView();
+  EXPORT_MODE=!EXPORT_MODE;EXPORT_SEL.clear();EXPORT_FILTER='needs';renderView();
 }
+function setExportFilter(f){EXPORT_FILTER=f;renderView()}
 function toggleExportSel(id){
   if(EXPORT_SEL.has(id))EXPORT_SEL.delete(id);else EXPORT_SEL.add(id);
   renderView();
 }
+function needsPush(r){return r&&!r.deleted&&r.priority!=='Info'&&(!r.pushedToCalendar||r.changedSincePushed)}
+function exportableList(filter){
+  const all=[...liveItems(),...liveEvents()].filter(r=>r.priority!=='Info'&&!r.deleted&&matchKid(r,filter||'all'));
+  if(EXPORT_FILTER==='needs')return all.filter(needsPush);
+  return all;
+}
 function selectAllExportable(){
-  const all=[...liveItems(),...liveEvents()].filter(r=>r.priority!=='Info'&&!r.deleted);
-  all.forEach(r=>{if(!EXPORT_SEL.has(r.id))EXPORT_SEL.add(r.id)});
+  exportableList(KFILTER).forEach(r=>{if(!EXPORT_SEL.has(r.id))EXPORT_SEL.add(r.id)});
   renderView();
 }
 function doExport(){
@@ -2684,9 +2720,9 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   expandRecurrence,freqLabel,deleteWithScope,editWithScope,openScope,closeScope,doScope,paintRepeatFields,
   fmtTime,kidColorFor,weekItems,
   buildIcsEvent,buildIcsFile,icsUid,icsDateVal,icsRRule,icsExdate,markPushed,flagChangedSincePush,
-  toggleExportMode,toggleExportSel,selectAllExportable,doExport,
+  toggleExportMode,toggleExportSel,selectAllExportable,doExport,setExportFilter,needsPush,exportableList,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
-  get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL}),
+  get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER}),
   set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS},
   liveBackups,LS,LOGS
 };
