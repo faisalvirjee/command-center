@@ -1924,7 +1924,7 @@ function renderMenu(){
   hd.appendChild(nm);p.appendChild(hd);
   p.appendChild(menuItem('ti-school','Grades',()=>{toast('Grades arrive in Phase 2c.','info')},'mob-only soon','Soon'));
   p.appendChild(menuItem('ti-upload','Import',()=>{closeMenu();openImport()}));
-  p.appendChild(menuItem('ti-calendar-down','Export .ics',()=>{closeMenu();if(VIEW!=='thisweek'&&VIEW!=='todo'&&VIEW!=='critical')setView('thisweek');toggleExportMode()}));
+  p.appendChild(menuItem('ti-calendar-down','Export .ics',()=>{closeMenu();if(VIEW!=='thisweek'&&VIEW!=='todo'&&VIEW!=='critical')setView('todo');toggleExportMode()}));
   p.appendChild(menuItem('ti-settings','Settings',()=>{closeMenu();setView('settings')}));
   p.appendChild(menuItem('ti-lock','Lock now',()=>{closeMenu();lockApp('manual')}));
   p.appendChild(menuItem('ti-logout','Sign out',()=>{closeMenu();signOutGoogle()},'danger'));
@@ -1941,7 +1941,14 @@ function setView(v){
 function renderView(){
   const root=$('view-root');if(!root)return;root.textContent='';
   if(VIEW==='thisweek')return renderList(root,WEEKSEL==='next'?'Next week':'This week',weekItems(KFILTER,{week:WEEKSEL,showDone:SHOWDONE}),true);
-  if(VIEW==='todo')return renderList(root,'To-do',todoItems(KFILTER,{showDone:SHOWDONE}),false);
+  if(VIEW==='todo'){
+    let list=todoItems(KFILTER,{showDone:SHOWDONE});
+    if(EXPORT_MODE){
+      const evts=liveEvents().filter(ev=>matchKid(ev,KFILTER)&&(SHOWDONE||(ev.status!=='done'&&ev.status!=='cancelled')));
+      list=list.concat(evts).sort(itemSort);
+    }
+    return renderList(root,EXPORT_MODE?'Export':'To-do',list,false);
+  }
   if(VIEW==='critical')return renderList(root,'Critical',criticalItems(KFILTER,{showDone:SHOWDONE}),false);
   if(VIEW==='calendar')return renderCalendar(root);
   if(VIEW==='grades')return renderPlaceholder(root,'Grades','ti-school','Grades arrive in Phase 2c.');
@@ -2500,7 +2507,7 @@ function openScope(title,sub,choices,fn){
     d.innerHTML='<span class="sd"></span>';
     const body=el('div');body.appendChild(el('div','sl',c.label));if(c.desc)body.appendChild(el('div','sm',c.desc));
     d.appendChild(body);
-    d.addEventListener('click',()=>{_scopeChoice=c.id;(opts.children||[]).forEach(o=>{if(o.classList)o.classList.remove('on')});d.classList.add('on')});
+    d.addEventListener('click',()=>{_scopeChoice=c.id;Array.from(opts.children).forEach(o=>{if(o.classList)o.classList.remove('on')});d.classList.add('on')});
     opts.appendChild(d);
   });
   _scopeFn=fn;$('scope-wrap').classList.add('open');
