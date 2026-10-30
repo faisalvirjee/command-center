@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.3.0 | 2026-10-29 -->
+<!-- ApexTrack — Family School Tracker | v0.3.2 | 2026-10-30 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -225,6 +225,13 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .tag.review{background:var(--act-tint);color:var(--act-txt)}
 .tag.needssrc{background:var(--crit-tint);color:var(--crit-txt)}
 .tag.pushed{background:var(--both-tint);color:var(--both-txt)}
+.tag.changed{background:var(--act-tint);color:var(--act-txt)}
+.row .exp-chk{width:20px;height:20px;border-radius:4px;border:1.5px solid var(--border2);flex-shrink:0;background:transparent;cursor:pointer;margin-right:-3px;padding:0;position:relative}
+.row .exp-chk.on{background:var(--both-bar);border-color:var(--both-bar)}
+.row .exp-chk.on::after{content:'';position:absolute;top:4px;left:4px;width:8px;height:4px;border-left:2px solid var(--bg);border-bottom:2px solid var(--bg);transform:rotate(-45deg)}
+.exp-bar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--border2);font-size:13px;font-weight:600;color:var(--text2)}
+.exp-bar .exp-count{flex:1}
+.exp-bar .btn{margin-top:0;min-height:34px;width:auto;font-size:13px;padding:6px 14px}
 .tag.new{background:var(--both-tint);color:var(--both-txt)}
 .tag.upd{background:var(--upd-tint);color:var(--upd-txt)}
 .tag.dup{color:var(--text3)}
@@ -572,7 +579,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.3.0';
+const APP_VERSION='v0.3.2';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -1105,6 +1112,7 @@ function upsert(coll,rec){
   if(!old){r.createdAt=t;r.createdBy=ME.email}
   r.updatedAt=t;r.updatedBy=ME.email;
   DATA[coll][r.id]=r;mutationSeq++;
+  if(old&&old.pushedToCalendar)flagChangedSincePush(r.id);
   return requestSave();
 }
 function setStatus(coll,id,status){
@@ -1916,6 +1924,7 @@ function renderMenu(){
   hd.appendChild(nm);p.appendChild(hd);
   p.appendChild(menuItem('ti-school','Grades',()=>{toast('Grades arrive in Phase 2c.','info')},'mob-only soon','Soon'));
   p.appendChild(menuItem('ti-upload','Import',()=>{closeMenu();openImport()}));
+  p.appendChild(menuItem('ti-calendar-down','Export .ics',()=>{closeMenu();if(VIEW!=='thisweek'&&VIEW!=='todo'&&VIEW!=='critical')setView('thisweek');toggleExportMode()}));
   p.appendChild(menuItem('ti-settings','Settings',()=>{closeMenu();setView('settings')}));
   p.appendChild(menuItem('ti-lock','Lock now',()=>{closeMenu();lockApp('manual')}));
   p.appendChild(menuItem('ti-logout','Sign out',()=>{closeMenu();signOutGoogle()},'danger'));
@@ -1958,6 +1967,14 @@ function renderList(root,title,list,withStale){
   else head.appendChild(el('div','view-title',title));
   head.appendChild(chipsRow(stale));
   root.appendChild(head);
+  if(EXPORT_MODE){
+    const bar=el('div','exp-bar');
+    bar.appendChild(el('span','exp-count',EXPORT_SEL.size?EXPORT_SEL.size+' selected':'Select items to export'));
+    const sa=el('button','btn small','Select all');sa.addEventListener('click',selectAllExportable);bar.appendChild(sa);
+    const xb=el('button','btn small primary','Export .ics');xb.disabled=!EXPORT_SEL.size;xb.addEventListener('click',doExport);bar.appendChild(xb);
+    const cb=el('button','btn small','Cancel');cb.addEventListener('click',toggleExportMode);bar.appendChild(cb);
+    root.appendChild(bar);
+  }
   const scroll=el('div','view-scroll');
   if(!list.length){scroll.appendChild(emptyState(title));}
   else{
@@ -1977,6 +1994,12 @@ function renderList(root,title,list,withStale){
 function itemRow(it){
   const done=it.status==='done'||it.status==='cancelled';
   const row=el('div','row'+(done?' done':''));
+  if(EXPORT_MODE&&it.priority!=='Info'){
+    const ec=el('button','exp-chk'+(EXPORT_SEL.has(it.id)?' on':''));
+    ec.setAttribute('aria-label','Select for export');
+    ec.addEventListener('click',e=>{e.stopPropagation();toggleExportSel(it.id)});
+    row.appendChild(ec);
+  }
   const dot=el('span','pdot');dot.style.background='var(--'+(it.priority==='Critical'?'crit-dot':it.priority==='Action'?'act-dot':'info-dot')+')';
   row.appendChild(dot);
   const chk=el('button','chk'+(done?' done':''));chk.setAttribute('aria-label',done?'Mark open':'Mark done');
@@ -1988,7 +2011,8 @@ function itemRow(it){
   tl.appendChild(kidBadge(it));
   if(it.needsReview)tl.appendChild(tagEl('review','confirm','ti-alert-circle'));
   if(it.needsSource)tl.appendChild(tagEl('needssrc','needs source','ti-link'));
-  if(it.pushedToCalendar)tl.appendChild(tagEl('pushed','pushed','ti-calendar-check'));
+  if(it.pushedToCalendar&&it.changedSincePushed)tl.appendChild(tagEl('changed','changed','ti-calendar-bolt'));
+  else if(it.pushedToCalendar)tl.appendChild(tagEl('pushed','pushed','ti-calendar-check'));
   body.appendChild(tl);
   body.appendChild(el('div','row-meta',kidSchool(it)+' · '+(TYPE_LABEL[it.type]||it.type)));
   if(done)body.lastChild.textContent='Done by '+nameFor(it.statusUpdatedBy)+(it.statusUpdatedAt?' · '+shortWhen(it.statusUpdatedAt):'');
@@ -2030,6 +2054,12 @@ function renderDetail(){
   meta.appendChild(el('span','det-school',kidSchool(it)));s.appendChild(meta);
   if(hasDate(it)){const dd=el('div','det-date');dd.innerHTML='<i class="ti ti-calendar" aria-hidden="true"></i>';dd.appendChild(document.createTextNode(fmtDate(it)));s.appendChild(dd)}
   if(it.needsSource){const w=el('div','det-date');w.style.borderColor='var(--crit-tint)';w.innerHTML='<i class="ti ti-link" aria-hidden="true" style="color:var(--crit-txt)"></i>';w.appendChild(document.createTextNode('Needs source: '+(it.needsSourceReason||'source not in the message')));s.appendChild(w)}
+  if(it.pushedToCalendar){
+    const pw=el('div','det-date');pw.style.borderColor=it.changedSincePushed?'var(--act-tint)':'var(--both-tint)';
+    pw.innerHTML=it.changedSincePushed?'<i class="ti ti-calendar-bolt" aria-hidden="true" style="color:var(--act-txt)"></i>':'<i class="ti ti-calendar-check" aria-hidden="true" style="color:var(--both-txt)"></i>';
+    pw.appendChild(document.createTextNode(it.changedSincePushed?'Changed since last push'+(it.pushedAt?' ('+shortWhen(it.pushedAt)+')':''):'Pushed to calendar'+(it.pushedAt?' · '+shortWhen(it.pushedAt):'')));
+    s.appendChild(pw);
+  }
   if(it.summary){const sec=el('div','det-sec');sec.appendChild(el('div','lab','Summary'));sec.appendChild(el('div','bod',it.summary));s.appendChild(sec)}
   if(it.details){const sec=el('div','det-sec');sec.appendChild(el('div','lab','Details'));sec.appendChild(el('div','bod',it.details));s.appendChild(sec)}
   // actions
@@ -2283,6 +2313,182 @@ async function runUndo(){
 
 
 /* ════════════════════════════════════════════════════
+   ICS EXPORT + PUSH TRACKING (v0.3.2)
+   Wall-clock times in America/New_York via a named VTIMEZONE.
+   Info-priority items are never pushed. pushedToCalendar marks
+   exported items; changedSincePushed flags edits after last push.
+════════════════════════════════════════════════════ */
+const ICS_TZ='America/New_York';
+const VTIMEZONE=[
+  'BEGIN:VTIMEZONE','TZID:America/New_York',
+  'BEGIN:STANDARD','DTSTART:19701101T020000','RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+  'TZOFFSETFROM:-0400','TZOFFSETTO:-0500','TZNAME:EST','END:STANDARD',
+  'BEGIN:DAYLIGHT','DTSTART:19700308T020000','RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+  'TZOFFSETFROM:-0500','TZOFFSETTO:-0400','TZNAME:EDT','END:DAYLIGHT',
+  'END:VTIMEZONE'
+].join('\r\n');
+
+function icsUid(id){return 'apextrack-'+id+'@apextrack.local'}
+function icsFold(text){
+  const lines=[];let line='';
+  for(const ch of text){if(line.length>=73){lines.push(line);line=' '}line+=ch}
+  if(line)lines.push(line);return lines.join('\r\n');
+}
+function icsEscape(s){return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n')}
+function icsDateVal(d){
+  // d is a local date string like "2026-10-28" or "2026-10-28T15:30"
+  if(!d)return null;
+  if(/T\d\d:\d\d/.test(d)){
+    return {type:'datetime',val:d.slice(0,10).replace(/-/g,'')+
+      'T'+d.slice(11,16).replace(/:/g,'')+'00',tz:ICS_TZ};
+  }
+  return {type:'date',val:d.slice(0,10).replace(/-/g,'')};
+}
+function icsRRule(rule){
+  if(!rule||!rule.frequency)return null;
+  const parts=['FREQ='+{daily:'DAILY',weekly:'WEEKLY',biweekly:'WEEKLY',monthly:'MONTHLY'}[rule.frequency]];
+  if(rule.frequency==='biweekly')parts.push('INTERVAL=2');
+  if(rule.byDay&&rule.byDay.length)parts.push('BYDAY='+rule.byDay.join(','));
+  if(rule.until)parts.push('UNTIL='+rule.until.replace(/-/g,''));
+  else if(rule.count)parts.push('COUNT='+rule.count);
+  return 'RRULE:'+parts.join(';');
+}
+function icsExdate(exceptions){
+  if(!exceptions||!exceptions.length)return '';
+  // We emit VALUE=DATE since exceptions apply to the date regardless of time
+  return 'EXDATE;VALUE=DATE:'+exceptions.map(d=>d.replace(/-/g,'')).join(',');
+}
+function buildIcsEvent(rec){
+  const lines=['BEGIN:VEVENT'];
+  lines.push('UID:'+icsUid(rec.id));
+  const seq=rec._icsSequence||0;
+  lines.push('SEQUENCE:'+seq);
+  const now=new Date(nowMs());
+  lines.push('DTSTAMP:'+now.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,''));
+
+  const summary=icsEscape(rec.title||'(untitled)');
+  lines.push(icsFold('SUMMARY:'+summary));
+
+  // description: summary + details combined
+  const desc=[rec.summary,rec.details].filter(Boolean).join('\n');
+  if(desc)lines.push(icsFold('DESCRIPTION:'+icsEscape(desc)));
+
+  // dates
+  const startRaw=rec.startDate||rec.dueDate||rec.date||'';
+  const endRaw=rec.endDate||'';
+  const dtStart=icsDateVal(startRaw);
+  if(!dtStart){lines.push('END:VEVENT');return lines.join('\r\n')}
+
+  if(dtStart.type==='datetime'){
+    lines.push('DTSTART;TZID='+dtStart.tz+':'+dtStart.val);
+    const dtEnd=endRaw?icsDateVal(endRaw):null;
+    if(dtEnd&&dtEnd.type==='datetime')lines.push('DTEND;TZID='+dtEnd.tz+':'+dtEnd.val);
+    else{
+      // default 1-hour duration
+      const endVal=dtStart.val.replace(/T(\d{2})(\d{2})00/,(_,h,m)=>{
+        const hh=parseInt(h)+1;return 'T'+String(hh).padStart(2,'0')+m+'00'});
+      lines.push('DTEND;TZID='+dtStart.tz+':'+endVal);
+    }
+    // timed event alarms: 30 min + 1 day
+    lines.push('BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:Reminder','END:VALARM');
+    lines.push('BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:Reminder','END:VALARM');
+  }else{
+    lines.push('DTSTART;VALUE=DATE:'+dtStart.val);
+    if(endRaw){const dtEnd=icsDateVal(endRaw);if(dtEnd)lines.push('DTEND;VALUE=DATE:'+dtEnd.val)}
+    else{
+      // all-day events: DTEND = next day
+      const nd=new Date(startRaw+'T00:00:00');nd.setDate(nd.getDate()+1);
+      const nds=nd.getFullYear()+String(nd.getMonth()+1).padStart(2,'0')+String(nd.getDate()).padStart(2,'0');
+      lines.push('DTEND;VALUE=DATE:'+nds);
+    }
+    // all-day alarm: 1 day only
+    lines.push('BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:Reminder','END:VALARM');
+  }
+
+  // recurrence
+  const rrule=icsRRule(rec.recurrenceRule);
+  if(rrule)lines.push(rrule);
+  const exd=icsExdate(rec.recExceptions);
+  if(exd)lines.push(exd);
+
+  lines.push('END:VEVENT');
+  return lines.join('\r\n');
+}
+function buildIcsFile(records){
+  const lines=[
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ApexTrack//EN',
+    'CALSCALE:GREGORIAN','METHOD:PUBLISH',
+    'X-WR-CALNAME:ApexTrack','X-WR-TIMEZONE:'+ICS_TZ,
+    VTIMEZONE
+  ];
+  records.forEach(r=>lines.push(buildIcsEvent(r)));
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n')+'\r\n';
+}
+
+// Mark items as pushed; bump SEQUENCE if re-exported after edits
+function markPushed(recIds){
+  if(!DATA||!CRYPTO)return;
+  const t=iso();
+  recIds.forEach(id=>{
+    const it=DATA.items[id]||DATA.events[id];
+    if(!it||it.deleted)return;
+    const coll=DATA.items[id]?'items':'events';
+    const seq=(it._icsSequence||0)+(it.changedSincePushed?1:0);
+    DATA[coll][id]=Object.assign({},it,{
+      pushedToCalendar:true,
+      pushedAt:t,
+      changedSincePushed:false,
+      _icsSequence:seq,
+      updatedAt:stampNow(it),
+      updatedBy:ME.email
+    });
+    mutationSeq++;
+  });
+  requestSave();
+}
+// Call after any content edit to flag pushed items as changed
+function flagChangedSincePush(id){
+  const it=DATA.items[id]||DATA.events[id];
+  if(!it||!it.pushedToCalendar)return;
+  const coll=DATA.items[id]?'items':'events';
+  DATA[coll][id]=Object.assign({},it,{changedSincePushed:true});
+  // no mutationSeq++ here — the caller already incremented for the edit itself
+}
+
+// Export selection state
+let EXPORT_MODE=false,EXPORT_SEL=new Set();
+function toggleExportMode(){
+  EXPORT_MODE=!EXPORT_MODE;EXPORT_SEL.clear();renderView();
+}
+function toggleExportSel(id){
+  if(EXPORT_SEL.has(id))EXPORT_SEL.delete(id);else EXPORT_SEL.add(id);
+  renderView();
+}
+function selectAllExportable(){
+  const all=[...liveItems(),...liveEvents()].filter(r=>r.priority!=='Info'&&!r.deleted);
+  all.forEach(r=>{if(!EXPORT_SEL.has(r.id))EXPORT_SEL.add(r.id)});
+  renderView();
+}
+function doExport(){
+  const recs=[];
+  EXPORT_SEL.forEach(id=>{
+    const it=DATA.items[id]||DATA.events[id];
+    if(!it||it.deleted||it.priority==='Info')return;
+    recs.push(it);
+  });
+  if(!recs.length){toast('Nothing to export','info');return}
+  const ics=buildIcsFile(recs);
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='apextrack-export.ics';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  markPushed([...EXPORT_SEL]);
+  toast('Exported '+recs.length+' item'+(recs.length===1?'':'s'),'success');
+  EXPORT_MODE=false;EXPORT_SEL.clear();renderView();
+}
+
+/* ════════════════════════════════════════════════════
    SCOPE PROMPT + REPEAT HELPERS (v0.3.1)
 ════════════════════════════════════════════════════ */
 let _scopeFn=null,_scopeChoice='this';
@@ -2470,8 +2676,10 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   planUndo,requestUndo,runUndo,openMenu,closeMenu,confirmDialog,closeConfirm,doConfirm,
   expandRecurrence,freqLabel,deleteWithScope,editWithScope,openScope,closeScope,doScope,paintRepeatFields,
   fmtTime,kidColorFor,weekItems,
+  buildIcsEvent,buildIcsFile,icsUid,icsDateVal,icsRRule,icsExdate,markPushed,flagChangedSincePush,
+  toggleExportMode,toggleExportSel,selectAllExportable,doExport,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
-  get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS}),
+  get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL}),
   set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS},
   liveBackups,LS,LOGS
 };
