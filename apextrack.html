@@ -124,6 +124,22 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .wk-row.ev{border-left:2.5px solid;background:rgba(255,255,255,.04)}
 .wk-row.du{border:1px dashed;background:transparent}
 /* confirm modal */
+.scope-wrap{display:none;position:fixed;inset:0;z-index:310;background:rgba(6,11,24,.7);align-items:center;justify-content:center}
+.scope-wrap.open{display:flex}
+.scope-box{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:16px 18px;max-width:380px;width:calc(100% - 40px);box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.scope-box .st{font-weight:600;font-size:16px;margin-bottom:4px}
+.scope-box .ss{font-size:12.5px;color:var(--text3);margin-bottom:12px}
+.scope-opt{display:flex;gap:10px;align-items:flex-start;padding:11px;border-radius:10px;border:1px solid var(--border2);margin-bottom:8px;cursor:pointer}
+.scope-opt.on{border-color:var(--both-bar);background:var(--both-tint-soft)}
+.scope-opt .sd{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;margin-top:1px}
+.scope-opt.on .sd{border-color:var(--both-bar);background:radial-gradient(var(--both-bar) 45%,transparent 50%)}
+.scope-opt .sl{font-weight:600;font-size:14px}
+.scope-opt .sm{font-size:12px;color:var(--text3);margin-top:2px}
+.day-pick{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.day-pick button{width:34px;height:30px;border-radius:7px;border:1px solid var(--border2);background:none;color:var(--text2);font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer}
+.day-pick button.on{background:var(--both-bar);color:#04342C;border-color:var(--both-bar)}
+.repeat-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.repeat-row .fld{flex:1;min-width:120px}
 .confirm-wrap{display:none;position:fixed;inset:0;z-index:300;background:rgba(6,11,24,.7);align-items:center;justify-content:center}
 .confirm-wrap.open{display:flex}
 .confirm-box{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:16px 18px;max-width:360px;width:calc(100% - 40px);box-shadow:0 12px 32px rgba(0,0,0,.5)}
@@ -508,6 +524,18 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   </div>
 </div></div>
 
+<!-- scope prompt (this one / all events) -->
+<div class="scope-wrap" id="scope-wrap">
+  <div class="scope-box">
+    <div class="st" id="scope-title">Edit repeating event</div>
+    <div class="ss" id="scope-sub"></div>
+    <div id="scope-opts"></div>
+    <div class="cbtns" style="margin-top:14px">
+      <button class="btn" id="scope-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="scope-ok" type="button">Continue</button>
+    </div>
+  </div>
+</div>
 <!-- generic confirm modal -->
 <div class="confirm-wrap" id="confirm-wrap">
   <div class="confirm-box">
@@ -1287,6 +1315,71 @@ function kidSchool(it){const k=kidKey(it);if(it.messageSchool)return it.messageS
 function nameFor(email){if(!email)return '';if(ME&&email===ME.email)return ME.name;const m=DATA&&DATA.settings&&DATA.settings.nameMap;return (m&&m[email])||firstName(email)}
 function recordMyName(){if(!DATA||!ME)return;const m=DATA.settings.nameMap=DATA.settings.nameMap||{};if(m[ME.email]!==ME.name){m[ME.email]=ME.name;DATA.settings.updatedAt=stampNow(DATA.settings)}}
 
+
+/* ════════════════════════════════════════════════════
+   RECURRENCE ENGINE (Phase 2b v0.3.1)
+   recurrenceRule: {frequency,byDay,until,count}
+   recExceptions: ['2026-11-05',…]  — cancelled instances
+   recOverrides: {'2026-11-05':{title:'...'}} — edited instances
+════════════════════════════════════════════════════ */
+const DOW_NAMES=['MO','TU','WE','TH','FR','SA','SU'];
+const DOW_LABELS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function dowIndex(d){return (d.getDay()+6)%7}
+function dowName(d){return DOW_NAMES[dowIndex(d)]}
+function expandRecurrence(ev,startStr,endStr){
+  const rule=ev.recurrenceRule;if(!rule||!rule.frequency)return [];
+  const base=ev.startDate||ev.date||'';if(!base)return [];
+  const baseDate=base.slice(0,10);
+  const exceptions=new Set(ev.recExceptions||[]);
+  const overrides=ev.recOverrides||{};
+  const freq=rule.frequency,byDay=new Set(rule.byDay||[]);
+  const until=rule.until||endStr;
+  const maxCount=rule.count||400;
+  const out=[];let count=0;
+  const capDate=until<endStr?until:endStr;
+  const end=new Date(capDate+'T23:59:59');
+  const eventStart=new Date(baseDate+'T00:00:00');
+  const eventWeekStart=new Date(eventStart);eventWeekStart.setDate(eventWeekStart.getDate()-dowIndex(eventWeekStart));
+  const isMatchingWeek=(dt)=>{
+    if(freq!=='biweekly')return true;
+    const wk=new Date(dt);wk.setDate(wk.getDate()-dowIndex(wk));
+    const diff=Math.round((wk.getTime()-eventWeekStart.getTime())/(7*86400000));
+    return diff%2===0;
+  };
+  if(freq==='weekly'||freq==='biweekly'){
+    if(!byDay.size)byDay.add(dowName(eventStart));
+    const cur=new Date(baseDate+'T00:00:00');
+    while(cur<=end&&count<maxCount){
+      const ds=calPad(cur);
+      if(byDay.has(dowName(cur))&&isMatchingWeek(cur)){
+        if(ds>=startStr&&ds<=endStr&&!exceptions.has(ds)){
+          out.push({dateStr:ds,isOverride:!!overrides[ds],override:overrides[ds]||null});
+        }
+        count++;
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+  } else if(freq==='daily'){
+    const cur=new Date(baseDate+'T00:00:00');
+    while(cur<=end&&count<maxCount){
+      const ds=calPad(cur);
+      if(ds>=startStr&&ds<=endStr&&!exceptions.has(ds)){
+        out.push({dateStr:ds,isOverride:!!overrides[ds],override:overrides[ds]||null});
+      }
+      count++;cur.setDate(cur.getDate()+1);
+    }
+  } else if(freq==='monthly'){
+    const cur=new Date(baseDate+'T00:00:00');
+    while(cur<=end&&count<maxCount){
+      const ds=calPad(cur);
+      if(ds>=startStr&&ds<=endStr&&!exceptions.has(ds)){
+        out.push({dateStr:ds,isOverride:!!overrides[ds],override:overrides[ds]||null});
+      }
+      count++;cur.setMonth(cur.getMonth()+1);
+    }
+  }
+  return out;
+}
 const liveItems=()=>DATA?Object.values(DATA.items).filter(i=>!i.deleted):[];
 const liveEvents=()=>DATA?Object.values(DATA.events).filter(e=>!e.deleted):[];
 // All calendar-visible entries: items with a date + events. Returned as [{kind:'item'|'event',rec,dateMs,timeStr}].
@@ -1303,10 +1396,20 @@ function calEntries(filter,dateStr){
   liveEvents().forEach(ev=>{
     if(!matchKid(ev,filter))return;
     const d=ev.startDate||ev.date||'';if(!d)return;
-    if(dateStr&&d.slice(0,10)!==dateStr)return;
-    const ms=Date.parse(d.length<=10?d+'T00:00:00':d)||0;
     const ts=(!ev.allDay&&/T\d\d:/.test(d))?d.replace(/.*T/,'').slice(0,5):'';
-    out.push({kind:'event',rec:ev,dateMs:ms,dateStr:d.slice(0,10),timeStr:ts,isDue:false,allDay:ev.allDay!==false});
+    if(ev.recurrenceRule&&ev.recurrenceRule.frequency){
+      const rangeStart=dateStr||(calPad(new Date(nowMs()-90*dayMs)));
+      const rangeEnd=dateStr||(calPad(new Date(nowMs()+180*dayMs)));
+      expandRecurrence(ev,rangeStart,rangeEnd).forEach(inst=>{
+        const ov=inst.override?Object.assign({},ev,inst.override,{id:ev.id}):ev;
+        const ms=Date.parse(inst.dateStr+'T'+(ts||'00:00:00'))||0;
+        out.push({kind:'event',rec:ov,dateMs:ms,dateStr:inst.dateStr,timeStr:ts,isDue:false,allDay:ev.allDay!==false,isInstance:true,instanceDate:inst.dateStr,seriesId:ev.id});
+      });
+    } else {
+      if(dateStr&&d.slice(0,10)!==dateStr)return;
+      const ms=Date.parse(d.length<=10?d+'T00:00:00':d)||0;
+      out.push({kind:'event',rec:ev,dateMs:ms,dateStr:d.slice(0,10),timeStr:ts,isDue:false,allDay:ev.allDay!==false});
+    }
   });
   out.sort((a,b)=>{
     // timed events first, then all-day events, then due items
@@ -1333,7 +1436,7 @@ function kidColorFor(entry){
   return {bar:'var(--both-bar)',txt:'var(--both-txt)',tint:'var(--both-tint)',edge:'var(--both-edge)'};
 }
 function fmtTime(t){if(!t)return '';const [h,m]=t.split(':');const hh=+h;return (hh>12?hh-12:hh||12)+':'+m+(hh>=12?' pm':' am')}
-function calInit(){const d=new Date(nowMs());CAL_YEAR=d.getFullYear();CAL_MONTH=d.getMonth();CAL_SEL_DATE=calPad(d)}
+function calInit(){const d=new Date(nowMs());CAL_YEAR=d.getFullYear();CAL_MONTH=d.getMonth();CAL_SEL_DATE=calPad(d);CAL_WEEK_OFF=0}
 function calPad(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function calToday(){return calPad(new Date(nowMs()))}
 
@@ -1510,7 +1613,7 @@ function renderCalWeek(root){
       r.textContent=(e.rec.recurrenceRule?'\u21BB ':'')+(e.timeStr&&!e.isDue?fmtTime(e.timeStr)+' ':e.isDue?'Due ':e.allDay?'':'')+(e.rec.title||'');
       r.style.color=c.txt;
       if(e.isDue){r.style.borderColor=c.bar}else{r.style.borderLeftColor=c.bar}
-      r.addEventListener('click',()=>openDetail(e.rec.id));col.appendChild(r);
+      r.addEventListener('click',()=>openDetail(e.rec.id,e));col.appendChild(r);
     });
     wgrid.appendChild(col);
     // mobile: agenda-style day
@@ -1551,7 +1654,7 @@ function calDayRow(e){
   if(e.rec.summary)body.appendChild(el('div','rs',e.rec.summary));
   row.appendChild(body);
   row.appendChild(kidBadge(e.rec));
-  row.addEventListener('click',()=>openDetail(e.rec.id));
+  row.addEventListener('click',()=>openDetail(e.rec.id,e));
   return row;
 }
 /* ════════════════════════════════════════════════════
@@ -1893,7 +1996,8 @@ async function toggleItem(it){
 }
 
 /* detail view */
-function openDetail(id){DETAIL_ID=id;const ab=$('app-body');if(ab)ab.classList.add('in-detail');const dc=$('detail-col');if(dc)dc.classList.add('open');renderDetail()}
+let _detailEntry=null;
+function openDetail(id,entry){_detailEntry=entry||null;DETAIL_ID=id;const ab=$('app-body');if(ab)ab.classList.add('in-detail');const dc=$('detail-col');if(dc)dc.classList.add('open');renderDetail()}
 function closeDetail(){DETAIL_ID=null;const ab=$('app-body');if(ab)ab.classList.remove('in-detail');const dc=$('detail-col');if(dc)dc.classList.remove('open');}
 function renderDetail(){
   const dc=$('detail-col');if(!dc)return;dc.textContent='';
@@ -1919,8 +2023,8 @@ function renderDetail(){
   acts.appendChild(doneBtn);
   s.appendChild(acts);
   const er=el('div','det-edit-row');
-  const editB=el('button','btn');editB.innerHTML='<i class="ti ti-edit" aria-hidden="true"></i> Edit';editB.addEventListener('click',()=>openEdit(it.id));
-  const delB=el('button','btn danger');delB.innerHTML='<i class="ti ti-trash" aria-hidden="true"></i> Delete';delB.addEventListener('click',()=>deleteItem(it.id));
+  const editB=el('button','btn');editB.innerHTML='<i class="ti ti-edit" aria-hidden="true"></i> Edit';editB.addEventListener('click',()=>{const entry=_detailEntry;editWithScope(it.id,entry&&entry.instanceDate)});
+  const delB=el('button','btn danger');delB.innerHTML='<i class="ti ti-trash" aria-hidden="true"></i> Delete';delB.addEventListener('click',()=>deleteItem(it.id,_detailEntry&&_detailEntry.instanceDate));
   if(it.needsSource){const sb=el('button','btn');sb.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Source found';sb.addEventListener('click',async()=>{await upsert('items',{id:it.id,needsSource:false,needsSourceReason:''});toast('Source cleared','success');renderDetail();renderView()});er.appendChild(sb)}
   er.appendChild(editB);er.appendChild(delB);s.appendChild(er);
   // original message
@@ -1933,14 +2037,8 @@ function renderDetail(){
   }
   dc.appendChild(s);
 }
-async function deleteItem(id){
-  const it=DATA.items[id]||DATA.events[id];
-  const title=it?it.title||'(untitled)':'this item';
-  confirmDialog('Delete \u201C'+title+'\u201D?','This removes it for both of you.',()=>{
-    const coll=DATA.events[id]?'events':'items';
-    removeRecord(coll,id);
-    toast('Deleted','success');closeDetail();renderView();
-  },'Delete','danger');
+async function deleteItem(id,instanceDate){
+  deleteWithScope(id,instanceDate);
 }
 // generic confirm dialog
 let _confirmFn=null;
@@ -1953,7 +2051,7 @@ function closeConfirm(){const w=$('confirm-wrap');if(w)w.classList.remove('open'
 function doConfirm(){if(_confirmFn)_confirmFn();closeConfirm()}
 
 /* quick-add / edit sheet */
-let EDIT_ID=null,EDIT_KID='AV';
+let EDIT_ID=null,EDIT_KID='AV',EDIT_SCOPE=null,EDIT_INSTANCE_DATE=null,EDIT_BYDAYS=new Set();
 function openEdit(id,opts){
   opts=opts||{};
   EDIT_ID=id||null;
@@ -1976,11 +2074,34 @@ function openEdit(id,opts){
   $('f-end-time').value=endTime;
   $('f-summary').value=it?it.summary||'':'';
   $('f-details').value=it?it.details||'':'';
+  // repeat fields (events only)
+  const rFields=$('repeat-fields');if(rFields)rFields.style.display=isEvent?'':'none';
+  EDIT_SCOPE=opts.editScope||null;EDIT_INSTANCE_DATE=opts.instanceDate||null;
+  const rule=it&&it.recurrenceRule;
+  if($('f-repeat'))$('f-repeat').value=rule?rule.frequency:'none';
+  if($('f-repeat-end'))$('f-repeat-end').value=rule?(rule.until?'date':(rule.count?'count':'never')):'never';
+  if($('f-repeat-until'))$('f-repeat-until').value=rule&&rule.until?rule.until:'';
+  if($('f-repeat-count'))$('f-repeat-count').value=rule&&rule.count?rule.count:'10';
+  EDIT_BYDAYS=new Set(rule&&rule.byDay?rule.byDay:[]);
+  paintRepeatFields();
   clearFieldErr();
   openSheet('sheet-edit');setTimeout(()=>{const t=$('f-title');if(t&&t.focus)t.focus()},60);
 }
 function toggleTimeFields(show){
   const tf=$('time-fields');if(tf)tf.style.display=show?'':'none';
+}
+function paintRepeatFields(){
+  const freq=$('f-repeat')?$('f-repeat').value:'none';
+  const showDays=freq==='weekly'||freq==='biweekly';
+  const dp=$('f-day-pick');if(dp){dp.style.display=showDays?'':'none';dp.textContent='';
+    if(showDays){DOW_NAMES.forEach((d,i)=>{
+      const b=el('button',EDIT_BYDAYS.has(d)?'on':'',DOW_LABELS[i].slice(0,3));b.type='button';
+      b.addEventListener('click',()=>{if(EDIT_BYDAYS.has(d))EDIT_BYDAYS.delete(d);else EDIT_BYDAYS.add(d);paintRepeatFields()});
+      dp.appendChild(b)})}}
+  const endVal=$('f-repeat-end')?$('f-repeat-end').value:'never';
+  const uw=$('f-repeat-until-row');if(uw)uw.style.display=endVal==='date'?'':'none';
+  const cw=$('f-repeat-count-row');if(cw)cw.style.display=endVal==='count'?'':'none';
+  const ew=$('f-repeat-end-wrap');if(ew)ew.style.display=freq==='none'?'none':'';
 }
 function paintKidPick(){document.querySelectorAll('#f-kid button').forEach(b=>{b.className='';const k=b.getAttribute('data-kid');if(k===EDIT_KID)b.className='sel-'+(k==='both'?'both':k==='AV'?'av':'iv')})}
 function clearFieldErr(){['f-title'].forEach(id=>{const f=$(id);if(f&&f.parentElement)f.parentElement.classList.remove('err')});const kp=$('f-kid');if(kp&&kp.parentElement)kp.parentElement.classList.remove('err')}
@@ -2004,6 +2125,29 @@ async function saveEdit(){
     if(type==='form/payment'||type==='assignment'||type==='test'||type==='grade-flag')rec.dueDate=dWithTime;
     else rec.startDate=dWithTime;
     if(endTime)rec.endDate=dateVal+'T'+endTime;
+  }
+  // recurrence rule (events only)
+  if(type==='event'){
+    const freq=$('f-repeat')?$('f-repeat').value:'none';
+    if(freq!=='none'){
+      const rule={frequency:freq};
+      if(freq==='weekly'||freq==='biweekly')rule.byDay=EDIT_BYDAYS.size?[...EDIT_BYDAYS]:null;
+      const endMode=$('f-repeat-end')?$('f-repeat-end').value:'never';
+      if(endMode==='date')rule.until=$('f-repeat-until')?$('f-repeat-until').value||null:null;
+      else if(endMode==='count')rule.count=parseInt($('f-repeat-count')?$('f-repeat-count').value:'10')||10;
+      rec.recurrenceRule=rule;
+    } else {rec.recurrenceRule=null}
+  }
+  // instance override: save only this date's changes
+  if(EDIT_SCOPE==='instance'&&EDIT_INSTANCE_DATE&&EDIT_ID){
+    const master=DATA.events[EDIT_ID];
+    if(master){
+      master.recOverrides=master.recOverrides||{};
+      master.recOverrides[EDIT_INSTANCE_DATE]={title:rec.title,summary:rec.summary,details:rec.details};
+      master.updatedAt=stampNow(master);master.updatedBy=ME.email;mutationSeq++;
+      requestSave();toast('Instance updated','success');
+      closeSheet('sheet-edit');renderView();return;
+    }
   }
   // decide collection: event types go in events, everything else in items
   const coll=(type==='event')?'events':'items';
@@ -2119,6 +2263,74 @@ async function runUndo(){
   }catch(e){busyDone();toast(errMsg(e),'error')}
 }
 
+
+/* ════════════════════════════════════════════════════
+   SCOPE PROMPT + REPEAT HELPERS (v0.3.1)
+════════════════════════════════════════════════════ */
+let _scopeFn=null,_scopeChoice='this';
+function openScope(title,sub,choices,fn){
+  $('scope-title').textContent=title;$('scope-sub').textContent=sub;
+  const opts=$('scope-opts');opts.textContent='';_scopeChoice=choices[0].id;
+  choices.forEach(c=>{
+    const d=el('div','scope-opt'+(c.id===_scopeChoice?' on':''));
+    d.innerHTML='<span class="sd"></span>';
+    const body=el('div');body.appendChild(el('div','sl',c.label));if(c.desc)body.appendChild(el('div','sm',c.desc));
+    d.appendChild(body);
+    d.addEventListener('click',()=>{_scopeChoice=c.id;(opts.children||[]).forEach(o=>{if(o.classList)o.classList.remove('on')});d.classList.add('on')});
+    opts.appendChild(d);
+  });
+  _scopeFn=fn;$('scope-wrap').classList.add('open');
+}
+function closeScope(){$('scope-wrap').classList.remove('open');_scopeFn=null}
+function doScope(){if(_scopeFn)_scopeFn(_scopeChoice);closeScope()}
+function freqLabel(rule){
+  if(!rule)return '';
+  const f=rule.frequency;
+  const days=(rule.byDay||[]).map(d=>DOW_LABELS[DOW_NAMES.indexOf(d)]||d).join(', ');
+  if(f==='daily')return 'daily';
+  if(f==='weekly')return 'weekly'+(days?' on '+days:'');
+  if(f==='biweekly')return 'every other week'+(days?' on '+days:'');
+  if(f==='monthly')return 'monthly';
+  return f;
+}
+function fmtDateStr(ds){return new Date(ds+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}
+function deleteWithScope(id,instanceDate){
+  const ev=DATA.events[id];
+  if(!ev||!ev.recurrenceRule||!ev.recurrenceRule.frequency){
+    const it=DATA.items[id]||DATA.events[id];
+    const title=it?it.title||'(untitled)':'this item';
+    confirmDialog('Delete \u201C'+title+'\u201D?','This removes it for both of you.',()=>{
+      const coll=DATA.events[id]?'events':'items';
+      removeRecord(coll,id);toast('Deleted','success');closeDetail();renderView();
+    },'Delete','danger');
+    return;
+  }
+  openScope('Delete repeating event',ev.title+' \u00b7 repeats '+freqLabel(ev.recurrenceRule),[
+    {id:'this',label:'This event only',desc:instanceDate?fmtDateStr(instanceDate)+'. The rest of the series is unchanged.':''},
+    {id:'all',label:'All events',desc:'The entire series will be removed.'}
+  ],(choice)=>{
+    if(choice==='this'&&instanceDate){
+      ev.recExceptions=ev.recExceptions||[];
+      if(!ev.recExceptions.includes(instanceDate))ev.recExceptions.push(instanceDate);
+      ev.updatedAt=stampNow(ev);ev.updatedBy=ME.email;mutationSeq++;
+      requestSave();toast('Instance removed','success');
+    } else {
+      removeRecord('events',id);toast('Series deleted','success');
+    }
+    closeDetail();renderView();
+  });
+}
+function editWithScope(id,instanceDate){
+  const ev=DATA.events[id];
+  if(!ev||!ev.recurrenceRule||!ev.recurrenceRule.frequency){openEdit(id);return}
+  openScope('Edit repeating event',ev.title+' \u00b7 repeats '+freqLabel(ev.recurrenceRule),[
+    {id:'this',label:'This event only',desc:instanceDate?fmtDateStr(instanceDate)+'. The rest of the series is unchanged.':''},
+    {id:'all',label:'All events',desc:'Edit the entire series.'}
+  ],(choice)=>{
+    if(choice==='this'&&instanceDate){openEdit(id,{isEvent:true,date:instanceDate,editScope:'instance',instanceDate})}
+    else{openEdit(id,{isEvent:true,editScope:'series'})}
+  });
+}
 /* settings view */
 function renderSettings(root){
   const head=el('div','view-head');head.appendChild(el('div','view-title','Settings'));root.appendChild(head);
@@ -2187,12 +2399,16 @@ function wire(){
   on('btn-nav-add',()=>openEdit(null));
   on('btn-me',openMenu);
   const mw=$('menu-wrap');if(mw)mw.addEventListener('click',e=>{if(e.target===mw)closeMenu()});
-  document.addEventListener('keydown',e=>{if(e&&e.key==='Escape'){closeMenu();closeSheet('sheet-undo')}});
+  document.addEventListener('keydown',e=>{if(e&&e.key==='Escape'){closeMenu();closeSheet('sheet-undo');closeScope();closeConfirm()}});
   on('undo-close',()=>closeSheet('sheet-undo'));on('undo-cancel',()=>closeSheet('sheet-undo'));on('undo-confirm',runUndo);
   on('sheet-edit-close',()=>closeSheet('sheet-edit'));
   on('sheet-edit-cancel',()=>closeSheet('sheet-edit'));
   on('sheet-edit-save',saveEdit);
   const ad=$('f-allday');if(ad)ad.addEventListener('change',()=>toggleTimeFields(!ad.checked));
+  const fr=$('f-repeat');if(fr)fr.addEventListener('change',paintRepeatFields);
+  const fre=$('f-repeat-end');if(fre)fre.addEventListener('change',paintRepeatFields);
+  on('scope-cancel',closeScope);on('scope-ok',doScope);
+  const sw=$('scope-wrap');if(sw)sw.addEventListener('click',e=>{if(e.target===sw)closeScope()});
   on('confirm-cancel',closeConfirm);on('confirm-ok',doConfirm);
   const cw=$('confirm-wrap');if(cw)cw.addEventListener('click',e=>{if(e.target===cw)closeConfirm()});
   document.querySelectorAll('#f-kid button').forEach(b=>b.addEventListener('click',()=>{EDIT_KID=b.getAttribute('data-kid');paintKidPick();const kp=$('f-kid');if(kp&&kp.parentElement)kp.parentElement.classList.remove('err')}));
@@ -2234,10 +2450,11 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   liveItems,liveEvents,calEntries,calEntriesForMonth,calInit,calToday,calPad,weekStartMs,weekRange,weekRangeLabel,
   thisWeekItems,nextWeekItems,weekItems,todoItems,criticalItems,groupByPriority,kidKey,itemSort,
   planUndo,requestUndo,runUndo,openMenu,closeMenu,confirmDialog,closeConfirm,doConfirm,
+  expandRecurrence,freqLabel,deleteWithScope,editWithScope,openScope,closeScope,doScope,paintRepeatFields,
   fmtTime,kidColorFor,weekItems,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
-  get:()=>({ME,DATA,CRYPTO,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF}),
-  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS},
+  get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS}),
+  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS},
   liveBackups,LS,LOGS
 };
 window.addEventListener('load',boot);
