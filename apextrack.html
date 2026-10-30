@@ -480,6 +480,24 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
     <div class="fld"><label for="f-start-time">Start time</label><input id="f-start-time" type="time"></div>
     <div class="fld"><label for="f-end-time">End time</label><input id="f-end-time" type="time"></div>
   </div>
+  <div id="repeat-fields" style="display:none">
+    <div class="repeat-row">
+      <div class="fld"><label for="f-repeat">Repeat</label><select id="f-repeat">
+        <option value="none">None</option><option value="daily">Daily</option><option value="weekly">Weekly</option>
+        <option value="biweekly">Every other week</option><option value="monthly">Monthly</option>
+      </select></div>
+      <div class="fld" id="f-repeat-end-wrap"><label for="f-repeat-end">Ends</label><select id="f-repeat-end">
+        <option value="never">Never</option><option value="date">On a date</option><option value="count">After N times</option>
+      </select></div>
+    </div>
+    <div class="day-pick" id="f-day-pick" style="display:none"></div>
+    <div class="repeat-row" id="f-repeat-until-row" style="display:none">
+      <div class="fld"><label for="f-repeat-until">Last day</label><input id="f-repeat-until" type="date"></div>
+    </div>
+    <div class="repeat-row" id="f-repeat-count-row" style="display:none">
+      <div class="fld"><label for="f-repeat-count">Occurrences</label><input id="f-repeat-count" type="number" min="2" max="200" value="10"></div>
+    </div>
+  </div>
   <div class="fld"><label for="f-summary">Summary</label><input id="f-summary" type="text" placeholder="One-line summary"></div>
   <div class="fld"><label for="f-details">Details</label><textarea id="f-details" placeholder="Optional details"></textarea></div>
   <div class="sheet-actions">
