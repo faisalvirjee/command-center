@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.4.1 | 2026-11-01 -->
+<!-- ApexTrack — Family School Tracker | v0.4.2 | 2026-11-01 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -669,7 +669,9 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   </div>
   <div class="fld-2">
     <div class="fld"><label>Period</label><input id="crs-f-period" type="number" min="1" max="12"></div>
-    <div class="fld"><label>Term</label><input id="crs-f-term" value="Sem1"></div>
+    <div class="fld"><label>Term</label>
+      <select id="crs-f-term"><option value="Sem1">Semester 1</option><option value="Sem2">Semester 2</option><option value="Q1">Quarter 1</option><option value="Q2">Quarter 2</option><option value="Q3">Quarter 3</option><option value="Q4">Quarter 4</option><option value="Full">Full year</option></select>
+    </div>
   </div>
   <div class="fld-2">
     <div class="fld"><label>Scale</label>
@@ -693,6 +695,28 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   <div id="courses-manage-list" class="crs-list"></div>
   <div class="sheet-actions">
     <button class="btn primary" id="courses-manage-add" type="button"><i class="ti ti-plus" aria-hidden="true"></i> Add course</button>
+  </div>
+</div></div>
+
+<!-- grade import sheet -->
+<div class="sheet-wrap" id="sheet-grade-import"><div class="sheet">
+  <div class="handle"></div>
+  <div class="sh-title"><span id="gi-title">Import grades</span><button class="x" id="gi-close" type="button" aria-label="Close">&times;</button></div>
+  <div id="gi-stage-paste">
+    <p class="sub">Paste the grade import JSON from Claude.</p>
+    <div class="fld"><textarea id="gi-text" style="min-height:140px;font-family:var(--mono);font-size:12px" placeholder='{"courses":[...],"grades":[...]}'></textarea></div>
+    <div class="sheet-actions">
+      <button class="btn" id="gi-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="gi-preview-btn" type="button">Preview</button>
+    </div>
+  </div>
+  <div id="gi-stage-preview" style="display:none">
+    <div class="imp-summary" id="gi-summary"></div>
+    <div id="gi-list" style="max-height:50vh;overflow-y:auto"></div>
+    <div class="sheet-actions">
+      <button class="btn" id="gi-back" type="button">Back</button>
+      <button class="btn primary" id="gi-commit" type="button">Import</button>
+    </div>
   </div>
 </div></div>
 
@@ -726,7 +750,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.4.1';
+const APP_VERSION='v0.4.2';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -2649,6 +2673,9 @@ function renderGrades(root){
   const mgrBtn=el('button','gr-add-btn');mgrBtn.innerHTML='<i class="ti ti-settings" aria-hidden="true"></i> Courses';
   mgrBtn.style.marginLeft='auto';
   mgrBtn.addEventListener('click',()=>openManageCourses());bar.appendChild(mgrBtn);
+  // import grades button
+  const impBtn=el('button','gr-add-btn');impBtn.innerHTML='<i class="ti ti-upload" aria-hidden="true"></i> Import';
+  impBtn.addEventListener('click',()=>openGradeImport());bar.appendChild(impBtn);
   // add grade button
   const addBtn=el('button','gr-add-btn');addBtn.innerHTML='<i class="ti ti-plus" aria-hidden="true"></i> Add grade';
   addBtn.addEventListener('click',()=>openGradeEdit(null));bar.appendChild(addBtn);
@@ -3014,6 +3041,169 @@ function openManageCourses(){
 }
 
 /* ════════════════════════════════════════════════════
+   GRADE IMPORT (v0.4.2)
+   Paste JSON from Claude → preview → commit.
+   Imports courses, assignments, and portal averages.
+   Deduplicates by kid+course+assignment+date.
+════════════════════════════════════════════════════ */
+let GI_PARSED=null;
+function openGradeImport(){
+  GI_PARSED=null;$('gi-text').value='';
+  $('gi-stage-paste').style.display='';$('gi-stage-preview').style.display='none';
+  $('gi-title').textContent='Import grades';
+  openSheet('sheet-grade-import');
+}
+function giParseAndPreview(){
+  const raw=$('gi-text').value.trim();
+  if(!raw){toast('Paste the JSON first','error');return}
+  let data;
+  try{data=JSON.parse(raw)}catch(e){toast('Invalid JSON: '+e.message,'error');return}
+  if(!data.grades&&!data.courses){toast('JSON must have "courses" or "grades" array','error');return}
+  // build preview
+  const preview={courses:[],grades:[],finals:[],stats:{coursesNew:0,coursesSkip:0,gradesNew:0,gradesUpdate:0,gradesSkip:0,finalsNew:0,finalsUpdate:0}};
+  const existingCourses=liveCourses('all');
+  const existingGrades=liveGrades('all');
+  // courses
+  if(data.courses){
+    for(const c of data.courses){
+      const match=existingCourses.find(ec=>ec.kidId===c.kidId&&(ec.code===c.code||(ec.name===c.name&&ec.teacher===c.teacher)));
+      if(match){preview.courses.push({status:'skip',rec:c,existingId:match.id});preview.stats.coursesSkip++}
+      else{preview.courses.push({status:'new',rec:c});preview.stats.coursesNew++}
+    }
+  }
+  // grades
+  if(data.grades){
+    for(const g of data.grades){
+      const match=existingGrades.find(eg=>eg.kidId===g.kidId&&eg.course===g.course&&eg.assignmentName===g.assignmentName&&eg.date===g.date&&eg.componentName===g.componentName);
+      if(match){
+        const scoreChanged=String(match.rawScore)!==String(g.rawScore);
+        if(scoreChanged){preview.grades.push({status:'update',rec:g,existingId:match.id});preview.stats.gradesUpdate++}
+        else{preview.grades.push({status:'skip',rec:g});preview.stats.gradesSkip++}
+      }else{preview.grades.push({status:'new',rec:g});preview.stats.gradesNew++}
+    }
+  }
+  // course finals (portal averages)
+  if(data.courseFinals){
+    for(const cf of data.courseFinals){
+      const id='cfinal-'+cf.kidId+'-'+(cf.courseCode||cf.course).replace(/\W/g,'');
+      const existing=DATA&&DATA.grades&&DATA.grades[id];
+      if(existing&&!existing.deleted){
+        if(existing.rawScore!==cf.rawScore){preview.finals.push({status:'update',rec:cf,id});preview.stats.finalsUpdate++}
+        else preview.finals.push({status:'skip',rec:cf,id});
+      }else{preview.finals.push({status:'new',rec:cf,id});preview.stats.finalsNew++}
+    }
+  }
+  GI_PARSED=preview;
+  giRenderPreview(preview);
+  $('gi-stage-paste').style.display='none';$('gi-stage-preview').style.display='';
+}
+function giRenderPreview(p){
+  const s=p.stats;
+  const total=s.coursesNew+s.gradesNew+s.gradesUpdate+s.finalsNew+s.finalsUpdate;
+  $('gi-title').textContent='Import preview';
+  const sum=$('gi-summary');sum.textContent='';
+  const add=(n,cls,label)=>{if(n){const sp=el('span','sc '+cls,n+' '+label);sum.appendChild(sp)}};
+  add(s.coursesNew,'new','new courses');
+  add(s.gradesNew,'new','new grades');
+  add(s.gradesUpdate,'upd','grade updates');
+  add(s.finalsNew,'new','portal averages');
+  add(s.finalsUpdate,'upd','avg updates');
+  add(s.coursesSkip+s.gradesSkip,'dup','unchanged');
+  const list=$('gi-list');list.textContent='';
+  // group by kid+course for display
+  const groups={};
+  const addToGroup=(kidId,course,item,type)=>{
+    const key=kidId+'|'+course;
+    if(!groups[key])groups[key]={kidId,course,items:[]};
+    groups[key].items.push({...item,_type:type});
+  };
+  p.courses.filter(c=>c.status==='new').forEach(c=>addToGroup(c.rec.kidId,c.rec.name,c,'course'));
+  p.grades.filter(g=>g.status!=='skip').forEach(g=>addToGroup(g.rec.kidId,g.rec.course,g,'grade'));
+  p.finals.filter(f=>f.status!=='skip').forEach(f=>addToGroup(f.rec.kidId,f.rec.course,f,'final'));
+  // also show skip groups summarized
+  const skipByKidCourse={};
+  p.grades.filter(g=>g.status==='skip').forEach(g=>{const k=g.rec.kidId+'|'+g.rec.course;skipByKidCourse[k]=(skipByKidCourse[k]||0)+1});
+  const sorted=Object.values(groups).sort((a,b)=>a.kidId.localeCompare(b.kidId)||a.course.localeCompare(b.course));
+  for(const grp of sorted){
+    const card=el('div','gr-card');card.style.marginBottom='8px';
+    const hd=el('div','gr-card-head');hd.style.cursor='default';
+    const cDiv=el('div','gr-course');
+    cDiv.appendChild(el('div','gc-name',grp.course));
+    cDiv.appendChild(el('div','gc-sub',kidBadgeLabel(grp.kidId)));
+    hd.appendChild(cDiv);
+    const count=el('div','ga-lbl',grp.items.length+' change'+(grp.items.length===1?'':'s'));
+    hd.appendChild(count);
+    card.appendChild(hd);
+    const body=el('div','gr-body');body.style.display='block';
+    for(const item of grp.items){
+      const row=el('div','imp-row');
+      const statusMap={new:['new','+'],update:['upd','↻'],skip:['dup','—']};
+      const [cls,ic]=statusMap[item.status]||['dup','—'];
+      row.appendChild(el('div','imp-ic '+cls,ic));
+      const bd=el('div','imp-body');
+      if(item._type==='course'){
+        bd.appendChild(el('div','imp-t','New course: '+item.rec.name));
+        const meta=[item.rec.teacher,item.rec.code,'P'+(item.rec.period||'?')].filter(Boolean);
+        bd.appendChild(el('div','imp-m',meta.join(' · ')));
+      }else if(item._type==='final'){
+        bd.appendChild(el('div','imp-t','Portal average: '+item.rec.rawScore));
+        bd.appendChild(el('div','imp-m',item.status==='update'?'Score changed':'New'));
+      }else{
+        const t=el('div','imp-t');t.appendChild(el('span','',item.rec.assignmentName||'(untitled)'));
+        t.appendChild(el('span','tag '+(cls==='new'?'new':'upd'),item.status));bd.appendChild(t);
+        const meta=[item.rec.date,item.rec.componentName,'Score: '+item.rec.rawScore].filter(Boolean);
+        bd.appendChild(el('div','imp-m',meta.join(' · ')));
+      }
+      row.appendChild(bd);body.appendChild(row);
+    }
+    const skipKey=grp.kidId+'|'+grp.course;
+    if(skipByKidCourse[skipKey]){
+      const sk=el('div','imp-m');sk.style.padding='6px 0';sk.style.fontStyle='italic';
+      sk.textContent=skipByKidCourse[skipKey]+' unchanged assignment'+(skipByKidCourse[skipKey]===1?'':'s')+' (skipped)';
+      body.appendChild(sk);
+    }
+    card.appendChild(body);list.appendChild(card);
+  }
+  // show-only skip summary if no changes
+  if(!sorted.length){
+    list.appendChild(el('div','gr-empty','Everything is already up to date.'));
+  }
+  $('gi-commit').textContent=total?('Import '+total+' change'+(total===1?'':'s')):'Nothing to import';
+  $('gi-commit').disabled=!total;
+}
+async function giCommit(){
+  if(!GI_PARSED)return;
+  const btn=$('gi-commit');btn.disabled=true;
+  const p=GI_PARSED;
+  const total=p.stats.coursesNew+p.stats.gradesNew+p.stats.gradesUpdate+p.stats.finalsNew+p.stats.finalsUpdate;
+  busy('Importing '+total+' change'+(total===1?'':'s')+'\u2026');
+  try{
+    // 1. import new courses
+    for(const c of p.courses){
+      if(c.status==='new')addCourse(c.rec);
+    }
+    // 2. import grades (new + updates)
+    for(const g of p.grades){
+      if(g.status==='new'){
+        addGrade(Object.assign({type:'assignment',source:'import'},g.rec));
+      }else if(g.status==='update'){
+        updateGrade(g.existingId,{rawScore:g.rec.rawScore,source:'import'});
+      }
+    }
+    // 3. import portal averages
+    for(const f of p.finals){
+      if(f.status==='new'||f.status==='update'){
+        setCourseAvg(f.rec.kidId,f.rec.courseCode,f.rec.course,f.rec.teacher,f.rec.term,f.rec.period,f.rec.rawScore,f.rec.missingAssignments||0);
+      }
+    }
+    await scheduleSave();
+    busyDone();closeSheet('sheet-grade-import');
+    toast('Imported '+total+' change'+(total===1?'':'s'),'success');
+    renderView();
+  }catch(e){busyDone();toast(errMsg(e),'error');btn.disabled=false}
+}
+
+/* ════════════════════════════════════════════════════
    ICS EXPORT + PUSH TRACKING (v0.3.2)
    Wall-clock times in America/New_York via a named VTIMEZONE.
    Info-priority items are never pushed. pushedToCalendar marks
@@ -3362,6 +3552,12 @@ function wire(){
   // manage courses
   on('courses-manage-close',()=>closeSheet('sheet-courses-manage'));
   on('courses-manage-add',()=>{closeSheet('sheet-courses-manage');openCourseEdit(null,'manage')});
+  // grade import
+  on('gi-close',()=>closeSheet('sheet-grade-import'));
+  on('gi-cancel',()=>closeSheet('sheet-grade-import'));
+  on('gi-preview-btn',giParseAndPreview);
+  on('gi-back',()=>{$('gi-stage-paste').style.display='';$('gi-stage-preview').style.display='none';$('gi-title').textContent='Import grades'});
+  on('gi-commit',giCommit);
   on('sheet-import-close',()=>closeSheet('sheet-import'));
   on('import-cancel',()=>closeSheet('sheet-import'));
   on('import-preview-btn',doPreview);
@@ -3407,6 +3603,7 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   liveGrades,gradeCourses,computeCourseAvg,whatIfScore,addGrade,updateGrade,removeGrade,setCourseAvg,
   gradeColor,esnuColor,DEFAULT_WEIGHTS,GRADE_THRESHOLDS,
   liveCourses,addCourse,updateCourse,removeCourse,
+  openGradeImport,giParseAndPreview,giCommit,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
   get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER,GRADE_KID}),
   set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS;if('GRADE_KID' in o)GRADE_KID=o.GRADE_KID},
