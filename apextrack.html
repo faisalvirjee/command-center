@@ -2599,31 +2599,40 @@ function computeCourseAvg(course){
 }
 
 /** What-if: what score is needed on next assignment in a given component to reach targetAvg? */
-function whatIfScore(course,targetAvg,componentName){
+/** What-if: what avg score is needed across N upcoming assignments to reach targetAvg?
+    numUpcoming defaults to 1. When >1, the needed score is the average each must hit. */
+function whatIfScore(course,targetAvg,componentName,numUpcoming){
+  const n=Math.max(1,Math.round(numUpcoming||1));
   const calc=computeCourseAvg(course);
   if(calc.avg==null)return {needed:null,message:'No scores entered yet.'};
   const comps=calc.components;
   const cn=componentName||'AKS Mastery*';
-  // If the component doesn't exist yet, treat it as empty (first assignment in that component)
   const comp=comps[cn]||{scores:[],weight:DEFAULT_WEIGHTS[cn]||null,avg:null};
   const weight=comp.weight||(DEFAULT_WEIGHTS[cn]||0.5);
   if(!weight)return {needed:null,message:'No weight known for component.'};
-  // Current contribution from other components
   let otherTotal=0,otherWeight=0;
   for(const k of Object.keys(comps)){
     if(k===cn)continue;const c=comps[k];if(!c.scores.length||!c.weight)continue;
     otherTotal+=c.avg*c.weight;otherWeight+=c.weight;
   }
-  // newCount scores in this component after adding 1
-  const newCount=comp.scores.length+1;
-  // target: (otherTotal + weight * ((sum + x) / newCount)) / (otherWeight + weight) = targetAvg
+  const newCount=comp.scores.length+n;
   const sum=comp.scores.reduce((a,b)=>a+b,0);
-  // solve: sum + x = newCount * (targetAvg * (otherWeight + weight) - otherTotal) / weight
-  const needed=((targetAvg*(otherWeight+weight)-otherTotal)/weight)*newCount-sum;
-  const r=Math.round(needed*100)/100;
-  if(r>100)return {needed:r,achievable:false,message:'Need '+r+' — not achievable with one assignment (max 100).'};
-  if(r<0)return {needed:0,achievable:true,message:'Any score will reach the target.'};
-  return {needed:r,achievable:true,message:'Need at least '+r+' on the next '+cn.replace('*','')+' assignment.'};
+  // solve: (otherTotal + weight * ((sum + n*x) / newCount)) / (otherWeight + weight) = targetAvg
+  // → n*x = newCount * (targetAvg*(otherWeight+weight) - otherTotal) / weight - sum
+  const totalNeeded=((targetAvg*(otherWeight+weight)-otherTotal)/weight)*newCount-sum;
+  const perAssignment=Math.round((totalNeeded/n)*100)/100;
+  const label=cn.replace('*','');
+  if(perAssignment>100){
+    if(n===1)return {needed:perAssignment,achievable:false,message:'Need '+perAssignment+' — not achievable with one assignment (max 100).'};
+    // try to find how many it would take at 100 each
+    const atMax=((targetAvg*(otherWeight+weight)-otherTotal)/weight)*(comp.scores.length)-sum;
+    // n where perAssignment ≤ 100: n*100 ≥ totalNeeded → n ≥ totalNeeded/100
+    const minN=Math.ceil(totalNeeded/100);
+    return {needed:perAssignment,achievable:false,message:'Need avg '+perAssignment+' each across '+n+' — not reachable. Would take '+minN+' assignments at 100 each.'};
+  }
+  if(perAssignment<0)return {needed:0,achievable:true,message:'Any scores will reach the target.'};
+  if(n===1)return {needed:perAssignment,achievable:true,message:'Need at least '+perAssignment+' on the next '+label+' assignment.'};
+  return {needed:perAssignment,achievable:true,message:'Need avg '+perAssignment+' across '+n+' upcoming '+label+' assignments.'};
 }
 
 /** Quick-add a single grade */
@@ -2798,6 +2807,9 @@ function renderWhatIf(course){
   const sel=document.createElement('select');
   ['AKS Mastery*','AKS Progress*'].forEach(cn=>{const o=document.createElement('option');o.value=cn;o.textContent=cn;sel.appendChild(o)});
   fComp.appendChild(sel);row.appendChild(fComp);
+  // upcoming count
+  const fNum=el('div','fld');fNum.appendChild(el('label','','# upcoming'));
+  const numInp=document.createElement('input');numInp.type='number';numInp.min='1';numInp.max='20';numInp.value='1';numInp.placeholder='1';fNum.appendChild(numInp);row.appendChild(fNum);
   wi.appendChild(row);
   // result
   const result=el('div','wi-result','');
@@ -2805,11 +2817,12 @@ function renderWhatIf(course){
   const compute=()=>{
     const target=parseFloat(inp.value);
     if(isNaN(target)){result.textContent='Enter a target average.';result.className='wi-result';return}
-    const r=whatIfScore(course,target,sel.value);
+    const n=parseInt(numInp.value)||1;
+    const r=whatIfScore(course,target,sel.value,n);
     result.textContent=r.message;
     result.className='wi-result'+(r.achievable===false?' red':r.needed!=null&&r.needed<=100?' green':' amber');
   };
-  inp.addEventListener('input',compute);sel.addEventListener('change',compute);
+  inp.addEventListener('input',compute);sel.addEventListener('change',compute);numInp.addEventListener('input',compute);
   compute();
   return wi;
 }
