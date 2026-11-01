@@ -2512,8 +2512,8 @@ function whatIfScore(course,targetAvg,componentName){
   if(calc.avg==null)return {needed:null,message:'No scores entered yet.'};
   const comps=calc.components;
   const cn=componentName||'AKS Mastery*';
-  const comp=comps[cn];
-  if(!comp)return {needed:null,message:'Component "'+cn+'" not found.'};
+  // If the component doesn't exist yet, treat it as empty (first assignment in that component)
+  const comp=comps[cn]||{scores:[],weight:DEFAULT_WEIGHTS[cn]||null,avg:null};
   const weight=comp.weight||(DEFAULT_WEIGHTS[cn]||0.5);
   if(!weight)return {needed:null,message:'No weight known for component.'};
   // Current contribution from other components
@@ -2740,12 +2740,13 @@ function paintGradeKidPick(){
   });
 }
 async function saveGrade(){
+  const btn=$('gr-sheet-save');if(btn)btn.disabled=true;  // prevent double-tap
   const f=id=>$(id);
   const kid=f('gr-f-kid-val').value;
   const course=f('gr-f-course').value.trim();
   const score=f('gr-f-score').value.trim();
-  if(!course){toast('Course name is required','error');return}
-  if(!score){toast('Score is required','error');return}
+  if(!course){toast('Course name is required','error');if(btn)btn.disabled=false;return}
+  if(!score){toast('Score is required','error');if(btn)btn.disabled=false;return}
   const obj={
     kidId:kid,course,courseCode:f('gr-f-code').value.trim()||'',
     assignmentName:f('gr-f-asgn').value.trim(),
@@ -2758,15 +2759,17 @@ async function saveGrade(){
     type:'assignment',source:'manual'
   };
   if(GRADE_EDIT_ID)obj.id=GRADE_EDIT_ID;
+  // close sheet and render immediately (local mutation is sync), Drive save runs in background
   try{
-    if(GRADE_EDIT_ID)await updateGrade(GRADE_EDIT_ID,obj);
-    else await addGrade(obj);
+    if(GRADE_EDIT_ID)updateGrade(GRADE_EDIT_ID,obj);
+    else addGrade(obj);
     closeSheet('sheet-grade');toast(GRADE_EDIT_ID?'Grade updated':'Grade added','success');renderView();
-  }catch(e){toast(errMsg(e),'error')}
+  }catch(e){toast(errMsg(e),'error');if(btn)btn.disabled=false}
 }
 async function deleteGrade(){
   if(!GRADE_EDIT_ID)return;
-  try{await removeGrade(GRADE_EDIT_ID);closeSheet('sheet-grade');toast('Grade deleted','success');renderView()}catch(e){toast(errMsg(e),'error')}
+  const btn=$('gr-delete-btn');if(btn)btn.disabled=true;
+  try{removeGrade(GRADE_EDIT_ID);closeSheet('sheet-grade');toast('Grade deleted','success');renderView()}catch(e){toast(errMsg(e),'error');if(btn)btn.disabled=false}
 }
 
 /* ════════════════════════════════════════════════════
