@@ -1,0 +1,2733 @@
+<!-- ApexTrack — Family School Tracker | v0.3.2 | 2026-10-30 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="theme-color" content="#0c1628">
+<title>ApexTrack — Family School Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8E%92%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css" rel="stylesheet">
+<style>
+:root{
+  --bg:#060b18;--bg2:#0a1020;--surface:#0c1628;--card:#0f1e35;--card2:#162440;
+  --border:#1a2e4a;--border2:#243d60;
+  --amber:#f59e0b;--amber-dim:rgba(245,158,11,.12);
+  --blue:#3b82f6;--green:#10b981;--red:#ef4444;--purple:#a78bfa;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#7a8fa8;
+  --mono:'IBM Plex Mono',monospace;--font:'Barlow',sans-serif;--cond:'Barlow Condensed',sans-serif;
+  --radius:10px;--radius2:14px;--shadow:0 4px 24px rgba(0,0,0,.4);
+  /* Phase 2a — kid colors (AV girl/pink, IV boy/blue, Both teal) */
+  --av-bar:#D4537E;--av-txt:#ED93B1;--av-tint:rgba(212,83,126,.15);--av-tint-soft:rgba(212,83,126,.10);--av-edge:rgba(212,83,126,.3);
+  --iv-bar:#378ADD;--iv-txt:#85B7EB;--iv-tint:rgba(55,138,221,.15);--iv-tint-soft:rgba(55,138,221,.10);--iv-edge:rgba(55,138,221,.3);
+  --both-bar:#1D9E75;--both-txt:#5DCAA5;--both-tint:rgba(29,158,117,.15);--both-tint-soft:rgba(29,158,117,.10);--both-edge:rgba(29,158,117,.3);
+  /* priority */
+  --crit-dot:#E24B4A;--crit-txt:#F09595;--crit-tint:rgba(226,75,74,.15);
+  --act-dot:#EF9F27;--act-txt:#FAC775;--act-tint:rgba(239,159,39,.15);
+  --info-dot:#243d60;--info-txt:#94a3b8;--info-tint:rgba(36,61,96,.25);
+  /* import status */
+  --upd-txt:#5DCAA5;--upd-tint:rgba(29,158,117,.15);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5}
+button{cursor:pointer;font-family:var(--font)}
+input{font-family:var(--font);font-size:16px;background:var(--card2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:11px 12px;outline:none;width:100%}
+input:focus{border-color:var(--amber)}
+.screen{display:none;min-height:100vh;align-items:flex-start;justify-content:center;padding:20px 14px}
+.screen.active{display:flex}
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius2);padding:26px 22px;width:100%;max-width:440px;box-shadow:var(--shadow)}
+.card.wide{max-width:720px}
+.title{font-family:var(--cond);font-size:30px;font-weight:700;color:var(--amber);letter-spacing:.5px}
+.ver{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:14px}
+.sub{color:var(--text2);font-size:14px;margin-bottom:16px}
+.btn{display:block;width:100%;min-height:46px;padding:11px;border-radius:9px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-weight:600;font-size:14px;margin-top:10px}
+.btn.primary{background:var(--amber);border-color:var(--amber);color:#000;font-family:var(--cond);font-size:16px;letter-spacing:.4px;font-weight:700}
+.btn.danger{border-color:var(--red);color:#fca5a5;background:rgba(239,68,68,.1)}
+.btn.small{min-height:38px;font-size:13px;margin-top:0}
+.btn:disabled{opacity:.5;cursor:default}
+.link{background:none;border:none;color:var(--text3);font-size:13px;text-decoration:underline;margin-top:14px;display:block;width:100%;padding:8px}
+.msg{min-height:20px;margin-top:12px;font-size:13px;color:var(--text3)}
+.msg.err{color:#fca5a5}.msg.ok{color:#6ee7b7}
+.pwrow{position:relative;margin-top:10px}
+.pwrow button{position:absolute;right:6px;top:6px;height:34px;padding:0 10px;background:transparent;border:none;color:var(--text3);font-size:12px}
+.hidden-user{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.chip{display:inline-block;font-family:var(--mono);font-size:11px;background:var(--card2);border:1px solid var(--border2);border-radius:20px;padding:2px 10px;color:var(--text2);margin-bottom:12px}
+.sect{font-family:var(--cond);font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:3px 10px;font-size:13px}
+.kv .k{color:var(--text3)}.kv .v{font-family:var(--mono);font-size:12px;word-break:break-all}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.list-item{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px;padding:5px 0;border-bottom:1px solid var(--border);color:var(--text2)}
+.cand{display:block;width:100%;text-align:left;margin-top:8px;padding:10px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;font-family:var(--mono)}
+pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px;font-family:var(--mono);font-size:10.5px;color:var(--text2);max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.ok{color:#6ee7b7}.bad{color:#fca5a5}.warn{color:#fde68a}
+#banner-offline,#banner-auth{display:none;position:fixed;top:0;left:0;right:0;z-index:900;padding:9px 14px;font-size:13px;font-weight:600;text-align:center}
+#banner-offline{background:#451a03;color:#fde68a;border-bottom:1px solid var(--amber)}
+#banner-auth{background:#450a0a;color:#fca5a5;border-bottom:1px solid var(--red)}
+#banner-auth button{margin-left:10px;padding:4px 12px;border-radius:6px;border:1px solid var(--red);background:transparent;color:#fca5a5;font-weight:700}
+#toastEl{position:fixed;bottom:16px;left:12px;right:12px;display:flex;flex-direction:column;gap:8px;align-items:center;z-index:1000;pointer-events:none}
+.toast{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:var(--shadow);max-width:440px}
+.toast.success{background:#064e3b;border:1px solid var(--green);color:#6ee7b7}
+.toast.error{background:#450a0a;border:1px solid var(--red);color:#fca5a5}
+.toast.info{background:#1e3a5f;border:1px solid var(--blue);color:#93c5fd}
+.toast.warning{background:#451a03;border:1px solid var(--amber);color:#fde68a}
+
+
+/* ───────── Phase 2b: calendar views ───────── */
+.cal-bar{display:flex;align-items:center;gap:8px;padding:10px 14px 6px;flex-wrap:wrap}
+.cal-bar .month-label{font-weight:600;font-size:16px;min-width:120px}
+.cal-bar .nb{width:28px;height:28px;border-radius:7px;background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text2);flex-shrink:0}
+.cal-bar .today-btn{padding:4px 11px;border-radius:7px;border:1px solid var(--border2);font-size:12px;color:var(--text);background:none;font-weight:600;font-family:var(--font)}
+.cal-seg{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:2px;margin-left:auto}
+.cal-seg button{border:none;background:none;color:var(--text2);font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer;font-family:var(--font);white-space:nowrap}
+.cal-seg button.on{background:var(--both-bar);color:#fff}
+.cal-dow{display:none;grid-template-columns:repeat(7,1fr);font-size:11px;color:var(--text3);padding:2px 8px;text-align:center}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--border);border-left:1px solid var(--border);margin:0 8px}
+.cal-cell{min-height:70px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:2px 3px;overflow:hidden;cursor:pointer}
+.cal-cell.other{background:rgba(255,255,255,.02)}.cal-cell.other .cn{color:#556677}
+.cal-cell.sel{box-shadow:inset 0 0 0 1.5px var(--both-bar)}
+.cn{font-size:11px;color:var(--text3);height:16px;display:flex;align-items:center}
+.cn b{font-weight:500;width:18px;height:18px;border-radius:50%;background:var(--both-bar);color:#04342C;display:flex;align-items:center;justify-content:center;font-size:10.5px}
+.cal-ev{font-size:10.5px;line-height:1.2;padding:1px 4px;margin-top:2px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-ev.ev{border-left:2.5px solid}
+.cal-ev.du{border:1px dashed;background:transparent}
+.cal-more{font-size:10px;color:var(--text3);margin-top:1px;padding-left:2px}
+.cal-day-hd{padding:9px 14px 4px;border-top:1px solid var(--border);font-size:13px;font-weight:600}
+.cal-day-hd .cnt{font-weight:400;color:var(--text3);font-size:12px;margin-left:6px}
+.cal-add{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px;border-radius:8px;border:1px solid rgba(29,158,117,.4);color:var(--both-txt);font-size:12.5px;font-weight:600;margin:10px 14px 0;background:none;width:calc(100% - 28px);font-family:var(--font);cursor:pointer}
+.cal-empty{color:var(--text3);font-size:13px;padding:14px;text-align:center}
+/* agenda */
+.agenda-hd{padding:10px 14px 4px;font-size:12.5px;color:var(--text3);display:flex;justify-content:space-between;border-top:1px solid var(--border)}
+.agenda-hd b{color:var(--text);font-weight:600}
+.agenda-row{display:flex;gap:8px;margin:0 14px 5px;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,.04);border-left:3px solid;cursor:pointer}
+.agenda-row.du{background:transparent;border:1px dashed;border-left-width:3px}
+.agenda-tm{font-size:11.5px;color:var(--text3);width:48px;flex-shrink:0}
+/* mobile month: compact with dots */
+.cal-mgrid{display:none;grid-template-columns:repeat(7,1fr);padding:2px 8px 0;text-align:center}
+.cal-md{height:42px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:3px;font-size:12.5px;border-radius:8px;cursor:pointer}
+.cal-md.other{color:#556677}
+.cal-md.sel{box-shadow:inset 0 0 0 1.5px var(--both-bar)}
+.cal-md b{font-weight:500;width:22px;height:22px;border-radius:50%;background:var(--both-bar);color:#04342C;display:flex;align-items:center;justify-content:center;font-size:12px}
+.cal-dots{display:flex;gap:3px;margin-top:3px;height:6px}
+.cal-dt{width:5px;height:5px;border-radius:50%}
+.cal-dt.du{background:transparent!important;border:1.5px solid}
+/* week view (desktop: 7 col, mobile: day list) */
+.wk-grid{display:none;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--border);border-left:1px solid var(--border);margin:0 8px}
+.wk-col{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px 4px;min-height:100px}
+.wk-dh{font-size:11.5px;color:var(--text3);font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between}
+.wk-dh b{color:var(--text);font-weight:500}
+.wk-dh .today-dot{width:6px;height:6px;border-radius:50%;background:var(--both-bar);margin-left:4px}
+.wk-row{font-size:11.5px;padding:3px 5px;border-radius:4px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wk-row.ev{border-left:2.5px solid;background:rgba(255,255,255,.04)}
+.wk-row.du{border:1px dashed;background:transparent}
+/* confirm modal */
+.scope-wrap{display:none;position:fixed;inset:0;z-index:310;background:rgba(6,11,24,.7);align-items:center;justify-content:center}
+.scope-wrap.open{display:flex}
+.scope-box{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:16px 18px;max-width:380px;width:calc(100% - 40px);box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.scope-box .st{font-weight:600;font-size:16px;margin-bottom:4px}
+.scope-box .ss{font-size:12.5px;color:var(--text3);margin-bottom:12px}
+.scope-opt{display:flex;gap:10px;align-items:flex-start;padding:11px;border-radius:10px;border:1px solid var(--border2);margin-bottom:8px;cursor:pointer}
+.scope-opt.on{border-color:var(--both-bar);background:var(--both-tint-soft)}
+.scope-opt .sd{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;margin-top:1px}
+.scope-opt.on .sd{border-color:var(--both-bar);background:radial-gradient(var(--both-bar) 45%,transparent 50%)}
+.scope-opt .sl{font-weight:600;font-size:14px}
+.scope-opt .sm{font-size:12px;color:var(--text3);margin-top:2px}
+.day-pick{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.day-pick button{width:34px;height:30px;border-radius:7px;border:1px solid var(--border2);background:none;color:var(--text2);font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer}
+.day-pick button.on{background:var(--both-bar);color:#04342C;border-color:var(--both-bar)}
+.repeat-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.repeat-row .fld{flex:1;min-width:120px}
+.confirm-wrap{display:none;position:fixed;inset:0;z-index:300;background:rgba(6,11,24,.7);align-items:center;justify-content:center}
+.confirm-wrap.open{display:flex}
+.confirm-box{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:16px 18px;max-width:360px;width:calc(100% - 40px);box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.confirm-box .ct{font-weight:600;font-size:16px;margin-bottom:6px}
+.confirm-box .cm{font-size:13px;color:var(--text2);margin-bottom:14px}
+.confirm-box .cbtns{display:flex;gap:8px}
+.confirm-box .cbtns .btn{flex:1}
+/* event time fields */
+.fld-time{display:flex;gap:8px;align-items:flex-end}
+.fld-time .fld{flex:1}
+/* ───────── Phase 2a: app shell + views ───────── */
+#screen-app{display:none;min-height:100vh;padding:0}
+#screen-app.active{display:block}
+.app-shell{display:flex;flex-direction:column;min-height:100vh;width:100%;max-width:1100px;margin:0 auto}
+.app-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+.app-top .brand{font-family:var(--cond);font-size:22px;font-weight:700;color:var(--amber);letter-spacing:.4px;display:flex;align-items:center;gap:9px}
+.app-top .brand .mk{width:24px;height:24px;border-radius:6px;background:var(--amber);color:#000;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.app-top .top-right{display:flex;align-items:center;gap:10px}
+.topnav{display:none}
+.me{display:flex;align-items:center;gap:7px;background:none;border:none;padding:0;color:var(--text);font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer}
+.me .me-name,.me .me-chev{display:none}
+.menu-wrap{display:none;position:fixed;inset:0;z-index:210;background:rgba(0,0,0,.55)}
+.menu-wrap.open{display:block}
+.menu-panel{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--border2);border-radius:18px 18px 0 0;padding:8px 14px 18px}
+.menu-panel .handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:2px auto 12px}
+.menu-head{display:flex;align-items:center;gap:12px;padding:2px 6px 12px}
+.menu-head .avatar{width:38px;height:38px;font-size:15px}
+.mh-name{font-size:15px;font-weight:700;color:var(--text)}
+.mh-sub{font-size:12px;color:var(--text3)}
+.menu-panel .mi{display:flex;align-items:center;gap:12px;width:100%;padding:13px 6px;background:none;border:none;border-top:1px solid var(--border);color:var(--text);font-size:15px;font-weight:600;font-family:var(--font);text-align:left;cursor:pointer}
+.menu-panel .mi i{font-size:19px;color:var(--text2)}
+.menu-panel .mi .mi-l{flex:1}
+.menu-panel .mi .mi-note{font-size:11px;color:var(--text3);font-weight:600}
+.menu-panel .mi.soon{color:#556677}
+.menu-panel .mi.danger,.menu-panel .mi.danger i{color:#fca5a5}
+.week-head{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin-bottom:10px}
+.seg{display:flex;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:2px}
+.seg button{flex:1;white-space:nowrap;border:none;background:none;color:var(--text2);font-size:13px;font-weight:600;padding:6px 14px;border-radius:7px;cursor:pointer;font-family:var(--font)}
+.seg button.on{background:var(--both-bar);color:#fff}
+.week-range{font-size:12px;color:var(--text3);white-space:nowrap}
+.stale-inline{flex-basis:100%;font-size:11px;color:var(--text3);margin-top:2px}
+.stale-inline.warn{color:var(--amber)}
+.undo-line{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--border)}
+.undo-line i{font-size:19px;margin-top:1px}
+.undo-line .ul-t{font-size:14px;font-weight:600;color:var(--text)}
+.undo-line .ul-n{font-size:12px;color:var(--text3);margin-top:2px;word-break:break-word}
+.icon-btn{background:none;border:none;color:var(--text2);padding:4px;line-height:1;font-size:20px;display:flex;align-items:center}
+.icon-btn.accent{color:var(--both-txt)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--both-tint);color:var(--both-txt);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.app-body{display:flex;flex:1;min-height:0}
+.main-col{flex:1;min-width:0;display:flex;flex-direction:column}
+.view-head{padding:12px 16px 8px;background:var(--bg2)}
+.view-title{font-family:var(--cond);font-size:26px;font-weight:700;color:var(--text);letter-spacing:.3px;display:none}
+.chips-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.fchip{padding:5px 14px;border-radius:16px;font-size:13px;font-weight:600;border:1px solid var(--border2);color:var(--text2);background:transparent;cursor:pointer}
+.fchip.active{background:var(--both-tint);color:var(--both-txt);border-color:var(--both-edge)}
+.fchip.av{background:var(--av-tint-soft);color:var(--av-txt);border-color:var(--av-edge)}
+.fchip.iv{background:var(--iv-tint-soft);color:var(--iv-txt);border-color:var(--iv-edge)}
+.fchip.av.active{background:var(--av-tint)}
+.fchip.iv.active{background:var(--iv-tint)}
+.view-scroll{flex:1;overflow-y:auto;padding-bottom:88px}
+.sec-head{padding:14px 16px 6px;font-family:var(--cond);font-size:14px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.sec-head .pd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sec-crit{color:var(--crit-txt)}.sec-act{color:var(--act-txt)}.sec-info{color:var(--info-txt)}
+.row{display:flex;align-items:flex-start;gap:11px;padding:12px 16px;border-bottom:1px solid var(--card);cursor:pointer}
+.row:active{background:var(--surface)}
+.row .pdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:7px}
+.chk{width:23px;height:23px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0;margin-top:1px;position:relative;background:transparent;cursor:pointer;padding:0}
+.chk.done{background:var(--both-bar);border-color:var(--both-bar)}
+.chk.done::after{content:'';position:absolute;top:5px;left:5px;width:9px;height:5px;border-left:2px solid var(--bg);border-bottom:2px solid var(--bg);transform:rotate(-45deg)}
+.row-body{flex:1;min-width:0}
+.row-title-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.row-title{font-size:14px;font-weight:600;color:var(--text)}
+.row-meta{font-size:12px;color:var(--text3);margin-top:3px}
+.row-date{font-size:12px;color:var(--text2);margin-top:2px}
+.row.done .row-title{text-decoration:line-through;color:var(--text3)}
+.row.done .row-meta{color:#556677}
+.kb{display:inline-flex;align-items:center;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:600;line-height:1.3}
+.kb.av{background:var(--av-tint);color:var(--av-txt)}
+.kb.iv{background:var(--iv-tint);color:var(--iv-txt)}
+.kb.both{background:var(--both-tint);color:var(--both-txt)}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;line-height:1.3}
+.tag.review{background:var(--act-tint);color:var(--act-txt)}
+.tag.needssrc{background:var(--crit-tint);color:var(--crit-txt)}
+.tag.pushed{background:var(--both-tint);color:var(--both-txt)}
+.tag.changed{background:var(--act-tint);color:var(--act-txt)}
+.row .exp-chk{width:20px;height:20px;border-radius:4px;border:1.5px solid var(--border2);flex-shrink:0;background:transparent;cursor:pointer;margin-right:-3px;padding:0;position:relative}
+.row .exp-chk.on{background:var(--both-bar);border-color:var(--both-bar)}
+.row .exp-chk.on::after{content:'';position:absolute;top:4px;left:4px;width:8px;height:4px;border-left:2px solid var(--bg);border-bottom:2px solid var(--bg);transform:rotate(-45deg)}
+.exp-bar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--border2);font-size:13px;font-weight:600;color:var(--text2);flex-wrap:wrap}
+.exp-bar .exp-count{flex:1;min-width:120px}
+.exp-bar .btn{margin-top:0;min-height:34px;width:auto;font-size:13px;padding:6px 14px}
+.exp-seg{display:inline-flex;border-radius:8px;border:1px solid var(--border2);overflow:hidden}
+.exp-seg button{padding:5px 12px;font-size:12px;font-weight:600;font-family:var(--font);border:none;background:transparent;color:var(--text2);cursor:pointer}
+.exp-seg button.on{background:var(--both-bar);color:#04342C}
+.exp-seg .badge{display:inline-block;min-width:16px;padding:0 5px;height:16px;line-height:16px;border-radius:8px;font-size:10px;font-weight:700;text-align:center;margin-left:4px}
+.exp-seg button.on .badge{background:rgba(0,0,0,.2);color:#04342C}
+.exp-seg button:not(.on) .badge{background:var(--border2);color:var(--text2)}
+.grp-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 16px 4px;color:var(--text3)}
+.tag.new{background:var(--both-tint);color:var(--both-txt)}
+.tag.upd{background:var(--upd-tint);color:var(--upd-txt)}
+.tag.dup{color:var(--text3)}
+.tag.rej{background:var(--crit-tint);color:var(--crit-txt)}
+.empty{padding:48px 24px;text-align:center;color:var(--text3)}
+.empty i{font-size:34px;display:block;margin-bottom:10px;opacity:.5}
+.empty .et{font-size:15px;color:var(--text2);margin-bottom:4px}
+.empty .eb{font-size:13px}
+.toggle-done{display:flex;align-items:center;justify-content:center;gap:6px;margin:10px 16px 0;padding:8px;background:transparent;border:1px dashed var(--border2);border-radius:8px;color:var(--text3);font-size:12px;font-weight:600;width:calc(100% - 32px);cursor:pointer}
+.fab{position:fixed;right:16px;bottom:72px;width:54px;height:54px;border-radius:50%;background:var(--both-bar);color:#fff;border:none;font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.45);z-index:60;cursor:pointer}
+.tabbar{position:fixed;left:0;right:0;bottom:0;height:58px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:55}
+.tabbar button{flex:1;background:none;border:none;color:var(--text3);font-size:10px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:4px 0}
+.tabbar button i{font-size:20px}
+.tabbar button.active{color:var(--both-txt)}
+.tabbar button.soon{color:#556677}
+/* detail view */
+.detail-head{display:flex;align-items:center;gap:10px;padding:13px 16px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
+.detail-head .dt-title{font-family:var(--cond);font-size:19px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail-scroll{padding:16px;overflow-y:auto;padding-bottom:88px}
+.det-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.det-school{font-size:13px;color:var(--text2)}
+.pb{display:inline-flex;align-items:center;padding:3px 9px;border-radius:5px;font-size:12px;font-weight:600}
+.pb.crit{background:var(--crit-tint);color:var(--crit-txt)}
+.pb.act{background:var(--act-tint);color:var(--act-txt)}
+.pb.info{background:var(--info-tint);color:var(--info-txt)}
+.det-date{display:flex;align-items:center;gap:9px;padding:11px 14px;background:var(--surface);border:1px solid var(--border);border-radius:9px;margin-bottom:16px;font-size:14px}
+.det-date i{font-size:17px;color:var(--text2)}
+.det-sec{margin-bottom:16px}
+.det-sec .lab{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:700}
+.det-sec .bod{font-size:14px;color:var(--text);line-height:1.55;white-space:pre-wrap}
+.det-actions{display:flex;gap:9px;margin:20px 0 10px;flex-wrap:wrap}
+.det-actions .btn{margin-top:0;flex:1;min-width:120px}
+.det-edit-row{display:flex;gap:9px}
+.det-edit-row .btn{margin-top:0}
+.msg-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:8px}
+.msg-hd{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:10px;padding-bottom:9px;border-bottom:1px solid var(--border)}
+.msg-hd .s{font-size:13px;font-weight:600;color:var(--text2)}
+.msg-hd .d{font-size:11px;color:var(--text3);white-space:nowrap}
+.msg-bd{font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-word}
+/* bottom sheet / modal (quick-add, import) */
+.sheet-wrap{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55)}
+.sheet-wrap.open{display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);border:1px solid var(--border2);border-radius:16px 16px 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;padding:12px 16px 24px}
+.sheet .handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:2px auto 14px}
+.sheet .sh-title{font-family:var(--cond);font-size:21px;font-weight:700;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sheet .sh-title .x{background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;padding:0;line-height:1}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:12px;color:var(--text3);margin-bottom:5px;font-weight:600}
+.fld input,.fld select,.fld textarea{width:100%;background:var(--card2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:10px 12px;font-size:16px;font-family:var(--font);outline:none}
+.fld textarea{resize:vertical;min-height:58px;line-height:1.5}
+.fld select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--amber)}
+.fld.err input,.fld.err select,.fld.err textarea{border-color:var(--red)}
+.fld .fe{font-size:12px;color:#fca5a5;margin-top:4px;display:none}
+.fld.err .fe{display:block}
+.fld-2{display:flex;gap:10px}.fld-2>.fld{flex:1;margin-bottom:0}
+.kidpick{display:flex;gap:8px}
+.kidpick button{flex:0 0 auto;padding:7px 16px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer}
+.kidpick button.sel-av{background:var(--av-tint);color:var(--av-txt);border-color:var(--av-edge)}
+.kidpick button.sel-iv{background:var(--iv-tint);color:var(--iv-txt);border-color:var(--iv-edge)}
+.kidpick button.sel-both{background:var(--both-tint);color:var(--both-txt);border-color:var(--both-edge)}
+.sheet-actions{display:flex;gap:10px;margin-top:18px}
+.sheet-actions .btn{margin-top:0;flex:1}
+/* import */
+.imp-summary{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.sc{padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600}
+.sc.new{background:var(--both-tint);color:var(--both-txt)}
+.sc.upd{background:var(--upd-tint);color:var(--upd-txt)}
+.sc.dup{background:var(--info-tint);color:var(--text3)}
+.sc.rev{background:var(--act-tint);color:var(--act-txt)}
+.sc.rej{background:var(--crit-tint);color:var(--crit-txt)}
+.imp-row{display:flex;gap:10px;padding:11px 2px;border-bottom:1px solid var(--card);align-items:flex-start}
+.imp-row.dup{opacity:.5}
+.imp-ic{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;margin-top:1px}
+.imp-ic.new{background:var(--both-tint);color:var(--both-txt)}
+.imp-ic.upd{background:var(--upd-tint);color:var(--upd-txt)}
+.imp-ic.dup{background:var(--info-tint);color:var(--text3)}
+.imp-ic.rev{background:var(--act-tint);color:var(--act-txt)}
+.imp-ic.rej{background:var(--crit-tint);color:var(--crit-txt)}
+.imp-body{flex:1;min-width:0}
+.imp-t{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.imp-m{font-size:12px;color:var(--text3);margin-top:2px}
+.imp-note{font-size:11px;margin-top:3px}
+.imp-note.rev{color:var(--act-txt)}
+.imp-note.upd{color:var(--upd-txt)}
+.imp-note.rej{color:var(--crit-txt)}
+.imp-choice{display:inline-flex;gap:6px;margin-top:6px}
+.imp-choice button{padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--card2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer}
+.imp-choice button.on{background:var(--both-tint);color:var(--both-txt);border-color:var(--both-edge)}
+.settings-grp{margin-bottom:22px}
+.settings-grp .gl{font-family:var(--cond);font-size:13px;letter-spacing:.7px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px}
+.set-line{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;padding:7px 0;color:var(--text2)}
+/* busy overlay */
+.busy-wrap{display:none;position:fixed;inset:0;z-index:999;background:rgba(6,11,24,.7);align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.busy-wrap.on{display:flex}
+.busy-spin{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--both-txt);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.busy-msg{font-size:14px;color:var(--text2);font-weight:600;text-align:center}
+@media(min-width:860px){
+  .view-title{display:block}
+  .fab{display:none}
+  .tabbar{display:none}
+  .view-scroll{padding-bottom:16px}
+  .detail-scroll{padding-bottom:16px}
+  .app-body{min-height:0}
+  .cal-mgrid,.cal-dow-m,.cal-wk-mob{display:none}
+  .cal-grid,.wk-grid,.cal-dow-d{display:grid}
+  .topnav{display:flex;align-items:center;gap:2px;flex:1;margin-left:18px}
+  .topnav .nav{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:8px;font-size:13.5px;color:var(--text2);background:none;border:none;cursor:pointer;font-family:var(--font);font-weight:600;white-space:nowrap}
+  .topnav .nav i{font-size:17px}
+  .topnav .nav.active{background:var(--both-tint);color:var(--both-txt)}
+  .topnav .nav.soon{color:#556677}
+  .me{background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:3px 10px 3px 4px}
+  .me .me-name,.me .me-chev{display:inline}
+  .me .me-chev{font-size:14px;color:var(--text3)}
+  .menu-wrap{background:transparent}
+  .menu-panel{left:auto;right:max(12px,calc((100vw - 1100px)/2 + 12px));top:54px;bottom:auto;width:208px;border:1px solid var(--border2);border-radius:12px;padding:6px 8px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+  .menu-panel .handle,.menu-panel .menu-head,.menu-panel .mob-only{display:none}
+  .menu-panel .mi{padding:9px 8px;font-size:13.5px;border-top:none;border-radius:7px}
+  .menu-panel .mi:hover{background:var(--both-tint-soft)}
+  .week-head{flex-direction:row;align-items:center;justify-content:space-between}
+  .seg{display:inline-flex}
+  .stale-inline{flex-basis:auto;margin-left:auto;margin-top:0}
+  .main-col{flex-direction:row}
+  .center-col{flex:1;min-width:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+  .detail-col{width:360px;flex-shrink:0;overflow-y:auto}
+  .detail-col .detail-head{display:none}
+  .sheet-wrap.open{align-items:center}
+  .sheet{border-radius:16px;max-height:86vh}
+  .sheet .handle{display:none}
+  .detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px;padding:24px;text-align:center}
+}
+@media(min-width:860px) and (max-width:1099px){
+  .topnav .nav .nav-l{display:none}
+  .topnav .nav{padding:7px 12px}
+}
+@media(max-width:859px){
+  #btn-nav-add{display:none}
+  .cal-grid,.wk-grid,.cal-dow-d{display:none}
+  .cal-mgrid,.cal-wk-mob{display:grid}
+  .cal-dow-m{display:grid}
+                     /* the floating button covers Add on phones */
+  .center-col .chips-row{padding-top:0}
+  .detail-col{display:none;position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto}
+  .detail-col.open{display:block}
+  .detail-empty{display:none}
+  .app-body.in-detail .center-col{display:none}
+}
+</style>
+</head>
+<body>
+<div id="banner-offline">No connection — changes won't save</div>
+<div id="banner-auth">Google session expired <button id="btn-reconnect" type="button">Reconnect</button></div>
+
+<!-- SIGN IN -->
+<div class="screen" id="screen-signin"><div class="card">
+  <div class="title">ApexTrack</div><div class="ver" data-ver></div>
+  <p class="sub">Family school tracker. Sign in with <b>your own personal Google account</b>.</p>
+  <button class="btn primary" id="btn-signin" type="button">Sign in with Google</button>
+  <div class="msg" id="msg-signin"></div>
+</div></div>
+
+<!-- SETUP: find or create the shared file -->
+<div class="screen" id="screen-setup"><div class="card">
+  <div class="title">Connect data file</div><div class="ver" data-ver></div>
+  <div class="chip" id="setup-who"></div>
+  <p class="sub" id="setup-intro">Pick the shared ApexTrack files from Google Drive. This is a one-time step per Google account.</p>
+  <div id="keybox" style="display:none">
+    <p class="sub">Picker API key not set in this build. Paste it once (it is restricted to this site and the Picker API).</p>
+    <input id="in-pickerkey" type="text" placeholder="AIza…" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="btn small" id="btn-savekey" type="button" style="margin-top:8px">Save key on this device</button>
+  </div>
+  <div id="cands"></div>
+  <button class="btn primary" id="btn-pickfiles" type="button">Find the existing file</button>
+  <p class="sub" style="margin-top:6px;font-size:12px">In the picker, select both <b>school_tracker.json</b> and <b>school_tracker_lock.json</b>.</p>
+  <button class="btn" id="btn-firsttime" type="button">First-time setup (admin only)</button>
+  <button class="link" id="btn-setup-back" type="button" style="display:none">Back to foundation check</button>
+  <button class="link" id="btn-setup-signout" type="button">Use a different Google account</button>
+  <div class="msg" id="msg-setup"></div>
+</div></div>
+
+<!-- CREATE: first-time password -->
+<div class="screen" id="screen-create"><div class="card">
+  <div class="title">Create encrypted file</div><div class="ver" data-ver></div>
+  <p class="sub">Use the shared password from your password manager. There is <b>no recovery</b> — a forgotten password means the data cannot be opened.</p>
+  <form id="form-create" onsubmit="return false">
+    <input class="hidden-user" type="text" name="username" value="ApexTrack family" autocomplete="username" tabindex="-1" aria-hidden="true">
+    <div class="pwrow"><input id="in-newpw1" type="password" placeholder="New shared password (10+ characters)" autocomplete="new-password"></div>
+    <div class="pwrow"><input id="in-newpw2" type="password" placeholder="Repeat password" autocomplete="new-password"></div>
+    <button class="btn primary" id="btn-create" type="submit">Create encrypted file</button>
+  </form>
+  <button class="link" id="btn-create-back" type="button">Back</button>
+  <div class="msg" id="msg-create"></div>
+</div></div>
+
+<!-- UNLOCK -->
+<div class="screen" id="screen-unlock"><div class="card">
+  <div class="title">ApexTrack</div><div class="ver" data-ver></div>
+  <div class="chip" id="unlock-who"></div>
+  <p class="sub" id="unlock-note">Enter the shared family password.</p>
+  <form id="form-unlock" onsubmit="return false">
+    <input class="hidden-user" type="text" name="username" value="ApexTrack family" autocomplete="username" tabindex="-1" aria-hidden="true">
+    <div class="pwrow"><input id="in-pw" type="password" placeholder="Shared password" autocomplete="current-password"><button type="button" id="btn-showpw">Show</button></div>
+    <button class="btn primary" id="btn-unlock" type="submit">Unlock</button>
+  </form>
+  <button class="link" id="btn-unlock-file" type="button">Choose a different file</button>
+  <button class="link" id="btn-unlock-signout" type="button" style="margin-top:0">Use a different Google account</button>
+  <div class="msg" id="msg-unlock"></div>
+</div></div>
+
+<!-- APP SHELL -->
+<div class="screen" id="screen-app"><div class="app-shell">
+  <div class="app-top">
+    <div class="brand"><span class="mk">A</span>ApexTrack</div>
+    <nav class="topnav" id="topnav" aria-label="Main"></nav>
+    <div class="top-right">
+      <button class="icon-btn accent" id="btn-nav-add" type="button" aria-label="Add item"><i class="ti ti-plus" aria-hidden="true"></i></button>
+      <button class="me" id="btn-me" type="button" aria-label="Account menu" aria-haspopup="menu"><span class="avatar" id="app-avatar"></span><span class="me-name" id="me-name"></span><i class="ti ti-chevron-down me-chev" aria-hidden="true"></i></button>
+    </div>
+  </div>
+  <div class="app-body" id="app-body">
+    <div class="main-col">
+      <div class="center-col">
+        <div id="view-root"></div>
+      </div>
+      <div class="detail-col" id="detail-col"><div class="detail-empty">Select an item to see its details.</div></div>
+    </div>
+  </div>
+  <button class="fab" id="fab-add" type="button" aria-label="Add item"><i class="ti ti-plus" aria-hidden="true"></i></button>
+  <div class="tabbar" id="tabbar"></div>
+</div></div>
+
+<!-- quick-add / edit sheet -->
+<div class="sheet-wrap" id="sheet-edit"><div class="sheet">
+  <div class="handle"></div>
+  <div class="sh-title"><span id="sheet-edit-title">Add item</span><button class="x" id="sheet-edit-close" type="button" aria-label="Close">&times;</button></div>
+  <div class="fld"><label for="f-title">Title</label><input id="f-title" type="text" placeholder="e.g. Return signed permission slip"><div class="fe">Enter a title.</div></div>
+  <div class="fld"><label>Kid</label><div class="kidpick" id="f-kid">
+    <button type="button" data-kid="AV">AV</button><button type="button" data-kid="IV">IV</button><button type="button" data-kid="both">Both</button>
+  </div><div class="fe">Choose a kid.</div></div>
+  <div class="fld-2">
+    <div class="fld"><label for="f-type">Type</label><select id="f-type">
+      <option value="test">Test</option><option value="assignment">Assignment</option><option value="event">Event</option>
+      <option value="form/payment">Form/payment</option><option value="grade-flag">Grade flag</option><option value="info">Info</option>
+    </select></div>
+    <div class="fld"><label for="f-priority">Priority</label><select id="f-priority">
+      <option value="Critical">Critical</option><option value="Action">Action</option><option value="Info">Info</option>
+    </select></div>
+  </div>
+  <div class="fld"><label for="f-date">Date</label><input id="f-date" type="date"></div>
+  <div class="fld" style="display:flex;align-items:center;gap:8px;flex-direction:row"><input id="f-allday" type="checkbox" style="width:auto"><label for="f-allday" style="margin:0">All day</label></div>
+  <div class="fld-time" id="time-fields" style="display:none">
+    <div class="fld"><label for="f-start-time">Start time</label><input id="f-start-time" type="time"></div>
+    <div class="fld"><label for="f-end-time">End time</label><input id="f-end-time" type="time"></div>
+  </div>
+  <div id="repeat-fields" style="display:none">
+    <div class="repeat-row">
+      <div class="fld"><label for="f-repeat">Repeat</label><select id="f-repeat">
+        <option value="none">None</option><option value="daily">Daily</option><option value="weekly">Weekly</option>
+        <option value="biweekly">Every other week</option><option value="monthly">Monthly</option>
+      </select></div>
+      <div class="fld" id="f-repeat-end-wrap"><label for="f-repeat-end">Ends</label><select id="f-repeat-end">
+        <option value="never">Never</option><option value="date">On a date</option><option value="count">After N times</option>
+      </select></div>
+    </div>
+    <div class="day-pick" id="f-day-pick" style="display:none"></div>
+    <div class="repeat-row" id="f-repeat-until-row" style="display:none">
+      <div class="fld"><label for="f-repeat-until">Last day</label><input id="f-repeat-until" type="date"></div>
+    </div>
+    <div class="repeat-row" id="f-repeat-count-row" style="display:none">
+      <div class="fld"><label for="f-repeat-count">Occurrences</label><input id="f-repeat-count" type="number" min="2" max="200" value="10"></div>
+    </div>
+  </div>
+  <div class="fld"><label for="f-summary">Summary</label><input id="f-summary" type="text" placeholder="One-line summary"></div>
+  <div class="fld"><label for="f-details">Details</label><textarea id="f-details" placeholder="Optional details"></textarea></div>
+  <div class="sheet-actions">
+    <button class="btn" id="sheet-edit-cancel" type="button">Cancel</button>
+    <button class="btn primary" id="sheet-edit-save" type="button">Save</button>
+  </div>
+</div></div>
+
+<!-- import sheet -->
+<div class="sheet-wrap" id="sheet-import"><div class="sheet">
+  <div class="handle"></div>
+  <div class="sh-title"><span id="import-title">Import</span><button class="x" id="sheet-import-close" type="button" aria-label="Close">&times;</button></div>
+  <div id="import-stage-paste">
+    <p class="sub">Paste the import block from Claude.</p>
+    <div class="fld"><textarea id="import-text" style="min-height:160px;font-family:var(--mono);font-size:13px" placeholder="APEXTRACK-IMPORT v1&#10;…"></textarea><div class="fe">Nothing to preview.</div></div>
+    <div class="sheet-actions">
+      <button class="btn" id="import-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="import-preview-btn" type="button">Preview</button>
+    </div>
+  </div>
+  <div id="import-stage-preview" style="display:none">
+    <div class="imp-summary" id="import-summary"></div>
+    <div id="import-list"></div>
+    <div class="sheet-actions">
+      <button class="btn" id="import-back" type="button">Back</button>
+      <button class="btn primary" id="import-commit" type="button">Import</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- account menu (desktop dropdown / mobile bottom sheet) -->
+<div class="menu-wrap" id="menu-wrap"><div class="menu-panel" id="menu-panel"></div></div>
+
+<!-- undo-last-import confirmation -->
+<div class="sheet-wrap" id="sheet-undo"><div class="sheet">
+  <div class="handle"></div>
+  <div class="sh-title"><span>Undo last import?</span><button class="x" id="undo-close" type="button" aria-label="Close">&times;</button></div>
+  <div id="undo-body"></div>
+  <div class="sheet-actions">
+    <button class="btn" id="undo-cancel" type="button">Cancel</button>
+    <button class="btn primary" id="undo-confirm" type="button">Undo import</button>
+  </div>
+</div></div>
+
+<!-- scope prompt (this one / all events) -->
+<div class="scope-wrap" id="scope-wrap">
+  <div class="scope-box">
+    <div class="st" id="scope-title">Edit repeating event</div>
+    <div class="ss" id="scope-sub"></div>
+    <div id="scope-opts"></div>
+    <div class="cbtns" style="margin-top:14px">
+      <button class="btn" id="scope-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="scope-ok" type="button">Continue</button>
+    </div>
+  </div>
+</div>
+<!-- generic confirm modal -->
+<div class="confirm-wrap" id="confirm-wrap">
+  <div class="confirm-box">
+    <div class="ct" id="confirm-title"></div>
+    <div class="cm" id="confirm-msg"></div>
+    <div class="cbtns">
+      <button class="btn" id="confirm-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="confirm-ok" type="button">OK</button>
+    </div>
+  </div>
+</div>
+<div class="busy-wrap" id="busyEl"><div class="busy-spin"></div><div class="busy-msg" id="busyMsg"></div></div>
+<div id="toastEl"></div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   CONSTANTS
+════════════════════════════════════════════════════ */
+const APP_VERSION='v0.3.2';
+const APP_NAME='ApexTrack';
+const SCHEMA_VERSION=1;
+const ENV_VERSION=1;
+const CLIENT_ID='305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com';
+const CLOUD_PROJECT_NUMBER=CLIENT_ID.split('-')[0];      // Picker setAppId — the numeric prefix of the OAuth client ID
+const PICKER_API_KEY='AIzaSyD5spm8lRFQh2cTaDaIMpusD2Eo8RZ1yfs';  // restricted key (Picker API + this site). Empty → one-time in-app paste, stored per device.
+const SCOPE='https://www.googleapis.com/auth/drive.file';  // the only Drive scope (spec §4.1)
+const DATA_FILE_NAME='school_tracker.json';
+const LOCK_FILE_NAME='school_tracker_lock.json';
+const BACKUPS_FOLDER_NAME='Backups';
+const BACKUP_PREFIX='apextrack_backup_';
+const KEEP_BACKUPS=10;
+const TOKEN_KEY='apextrack_drive_token';                   // sessionStorage — clears when the tab closes
+const LS={fileId:'apextrack_file_id',lockId:'apextrack_lock_id',email:'apextrack_last_email',pickerKey:'apextrack_picker_key'};
+const COLLECTIONS=['kids','items','events','grades','backups'];
+const WIPEABLE=new Set(['items','events']);                // grades/kids/backups survive a year-end wipe
+const CFG={                                                 // overridable by the test harness only
+  pbkdf2Iter:600000, idleMs:10*60*1000, idleCheckMs:10000,
+  lockTtlMs:30000, lockSettleMs:700, lockMarginMs:8000, lockGraceMs:3000,
+  saveAttempts:3, saveRetryMs:1500, pullThrottleMs:30000, backupDelayMs:2000
+};
+
+/* ════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════ */
+let ME=null;                 // {email,name}
+let accessToken=null,tokenExp=0,tokenClient=null,tokenWaiters=[],refreshing=null;
+let fileId=null,lockId=null;
+let CRYPTO=null;             // {key:CryptoKey(non-extractable),salt:b64,iter:n} — memory only, cleared on idle
+let DATA=null;               // decrypted working copy — memory only
+let driveDataLoaded=false;   // guard: no write is possible until a successful decrypt of the live file
+let readOnly=false;
+let dirty=false,mutationSeq=0,saving=null;
+let lastActivity=0,idleTimer=null,locking=false,lostEditsNote='';
+let lastPulledAt=0,lastSavedAt=0,lastLockInfo=null,lastProbe=null,lastBackupErr='';
+let pendingFolderId=null;    // folder chosen for first-time setup
+let setupCands=[];
+const LOGS=[];
+
+/* ════════════════════════════════════════════════════
+   UTIL
+════════════════════════════════════════════════════ */
+const nowMs=()=>Date.now();
+const iso=ms=>new Date(ms==null?nowMs():ms).toISOString();
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const $=id=>document.getElementById(id);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const ts=r=>(r&&r.updatedAt&&Date.parse(r.updatedAt))||0;
+const isOnline=()=>typeof navigator==='undefined'||navigator.onLine!==false;
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
+function stable(v){
+  if(v===undefined||v===null)return 'null';
+  if(typeof v!=='object')return JSON.stringify(v);
+  if(Array.isArray(v))return '['+v.map(stable).join(',')+']';
+  return '{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+stable(v[k])).join(',')+'}';
+}
+function b64e(buf){const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
+function b64d(s){const bin=atob(s);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u}
+function randHex(n){const u=crypto.getRandomValues(new Uint8Array(n));return Array.from(u).map(x=>x.toString(16).padStart(2,'0')).join('')}
+function firstName(s){s=String(s||'').trim().split(/[\s@.]/)[0]||'Someone';return s.charAt(0).toUpperCase()+s.slice(1)}
+function deviceTag(){const ua=(typeof navigator!=='undefined'&&navigator.userAgent)||'';return /Android/i.test(ua)?'android':/iPhone|iPad/i.test(ua)?'ios':'desktop'}
+function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new ATError('TIMEOUT','Timed out')),ms))])}
+function log(...a){
+  const line=iso().slice(11,19)+' '+a.map(x=>typeof x==='string'?x:(x&&x.message)||JSON.stringify(x)).join(' ');
+  LOGS.push(line);if(LOGS.length>200)LOGS.shift();
+  try{console.log('[AT]',line)}catch(e){}
+  renderLog();
+}
+function toast(msg,type='success'){
+  const t=document.createElement('div');t.className='toast '+type;
+  const i=document.createElement('span');i.textContent={success:'✓',error:'✕',info:'ℹ',warning:'⚠'}[type]||'ℹ';
+  const m=document.createElement('span');m.textContent=msg;
+  t.appendChild(i);t.appendChild(m);$('toastEl').appendChild(t);
+  setTimeout(()=>t.remove(),type==='error'?6000:3500);
+}
+class ATError extends Error{constructor(code,msg,extra){super(msg||code);this.code=code;if(extra)Object.assign(this,extra)}}
+function errMsg(e){
+  if(!e)return 'Unknown error';
+  if(e.code==='WRONG_PASSWORD')return 'Wrong password, or the file is damaged.';
+  if(e.code==='OFFLINE')return "No connection — changes won't save";
+  return e.message||String(e);
+}
+
+/* ════════════════════════════════════════════════════
+   AUTH — Google Identity Services (CPM pattern, drive.file only)
+════════════════════════════════════════════════════ */
+function saveToken(){try{sessionStorage.setItem(TOKEN_KEY,JSON.stringify({t:accessToken,exp:tokenExp}))}catch(e){}}
+function restoreToken(){
+  try{const o=JSON.parse(sessionStorage.getItem(TOKEN_KEY)||'null');
+    if(o&&o.t&&o.exp>nowMs()+30000){accessToken=o.t;tokenExp=o.exp;return true}}catch(e){}
+  try{sessionStorage.removeItem(TOKEN_KEY)}catch(e){}
+  return false;
+}
+function settleToken(err){
+  const w=tokenWaiters;tokenWaiters=[];
+  w.forEach(x=>{clearTimeout(x.timer);err?x.reject(err):x.resolve(accessToken)});
+}
+function initGIS(){
+  if(tokenClient)return true;
+  if(!(window.google&&google.accounts&&google.accounts.oauth2))return false;
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID,scope:SCOPE,
+    callback:r=>{
+      if(r.error)return settleToken(new ATError('AUTH','Google sign-in failed ('+r.error+')'));
+      if(google.accounts.oauth2.hasGrantedAllScopes&&!google.accounts.oauth2.hasGrantedAllScopes(r,SCOPE))
+        return settleToken(new ATError('AUTH','Drive permission was not granted. Sign in again and allow access.'));
+      accessToken=r.access_token;tokenExp=nowMs()+((+r.expires_in||3600)-60)*1000;saveToken();
+      hideAuthBanner();settleToken(null);
+    },
+    error_callback:e=>settleToken(new ATError('AUTH','Sign-in window was closed or blocked ('+((e&&e.type)||'unknown')+')'))
+  });
+  return true;
+}
+async function waitForGIS(ms){
+  const t0=nowMs();
+  while(!initGIS()){if(nowMs()-t0>ms)throw new ATError('AUTH','Google sign-in library did not load — check your connection and reload.');await sleep(200)}
+}
+function requestToken(prompt,timeoutMs){
+  return new Promise((resolve,reject)=>{
+    if(!initGIS())return reject(new ATError('AUTH','Google sign-in library not ready — reload the page.'));
+    const w={resolve,reject};
+    w.timer=setTimeout(()=>{tokenWaiters=tokenWaiters.filter(x=>x!==w);reject(new ATError('AUTH','Sign-in timed out'))},timeoutMs||60000);
+    tokenWaiters.push(w);
+    try{const cfg={prompt};const hint=lsGet(LS.email);if(hint)cfg.hint=hint;tokenClient.requestAccessToken(cfg)}
+    catch(e){settleToken(new ATError('AUTH',String(e.message||e)))}
+  });
+}
+function refreshToken(){
+  if(!refreshing)refreshing=requestToken('',10000).finally(()=>{refreshing=null});
+  return refreshing;
+}
+async function ensureToken(){
+  if(accessToken&&tokenExp>nowMs())return accessToken;
+  try{return await refreshToken()}catch(e){showAuthBanner();throw new ATError('AUTH','Google session expired — tap Reconnect')}
+}
+function showAuthBanner(){const b=$('banner-auth');if(b)b.style.display='block'}
+function hideAuthBanner(){const b=$('banner-auth');if(b)b.style.display='none'}
+async function reconnect(){
+  try{await waitForGIS(8000);await requestToken('',60000);toast('Reconnected','success');if(dirty)requestSave()}
+  catch(e){toast(errMsg(e),'error')}
+}
+async function signOutGoogle(){
+  const t=accessToken;
+  try{if(t&&window.google&&google.accounts&&google.accounts.oauth2)google.accounts.oauth2.revoke(t,()=>{})}catch(e){}
+  accessToken=null;tokenExp=0;try{sessionStorage.removeItem(TOKEN_KEY)}catch(e){}
+  clearMemory();ME=null;fileId=null;lockId=null;hideAuthBanner();
+  show('signin');
+}
+
+/* ════════════════════════════════════════════════════
+   DRIVE PRIMITIVES (drive.file — only files this user has opened/created through the app)
+════════════════════════════════════════════════════ */
+const DRIVE='https://www.googleapis.com/drive/v3';
+const UPLOAD='https://www.googleapis.com/upload/drive/v3';
+async function apiError(res){
+  let m='';try{const j=await res.json();m=(j.error&&j.error.message)||''}catch(e){}
+  const code=res.status===404?'NOT_FOUND':res.status===403?(/rate/i.test(m)?'RATE':'FORBIDDEN'):res.status===401?'AUTH':res.status===429?'RATE':'API';
+  return new ATError(code,'Drive '+res.status+(m?': '+m:''),{status:res.status});
+}
+async function dfetch(url,opt,retried){
+  if(!isOnline())throw new ATError('OFFLINE','No connection');
+  const token=await ensureToken();
+  const o=Object.assign({},opt||{});o.headers=Object.assign({},o.headers,{Authorization:'Bearer '+token});
+  let res;
+  try{res=await fetch(url,o)}catch(e){throw new ATError('OFFLINE','Network error: '+(e.message||e))}
+  if(res.status===401){
+    accessToken=null;try{sessionStorage.removeItem(TOKEN_KEY)}catch(e){}
+    if(retried)throw new ATError('AUTH','Google session expired — tap Reconnect');
+    return dfetch(url,opt,true);
+  }
+  const method=(o.method||'GET').toUpperCase();
+  if([429,500,502,503,504].includes(res.status)&&method!=='POST'&&(retried||0)<3){
+    await sleep(800*((retried||0)+1));return dfetch(url,opt,(retried||0)+1);
+  }
+  return res;
+}
+async function driveGetMeta(id,fields){
+  const r=await dfetch(DRIVE+'/files/'+id+'?supportsAllDrives=true&fields='+encodeURIComponent(fields));
+  if(!r.ok)throw await apiError(r);return r.json();
+}
+async function driveGetText(id){
+  const r=await dfetch(DRIVE+'/files/'+id+'?alt=media&supportsAllDrives=true',{cache:'no-store'});
+  if(!r.ok)throw await apiError(r);return r.text();
+}
+async function driveList(q,fields){
+  const r=await dfetch(DRIVE+'/files?supportsAllDrives=true&includeItemsFromAllDrives=true&pageSize=50&orderBy='+encodeURIComponent('modifiedTime desc')+
+    '&q='+encodeURIComponent(q)+'&fields='+encodeURIComponent('files('+fields+')'));
+  if(!r.ok)throw await apiError(r);const j=await r.json();return j.files||[];
+}
+async function driveUpdateText(id,text,mime){
+  const r=await dfetch(UPLOAD+'/files/'+id+'?uploadType=media&supportsAllDrives=true',{method:'PATCH',headers:{'Content-Type':mime||'application/json'},body:text});
+  if(!r.ok)throw await apiError(r);return true;
+}
+async function driveCreate(name,mime,parentId,text){          // two-step (CPM uploadFileToDrive pattern): metadata → content
+  const meta={name,mimeType:mime};if(parentId)meta.parents=[parentId];
+  const cr=await dfetch(DRIVE+'/files?supportsAllDrives=true&fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(meta)});
+  if(!cr.ok)throw await apiError(cr);
+  const cj=await cr.json();if(!cj.id)throw new ATError('API','Drive create returned no ID');
+  if(text!=null)await driveUpdateText(cj.id,text,mime);
+  return cj.id;
+}
+async function driveDelete(id){
+  const r=await dfetch(DRIVE+'/files/'+id+'?supportsAllDrives=true',{method:'DELETE'});
+  if(!r.ok&&r.status!==204)throw await apiError(r);return true;
+}
+
+/* ════════════════════════════════════════════════════
+   CRYPTO — PBKDF2-SHA256 → AES-256-GCM (spec §4.3)
+   Envelope is a plain JSON text file: {format,v,kdf{alg,iter,salt},cipher,iv,ct}
+   A successful decrypt IS the password check. Salt/iter are in the envelope header
+   and authenticated as AAD, so header tampering also fails the decrypt.
+════════════════════════════════════════════════════ */
+const enc=new TextEncoder(),dec=new TextDecoder();
+async function deriveKey(password,saltBytes,iter){
+  const base=await crypto.subtle.importKey('raw',enc.encode(String(password).normalize('NFKC')),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:saltBytes,iterations:iter},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+const aadFor=(iter,saltB64)=>enc.encode('apextrack|'+ENV_VERSION+'|'+iter+'|'+saltB64);
+async function encryptEnvelope(obj,ci){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:aadFor(ci.iter,ci.salt)},ci.key,enc.encode(JSON.stringify(obj)));
+  return JSON.stringify({format:'apextrack',v:ENV_VERSION,kdf:{alg:'PBKDF2-SHA256',iter:ci.iter,salt:ci.salt},cipher:'AES-256-GCM',iv:b64e(iv),ct:b64e(ct)});
+}
+function parseEnvelope(text){
+  let o;try{o=JSON.parse(text)}catch(e){throw new ATError('BAD_FORMAT','The data file is not a valid ApexTrack file.')}
+  if(!o||o.format!=='apextrack'||!o.kdf||typeof o.iv!=='string'||typeof o.ct!=='string'||typeof o.kdf.salt!=='string')
+    throw new ATError('BAD_FORMAT','The data file is not a valid ApexTrack file.');
+  if(o.v>ENV_VERSION)throw new ATError('NEWER_FORMAT','This file was written by a newer ApexTrack. Reload the page to get the latest version.');
+  if(!(o.kdf.iter>=1000&&o.kdf.iter<=5000000))throw new ATError('BAD_FORMAT','The data file has invalid key settings.');
+  return o;
+}
+async function decryptEnvelope(env,key){
+  let pt;
+  try{pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64d(env.iv),additionalData:aadFor(env.kdf.iter,env.kdf.salt)},key,b64d(env.ct))}
+  catch(e){throw new ATError('WRONG_PASSWORD','Wrong password, or the file is damaged.')}
+  try{return JSON.parse(dec.decode(pt))}catch(e){throw new ATError('BAD_FORMAT','Decrypted data is unreadable.')}
+}
+
+/* ════════════════════════════════════════════════════
+   DATA MODEL + MERGE (spec §4.6, §5)
+   Records live in id-keyed maps. Deletes are tombstones (kept in the same map).
+   Merge is per record: newest updatedAt wins (deterministic tie-break → commutative).
+   `status` is merged as its own field by statusUpdatedAt, and a check-off does not touch updatedAt,
+   so a check-off and a concurrent edit of the same item both survive (a superset of the "within 5 s" rule).
+   Wipe epoch: records in items/events older than settings.lastWipeAt are dropped.
+   The year-end wipe (Phase 2c) must restamp any kept recurring events to the wipe time.
+════════════════════════════════════════════════════ */
+function newData(){
+  const t=iso();
+  return {schemaVersion:SCHEMA_VERSION,createdAt:t,
+    settings:{updatedAt:t,lastWipeAt:null,backupIntervalDays:3,lastBackupAt:null,backupsFolderId:null,lockFileId:null,
+      nameMap:{},lastImportAt:null,lastImportJournal:null,importStaleDays:3},
+    kids:{AV:{id:'AV',initials:'AV',color:'#D4537E',school:'North Gwinnett Middle School',gradeLevel:6,teachers:[],updatedAt:t},
+          IV:{id:'IV',initials:'IV',color:'#378ADD',school:'Roberts Elementary School',gradeLevel:3,teachers:[],updatedAt:t}},
+    items:{},events:{},grades:{},backups:{}};
+}
+function normalizeData(d){
+  if(!d||typeof d!=='object')throw new ATError('BAD_FORMAT','Decrypted data is unreadable.');
+  if((d.schemaVersion||1)>SCHEMA_VERSION)throw new ATError('NEWER_FORMAT','This data was written by a newer ApexTrack. Reload the page to get the latest version.');
+  d.schemaVersion=d.schemaVersion||1;
+  d.settings=d.settings||{updatedAt:iso()};
+  COLLECTIONS.forEach(c=>{if(!d[c]||typeof d[c]!=='object')d[c]={}});
+  return d;
+}
+const STATUS_KEYS=['status','statusUpdatedAt','statusUpdatedBy'];
+function contentKey(r){const c=Object.assign({},r);STATUS_KEYS.forEach(k=>delete c[k]);return stable(c)}   // tie-break must ignore status, which is resolved separately
+function mergeRecord(a,b){
+  if(!a)return b;if(!b)return a;
+  const ta=ts(a),tb=ts(b);let w,l;
+  if(ta>tb){w=a;l=b}else if(tb>ta){w=b;l=a}
+  else{const sa=contentKey(a),sb=contentKey(b);if(sa>=sb){w=a;l=b}else{w=b;l=a}}
+  const out=clone(w);
+  if(!w.deleted&&!l.deleted&&('statusUpdatedAt' in w||'statusUpdatedAt' in l)){
+    const sw=Date.parse(w.statusUpdatedAt||0)||0,sl=Date.parse(l.statusUpdatedAt||0)||0;
+    if(sl>sw||(sl===sw&&String(l.status)>String(w.status))){out.status=l.status;out.statusUpdatedAt=l.statusUpdatedAt;out.statusUpdatedBy=l.statusUpdatedBy}
+  }
+  return out;
+}
+function mergeSettings(a,b){
+  const w=(Date.parse(a.updatedAt||0)||0)>=(Date.parse(b.updatedAt||0)||0)?a:b,l=w===a?b:a;
+  const out=Object.assign({},l,w);
+  const mx=k=>{const x=a[k]||null,y=b[k]||null;return x&&y?(Date.parse(x)>=Date.parse(y)?x:y):(x||y)};
+  out.lastWipeAt=mx('lastWipeAt');out.lastBackupAt=mx('lastBackupAt');
+  out.backupsFolderId=w.backupsFolderId||l.backupsFolderId||null;
+  out.lockFileId=w.lockFileId||l.lockFileId||null;
+  return out;
+}
+function mergeData(a,b){
+  const out=Object.assign({},b,a);
+  out.schemaVersion=Math.max(a.schemaVersion||1,b.schemaVersion||1);
+  out.settings=mergeSettings(a.settings||{},b.settings||{});
+  const wipe=Date.parse(out.settings.lastWipeAt||0)||0;
+  COLLECTIONS.forEach(c=>{
+    const A=a[c]||{},B=b[c]||{},O={};
+    new Set(Object.keys(A).concat(Object.keys(B))).forEach(id=>{
+      const r=mergeRecord(A[id],B[id]);
+      if(WIPEABLE.has(c)&&wipe&&ts(r)<wipe)return;
+      O[id]=r;
+    });
+    out[c]=O;
+  });
+  return out;
+}
+function liveCount(c){return DATA?Object.values(DATA[c]||{}).filter(r=>!r.deleted).length:0}
+
+/* ════════════════════════════════════════════════════
+   LOCK — cooperative, short, TTL ~30 s (spec §4.6)
+   acquire → settle → re-read to break ties → (caller: pull, merge, write) → release
+════════════════════════════════════════════════════ */
+async function readLock(){
+  const t=await driveGetText(lockId);
+  try{return JSON.parse(t)||{holder:null}}catch(e){return {holder:null}}
+}
+const writeLock=o=>driveUpdateText(lockId,JSON.stringify(o),'application/json');
+const lockActive=lk=>!!(lk&&lk.holder&&lk.nonce&&(Date.parse(lk.expiresAt)||0)+CFG.lockGraceMs>nowMs());
+async function resolveLockId(){
+  if(lockId)return lockId;
+  const cands=[lsGet(LS.lockId),DATA&&DATA.settings&&DATA.settings.lockFileId].filter(Boolean);
+  for(const id of cands){
+    try{const m=await driveGetMeta(id,'id,name,trashed');if(!m.trashed&&m.name===LOCK_FILE_NAME){lockId=m.id;lsSet(LS.lockId,m.id);return lockId}}
+    catch(e){if(e.code!=='NOT_FOUND'&&e.code!=='FORBIDDEN')throw e}
+  }
+  const found=await driveList("name='"+LOCK_FILE_NAME+"' and trashed=false",'id,name,modifiedTime');
+  if(found.length){lockId=found[0].id;lsSet(LS.lockId,lockId);return lockId}
+  throw new ATError('NEEDS_ACCESS','The lock file has not been opened from this Google account yet. Use “Re-pick files”.',{what:'lock'});
+}
+async function acquireLock(){
+  await resolveLockId();
+  const lk=await readLock();lastLockInfo=lk;
+  if(lockActive(lk))return {ok:false,by:lk.name||lk.holder};
+  const nonce=randHex(8),at=nowMs();
+  await writeLock({holder:ME.email,name:ME.name,nonce,device:deviceTag(),acquiredAt:iso(at),expiresAt:iso(at+CFG.lockTtlMs)});
+  await sleep(CFG.lockSettleMs);
+  const lk2=await readLock();lastLockInfo=lk2;
+  if(lk2.nonce!==nonce)return {ok:false,by:lk2.name||lk2.holder};
+  return {ok:true,nonce,acquiredAt:at};
+}
+async function verifyLockStill(l){
+  const lk=await readLock();
+  if(lk.nonce!==l.nonce)throw new ATError('LOCK_LOST','Lock was taken by someone else');
+  if(nowMs()-l.acquiredAt>CFG.lockTtlMs-CFG.lockMarginMs)throw new ATError('LOCK_EXPIRED','Lock about to expire');
+}
+async function releaseLock(l){
+  try{const lk=await readLock();if(lk.nonce===l.nonce){await writeLock({holder:null,releasedAt:iso(),lastBy:ME.email});lastLockInfo={holder:null}}else lastLockInfo=lk}
+  catch(e){log('lock release failed:',errMsg(e))}
+}
+
+/* ════════════════════════════════════════════════════
+   FILE LOCATE / PICKER / FIRST-TIME CREATE
+════════════════════════════════════════════════════ */
+function loadScript(src){
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.async=true;s.onload=res;
+    s.onerror=()=>rej(new ATError('PICKER','Could not load Google Picker — check your connection.'));document.head.appendChild(s)});
+}
+let pickerReady=null;
+function loadPicker(){
+  if(!pickerReady)pickerReady=(async()=>{
+    if(!window.gapi)await loadScript('https://apis.google.com/js/api.js');
+    await new Promise((res,rej)=>gapi.load('picker',{callback:res,onerror:()=>rej(new ATError('PICKER','Google Picker failed to load'))}));
+  })().catch(e=>{pickerReady=null;throw e});
+  return pickerReady;
+}
+const pickerKey=()=>PICKER_API_KEY||lsGet(LS.pickerKey)||'';
+async function openPicker(o){   // o:{kind:'files'|'folder', parentId, query, title}  → array of {id,name,mimeType,parentId} | null (cancelled)
+  const key=pickerKey();if(!key)throw new ATError('PICKER_KEY','Picker API key is missing.');
+  const token=await ensureToken();await loadPicker();
+  return new Promise(resolve=>{
+    const g=google.picker;const views=[];
+    const mk=(base,owned)=>{
+      const v=new g.DocsView(base);
+      if(owned!=null&&!o.parentId&&v.setLabel)v.setLabel(owned?'My Drive':'Shared with me');
+      if(o.kind==='folder'){v.setIncludeFolders(true).setSelectFolderEnabled(true)}else{v.setIncludeFolders(false)}
+      if(o.parentId)v.setParent(o.parentId);else if(o.query)v.setQuery(o.query);
+      if(owned!=null&&!o.parentId)v.setOwnedByMe(owned);
+      return v;
+    };
+    const base=o.kind==='folder'?g.ViewId.FOLDERS:g.ViewId.DOCS;
+    views.push(mk(base,true));if(!o.parentId)views.push(mk(base,false));
+    const b=new g.PickerBuilder().setAppId(CLOUD_PROJECT_NUMBER).setOAuthToken(token).setDeveloperKey(key)
+      .setTitle(o.title||'Select').setOrigin(location.protocol+'//'+location.host)
+      .setCallback(d=>{
+        if(d.action===g.Action.PICKED)resolve((d.docs||[]).map(x=>({id:x.id,name:x.name,mimeType:x.mimeType,parentId:x.parentId||null})));
+        else if(d.action===g.Action.CANCEL)resolve(null);
+      });
+    views.forEach(v=>b.addView(v));
+    if(o.kind!=='folder')b.enableFeature(g.Feature.MULTISELECT_ENABLED);
+    b.build().setVisible(true);
+  });
+}
+async function checkDataFile(id){
+  const m=await driveGetMeta(id,'id,name,trashed,mimeType');
+  if(m.trashed||m.name!==DATA_FILE_NAME)throw new ATError('NOT_FOUND','Not the ApexTrack data file');
+  return m;
+}
+async function locateDataFile(){   // → {status:'ok'|'none'|'many', files?}
+  const saved=lsGet(LS.fileId);
+  if(saved){
+    try{await checkDataFile(saved);fileId=saved;return {status:'ok'}}
+    catch(e){if(e.code!=='NOT_FOUND'&&e.code!=='FORBIDDEN')throw e;log('remembered file not accessible — searching by name');lsDel(LS.fileId);lsDel(LS.lockId);lockId=null}
+  }
+  const found=await driveList("name='"+DATA_FILE_NAME+"' and trashed=false",'id,name,modifiedTime,owners(emailAddress)');
+  if(found.length===1){fileId=found[0].id;lsSet(LS.fileId,fileId);log('found data file by name');return {status:'ok'}}
+  if(found.length>1)return {status:'many',files:found};
+  return {status:'none'};
+}
+async function findOrCreateFolder(name,parentId){
+  const f=await driveList("name='"+name+"' and mimeType='application/vnd.google-apps.folder' and '"+parentId+"' in parents and trashed=false",'id');
+  if(f.length)return f[0].id;
+  return driveCreate(name,'application/vnd.google-apps.folder',parentId,null);
+}
+async function findOrCreateFile(name,parentId,text){
+  const f=await driveList("name='"+name+"' and '"+parentId+"' in parents and trashed=false",'id');
+  if(f.length)return f[0].id;
+  return driveCreate(name,'application/json',parentId,text);
+}
+async function createNewStore(folderId,password){
+  const dup=await driveList("name='"+DATA_FILE_NAME+"' and trashed=false",'id');
+  if(dup.length)throw new ATError('EXISTS','A data file already exists for this account. Use “Find the existing file” instead.');
+  const backupsId=await findOrCreateFolder(BACKUPS_FOLDER_NAME,folderId);
+  const lockFid=await findOrCreateFile(LOCK_FILE_NAME,folderId,JSON.stringify({holder:null}));
+  const saltBytes=crypto.getRandomValues(new Uint8Array(16));
+  const key=await deriveKey(password,saltBytes,CFG.pbkdf2Iter);
+  const ci={key,salt:b64e(saltBytes),iter:CFG.pbkdf2Iter};
+  const data=newData();data.settings.backupsFolderId=backupsId;data.settings.lockFileId=lockFid;
+  const text=await encryptEnvelope(data,ci);
+  const fid=await driveCreate(DATA_FILE_NAME,'application/json',folderId,text);
+  const back=await decryptEnvelope(parseEnvelope(await driveGetText(fid)),key);      // read-back proof
+  if(stable(back)!==stable(data))throw new ATError('VERIFY','Read-back of the new file did not match — nothing was remembered.');
+  fileId=fid;lockId=lockFid;lsSet(LS.fileId,fid);lsSet(LS.lockId,lockFid);
+  CRYPTO=ci;DATA=normalizeData(back);driveDataLoaded=true;
+  log('created new store: data, lock, Backups');
+}
+
+/* ════════════════════════════════════════════════════
+   UNLOCK / LOAD / IDLE (spec §4.3, §4.4)
+════════════════════════════════════════════════════ */
+async function loadEnvelope(){return parseEnvelope(await driveGetText(fileId))}
+async function unlock(password){
+  const env=await loadEnvelope();
+  const key=await deriveKey(password,b64d(env.kdf.salt),env.kdf.iter);
+  const data=normalizeData(await decryptEnvelope(env,key));          // throws WRONG_PASSWORD
+  CRYPTO={key,salt:env.kdf.salt,iter:env.kdf.iter};DATA=data;driveDataLoaded=true;
+  lastPulledAt=nowMs();touch();startIdle();
+  log('unlocked: '+liveCount('items')+' items, '+liveCount('grades')+' grades');
+}
+function touch(){lastActivity=nowMs()}
+function startIdle(){stopIdle();idleTimer=setInterval(checkIdle,CFG.idleCheckMs)}
+function stopIdle(){if(idleTimer){clearInterval(idleTimer);idleTimer=null}}
+function checkIdle(){if(CRYPTO&&nowMs()-lastActivity>=CFG.idleMs)lockApp('idle')}
+function clearMemory(){CRYPTO=null;DATA=null;driveDataLoaded=false;dirty=false;stopIdle()}
+async function lockApp(reason){
+  if(!CRYPTO||locking)return;locking=true;
+  try{
+    lostEditsNote='';
+    if(dirty&&reason==='idle'){try{await withTimeout(requestSave(),20000)}catch(e){}}
+    if(dirty)lostEditsNote='Unsaved changes from the previous session could not be saved and were discarded.';
+    clearMemory();                 // key AND decrypted data leave memory; the Google token is untouched (no sign-out)
+    log('locked ('+reason+')');
+    const note=$('unlock-note');
+    note.textContent=reason==='idle'?'Locked after 10 minutes of inactivity. Enter the shared password.':reason==='password-changed'?'The password was changed. Enter the new shared password.':'Enter the shared family password.';
+    if(lostEditsNote)toast(lostEditsNote,'warning');
+    $('in-pw').value='';show('unlock');
+  }finally{locking=false}
+}
+
+/* ════════════════════════════════════════════════════
+   SAVE — hybrid lock + per-item merge (spec §4.6)
+════════════════════════════════════════════════════ */
+function assertWritable(){
+  if(!CRYPTO||!DATA||!driveDataLoaded)throw new ATError('LOCKED','The app is locked.');
+  if(readOnly)throw new ATError('READONLY','Read-only.');
+  if(!isOnline())throw new ATError('OFFLINE',"No connection — changes won't save");
+}
+async function readRemote(){
+  const env=await loadEnvelope();
+  if(env.kdf.salt!==CRYPTO.salt||env.kdf.iter!==CRYPTO.iter)throw new ATError('PASSWORD_CHANGED','The password was changed on another device.');
+  return {env,data:normalizeData(await decryptEnvelope(env,CRYPTO.key))};
+}
+async function saveOnce(){
+  try{assertWritable()}catch(e){return {ok:false,code:e.code,message:errMsg(e)}}
+  let busyBy=null;
+  for(let a=1;a<=CFG.saveAttempts;a++){
+    let lock;
+    try{lock=await acquireLock()}catch(e){return failResult(e)}
+    if(!lock.ok){busyBy=lock.by;if(a<CFG.saveAttempts)await sleep(CFG.saveRetryMs);continue}
+    try{
+      const remote=await readRemote();
+      const seq=mutationSeq,snap=clone(DATA);
+      const merged=mergeData(snap,remote.data);
+      await verifyLockStill(lock);
+      await driveUpdateText(fileId,await encryptEnvelope(merged,CRYPTO),'application/json');
+      DATA=mergeData(DATA,merged);dirty=(mutationSeq!==seq);lastSavedAt=nowMs();busyBy=null;
+      return {ok:true};
+    }catch(e){
+      if(e.code==='LOCK_LOST'||e.code==='LOCK_EXPIRED'){log('save retry:',e.code);continue}
+      return failResult(e);
+    }finally{await releaseLock(lock)}
+  }
+  return {ok:false,code:'BUSY',by:busyBy,message:busyBy?busyBy+' is saving — try again in a moment.':'Could not save — try again.'};
+}
+function failResult(e){
+  if(e.code==='PASSWORD_CHANGED')setTimeout(()=>lockApp('password-changed'),0);
+  if(e.code==='AUTH')showAuthBanner();
+  return {ok:false,code:e.code,message:errMsg(e)};
+}
+let saveActive=false;
+function requestSave(){
+  dirty=true;
+  if(!saveActive){
+    saveActive=true;
+    saving=(async()=>{
+      let r={ok:true};
+      try{while(dirty){r=await saveOnce();if(!r.ok)break}}
+      finally{saveActive=false}               // reset synchronously with the last dirty check — no window for a lost edit
+      if(!r.ok){log('save failed:',r.message);toast(r.message,r.code==='BUSY'?'warning':'error')}
+      renderPanel();return r;
+    })();
+  }
+  return saving;
+}
+
+/* local mutation API — updates memory synchronously, returns the save promise */
+function stampNow(old){return iso(Math.max(nowMs(),ts(old)+1))}      // never older than what we already saw
+function upsert(coll,rec){
+  assertWritable();
+  const old=DATA[coll][rec.id],t=stampNow(old);
+  const r=Object.assign({},old||{},rec);
+  if(!old){r.createdAt=t;r.createdBy=ME.email}
+  r.updatedAt=t;r.updatedBy=ME.email;
+  DATA[coll][r.id]=r;mutationSeq++;
+  if(old&&old.pushedToCalendar)flagChangedSincePush(r.id);
+  return requestSave();
+}
+function setStatus(coll,id,status){
+  assertWritable();
+  const old=DATA[coll][id];if(!old||old.deleted)throw new ATError('NOT_FOUND','No such record');
+  const t=iso(Math.max(nowMs(),(Date.parse(old.statusUpdatedAt||0)||0)+1));
+  DATA[coll][id]=Object.assign({},old,{status,statusUpdatedAt:t,statusUpdatedBy:ME.email});   // updatedAt untouched: content and status never overwrite each other
+  mutationSeq++;return requestSave();
+}
+function removeRecord(coll,id){
+  assertWritable();
+  const old=DATA[coll][id];if(!old)return Promise.resolve({ok:true});
+  const t=stampNow(old);
+  DATA[coll][id]={id,deleted:true,deletedAt:t,deletedBy:ME.email,updatedAt:t,updatedBy:ME.email};
+  mutationSeq++;return requestSave();
+}
+async function pullLatest(){
+  if(!CRYPTO||!DATA)return;
+  const remote=await readRemote();
+  DATA=mergeData(DATA,remote.data);lastPulledAt=nowMs();renderPanel();
+}
+
+/* ════════════════════════════════════════════════════
+   BACKUPS — shared Backups/ folder, keep last 10 (spec §4.7)
+   Backup = verbatim copy of the live encrypted file (same password + salt), written only after
+   the live file decrypts, then read back and decrypted. Manifest lives in DATA.backups so both
+   people see it. A person can only delete backup files their own Google grant can see; others are
+   left flagged pendingPrune for their creator to remove on their next backup.
+════════════════════════════════════════════════════ */
+const compactStamp=()=>iso().replace(/[-:]/g,'').replace(/\.\d+Z$/,'Z');
+function liveBackups(){return Object.values((DATA&&DATA.backups)||{}).filter(b=>!b.deleted).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt))}
+async function backupIfDue(){
+  if(!DATA||!CRYPTO)return {skipped:true};
+  const days=DATA.settings.backupIntervalDays||3,last=Date.parse(DATA.settings.lastBackupAt||0)||0;
+  if(nowMs()-last<days*864e5)return {skipped:true};
+  return backupNow('auto');
+}
+async function backupNow(reason){
+  assertWritable();
+  const folderId=DATA.settings.backupsFolderId;
+  if(!folderId)throw new ATError('NO_BACKUP_FOLDER','No Backups folder is recorded in the data file.');
+  const liveText=await driveGetText(fileId);
+  const env=parseEnvelope(liveText);
+  if(env.kdf.salt!==CRYPTO.salt)throw new ATError('PASSWORD_CHANGED','The password was changed on another device.');
+  const liveData=await decryptEnvelope(env,CRYPTO.key);          // live file must decrypt or no backup is taken
+  const name=BACKUP_PREFIX+compactStamp()+'.json';
+  let bid;
+  try{bid=await driveCreate(name,'application/json',folderId,liveText)}
+  catch(e){if(e.code==='NOT_FOUND'||e.code==='FORBIDDEN')throw new ATError('NEEDS_ACCESS','The Backups folder is not writable from this Google account yet. Use “Grant Backups folder”.',{what:'backups'});throw e}
+  let ok=false;
+  try{const back=await decryptEnvelope(parseEnvelope(await driveGetText(bid)),CRYPTO.key);ok=stable(back)===stable(liveData)}catch(e){ok=false}
+  if(!ok){try{await driveDelete(bid)}catch(e){}throw new ATError('BACKUP_VERIFY','The backup failed verification and was discarded. The existing backups were not touched.')}
+  const t=iso();
+  DATA.settings.lastBackupAt=t;DATA.settings.updatedAt=t;
+  const p=upsert('backups',{id:bid,name,createdAt:t,createdBy:ME.email,createdByName:ME.name,bytes:liveText.length,verified:true,reason:reason||'manual',
+    counts:{items:liveCount('items'),events:liveCount('events'),grades:liveCount('grades')}});
+  const r=await p;
+  if(!r.ok)return {ok:false,id:bid,name,message:'Backup written, but the manifest could not be saved: '+r.message};
+  await rotateBackups();
+  log('backup ok: '+name);
+  return {ok:true,id:bid,name};
+}
+async function rotateBackups(){
+  const live=liveBackups();
+  const keep=new Set(live.filter(b=>b.verified).slice(0,KEEP_BACKUPS).map(b=>b.id));   // newest verified are always kept
+  let changed=false;
+  for(const b of live){
+    if(keep.has(b.id))continue;
+    let gone=false;
+    try{await driveDelete(b.id);gone=true}
+    catch(e){
+      if(e.code==='NOT_FOUND'||e.code==='FORBIDDEN'){
+        if(b.createdBy===ME.email)gone=true;                       // our own file and not found → already gone
+        else if(!b.pendingPrune){const t=stampNow(b);DATA.backups[b.id]=Object.assign({},b,{pendingPrune:true,updatedAt:t,updatedBy:ME.email});mutationSeq++;changed=true}
+      }else{log('prune failed:',errMsg(e))}
+    }
+    if(gone){const t=stampNow(b);DATA.backups[b.id]={id:b.id,deleted:true,deletedAt:t,deletedBy:ME.email,updatedAt:t,updatedBy:ME.email};mutationSeq++;changed=true}
+  }
+  if(changed)await requestSave();
+}
+
+/* ════════════════════════════════════════════════════
+   ACCESS PROBE — answers the drive.file [VERIFY] questions on the real device
+════════════════════════════════════════════════════ */
+async function probeAccess(){
+  const r={at:iso(),lock:{},backups:{},find:{}};
+  try{const l=await acquireLock();if(l.ok){await releaseLock(l);r.lock={ok:true,note:'acquired and released'}}else r.lock={ok:true,note:'held by '+l.by}}
+  catch(e){r.lock={ok:false,note:errMsg(e),code:e.code}}
+  const bf=DATA&&DATA.settings.backupsFolderId;
+  if(!bf)r.backups={ok:false,note:'no Backups folder recorded'};
+  else{
+    try{const id=await driveCreate('.apextrack_preflight_'+nowMs(),'text/plain',bf,'.');await driveDelete(id).catch(()=>{});r.backups={ok:true,note:'can create files in Backups'}}
+    catch(e){r.backups={ok:false,note:errMsg(e),code:e.code}}
+  }
+  try{const f=await driveList("name='"+DATA_FILE_NAME+"' and trashed=false",'id');r.find={ok:f.length>0,note:f.length+' file(s) found by name'}}
+  catch(e){r.find={ok:false,note:errMsg(e)}}
+  lastProbe=r;renderPanel();return r;
+}
+
+/* ════════════════════════════════════════════════════
+   UI — sign-in flow, screens, Phase 1 test panel
+════════════════════════════════════════════════════ */
+function show(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const scr=$('screen-'+name);if(scr)scr.classList.add('active');
+  if(name==='app'||name==='panel')renderPanel();
+  if(name==='setup'){$('keybox').style.display=pickerKey()?'none':'block';$('btn-setup-back').style.display=CRYPTO?'block':'none'}
+  if(name==='unlock'){$('unlock-who').textContent=ME?ME.name:'';setTimeout(()=>{const i=$('in-pw');if(i&&i.focus)i.focus()},50)}
+  if(name==='setup')$('setup-who').textContent=ME?ME.name:'';
+}
+function setMsg(id,text,kind){const m=$(id);if(!m)return;m.textContent=text||'';m.className='msg'+(kind?' '+kind:'')}
+async function loadMe(){
+  try{
+    const r=await dfetch(DRIVE+'/about?fields='+encodeURIComponent('user(emailAddress,displayName)'));
+    if(!r.ok)throw await apiError(r);
+    const u=(await r.json()).user||{};
+    ME={email:String(u.emailAddress||'').toLowerCase(),name:firstName(u.displayName||u.emailAddress)};
+    if(!ME.email)throw new ATError('API','No email returned');
+  }catch(e){
+    if(e.code==='AUTH'||e.code==='OFFLINE')throw e;
+    log('could not read profile:',errMsg(e));ME={email:'unknown@device',name:'Someone'};toast('Could not read your Google profile — lock messages may show “Someone”.','warning');
+  }
+}
+async function afterSignIn(){
+  await loadMe();
+  const prev=lsGet(LS.email);
+  if(prev&&prev!==ME.email){lsDel(LS.fileId);lsDel(LS.lockId);fileId=null;lockId=null;log('different Google account — cleared remembered file')}
+  lsSet(LS.email,ME.email);
+  log('signed in as '+ME.name);
+  await locateAndContinue();
+}
+async function locateAndContinue(){
+  const res=await locateDataFile();
+  setupCands=[];$('cands').textContent='';
+  if(res.status==='ok'){show('unlock');return}
+  if(res.status==='many'){
+    setupCands=res.files;
+    $('setup-intro').textContent='More than one data file is visible to this account. Choose the right one.';
+    res.files.forEach(f=>{
+      const b=document.createElement('button');b.type='button';b.className='cand';
+      b.textContent=f.name+'  ·  modified '+String(f.modifiedTime||'').slice(0,16).replace('T',' ')+'  ·  '+((f.owners&&f.owners[0]&&f.owners[0].emailAddress)||'');
+      b.addEventListener('click',()=>{fileId=f.id;lsSet(LS.fileId,f.id);lsDel(LS.lockId);lockId=null;show('unlock')});
+      $('cands').appendChild(b);
+    });
+  }else $('setup-intro').textContent='Pick the shared ApexTrack files from Google Drive. This is a one-time step per Google account.';
+  show('setup');
+}
+async function doSignIn(){
+  const btn=$('btn-signin');btn.disabled=true;setMsg('msg-signin','Connecting to Google…');
+  try{await waitForGIS(8000);await requestToken('select_account',90000);await afterSignIn();setMsg('msg-signin','')}
+  catch(e){setMsg('msg-signin',errMsg(e),'err');log('sign-in failed:',errMsg(e));if(e.code!=='AUTH')show('signin')}
+  finally{btn.disabled=false}
+}
+async function doPickFiles(){
+  setMsg('msg-setup','');
+  try{
+    const docs=await openPicker({kind:'files',query:'school_tracker',title:'Select school_tracker.json and school_tracker_lock.json'});
+    if(!docs)return;
+    const d=docs.find(x=>x.name===DATA_FILE_NAME),l=docs.find(x=>x.name===LOCK_FILE_NAME);
+    if(!d&&!fileId){setMsg('msg-setup','Select school_tracker.json (and school_tracker_lock.json) in the picker.','err');return}
+    if(d){await checkDataFile(d.id);fileId=d.id;lsSet(LS.fileId,d.id)}
+    if(l){lockId=l.id;lsSet(LS.lockId,l.id)}
+    log('picked: data='+(d?'yes':'no')+' lock='+(l?'yes':'no'));
+    if(CRYPTO){toast(l?'Files granted':'Data file granted — lock file still missing',l?'success':'warning');if(l)probeAccess();show('app')}
+    else{if(!l)toast('Tip: also select school_tracker_lock.json so saving works.','info');show('unlock')}
+  }catch(e){setMsg('msg-setup',errMsg(e),'err');log('pick failed:',errMsg(e));if(e.code==='PICKER_KEY')$('keybox').style.display='block'}
+}
+async function doPickBackupsFolder(){
+  try{
+    const bf=DATA&&DATA.settings.backupsFolderId;
+    const docs=await openPicker({kind:'folder',query:'Backups',title:'Select the Backups folder'});
+    if(!docs||!docs.length)return;
+    const f=docs[0];
+    if(bf&&f.id!==bf)toast('That is a different folder than the one the data file points to.','warning');
+    log('backups folder picked');toast('Backups folder granted','success');probeAccess();
+  }catch(e){toast(errMsg(e),'error');log('folder pick failed:',errMsg(e))}
+}
+async function doFirstTime(){
+  setMsg('msg-setup','');
+  try{
+    const docs=await openPicker({kind:'folder',query:'ApexTrack',title:'Select the shared ApexTrack folder'});
+    if(!docs||!docs.length)return;
+    pendingFolderId=docs[0].id;setMsg('msg-create','');show('create');
+  }catch(e){setMsg('msg-setup',errMsg(e),'err');log('folder pick failed:',errMsg(e));if(e.code==='PICKER_KEY')$('keybox').style.display='block'}
+}
+async function doCreate(){
+  const p1=$('in-newpw1').value,p2=$('in-newpw2').value;
+  if(p1.length<10)return setMsg('msg-create','Use at least 10 characters.','err');
+  if(p1!==p2)return setMsg('msg-create','Passwords do not match.','err');
+  const btn=$('btn-create');btn.disabled=true;setMsg('msg-create','Creating encrypted file… (a few seconds)');
+  try{
+    await createNewStore(pendingFolderId,p1);
+    $('in-newpw1').value='';$('in-newpw2').value='';
+    afterUnlocked();
+  }catch(e){setMsg('msg-create',errMsg(e),'err');log('create failed:',errMsg(e))}
+  finally{btn.disabled=false}
+}
+async function doUnlock(){
+  const pw=$('in-pw').value;if(!pw)return;
+  const btn=$('btn-unlock');btn.disabled=true;setMsg('msg-unlock','Unlocking…');
+  try{await unlock(pw);$('in-pw').value='';setMsg('msg-unlock','');afterUnlocked()}
+  catch(e){
+    setMsg('msg-unlock',errMsg(e),'err');log('unlock failed:',e.code||errMsg(e));
+    if(e.code==='NOT_FOUND'||e.code==='FORBIDDEN'){lsDel(LS.fileId);fileId=null;setMsg('msg-unlock','The remembered file is no longer accessible. Choose a different file.','err')}
+  }finally{btn.disabled=false}
+}
+function afterUnlocked(){
+  show('app');
+  resolveLockId().then(()=>renderPanel()).catch(e=>{log('lock file:',errMsg(e));renderPanel()});
+  setTimeout(()=>{backupIfDue().then(r=>{if(r&&r.ok)toast('Backup saved','success');renderPanel()}).catch(e=>{lastBackupErr=errMsg(e);log('auto-backup:',errMsg(e));toast('Backup problem: '+errMsg(e),'warning');renderPanel()})},CFG.backupDelayMs);
+}
+
+/* ════════════════════════════════════════════════════
+   PHASE 2a — VOCABULARY, SELECTORS, FORMATTERS (spec §5, §6, §7)
+════════════════════════════════════════════════════ */
+const ITEM_TYPES=['test','assignment','event','form/payment','grade-flag','info'];
+const PRIORITIES=['Critical','Action','Info'];
+const TYPE_LABEL={test:'Test',assignment:'Assignment',event:'Event','form/payment':'Form/payment','grade-flag':'Grade flag',info:'Info'};
+const PRANK={Critical:0,Action:1,Info:2};
+const kidName=k=>k==='both'?'both':k;
+// an item carries kidIds[]. 'both' is stored as ['AV','IV']. Resolve to a display key:
+function kidKey(it){const k=(it.kidIds||[]).filter(x=>x==='AV'||x==='IV');if(k.length>=2)return 'both';if(k[0]==='AV')return 'AV';if(k[0]==='IV')return 'IV';return 'both'}
+function kidBadgeLabel(k){return k==='both'?'Both':k}
+function kidSchool(it){const k=kidKey(it);if(it.messageSchool)return it.messageSchool;if(k==='AV')return (DATA.kids.AV&&DATA.kids.AV.school)||'North Gwinnett Middle';if(k==='IV')return (DATA.kids.IV&&DATA.kids.IV.school)||'Roberts Elementary';return 'District'}
+// email → first name map so the UI never shows an email (spec: no emails in UI)
+function nameFor(email){if(!email)return '';if(ME&&email===ME.email)return ME.name;const m=DATA&&DATA.settings&&DATA.settings.nameMap;return (m&&m[email])||firstName(email)}
+function recordMyName(){if(!DATA||!ME)return;const m=DATA.settings.nameMap=DATA.settings.nameMap||{};if(m[ME.email]!==ME.name){m[ME.email]=ME.name;DATA.settings.updatedAt=stampNow(DATA.settings)}}
+
+
+/* ════════════════════════════════════════════════════
+   RECURRENCE ENGINE (Phase 2b v0.3.1)
+   recurrenceRule: {frequency,byDay,until,count}
+   recExceptions: ['2026-11-05',…]  — cancelled instances
+   recOverrides: {'2026-11-05':{title:'...'}} — edited instances
+════════════════════════════════════════════════════ */
+const DOW_NAMES=['MO','TU','WE','TH','FR','SA','SU'];
+const DOW_LABELS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function dowIndex(d){return (d.getDay()+6)%7}
+function dowName(d){return DOW_NAMES[dowIndex(d)]}
+function expandRecurrence(ev,startStr,endStr){
+  const rule=ev.recurrenceRule;if(!rule||!rule.frequency)return [];
+  const base=ev.startDate||ev.date||'';if(!base)return [];
+  const baseDate=base.slice(0,10);
+  const exceptions=new Set(ev.recExceptions||[]);
+  const overrides=ev.recOverrides||{};
+  const freq=rule.frequency,byDay=new Set(rule.byDay||[]);
+  const until=rule.until||endStr;
+  const maxCount=rule.count||400;
+  const out=[];let count=0;
+  const capDate=until<endStr?until:endStr;
+  const end=new Date(capDate+'T23:59:59');
+  const eventStart=new Date(baseDate+'T00:00:00');
+  const eventWeekStart=new Date(eventStart);eventWeekStart.setDate(eventWeekStart.getDate()-dowIndex(eventWeekStart));
+  const isMatchingWeek=(dt)=>{
+    if(freq!=='biweekly')return true;
+    const wk=new Date(dt);wk.setDate(wk.getDate()-dowIndex(wk));
+    const diff=Math.round((wk.getTime()-eventWeekStart.getTime())/(7*86400000));
+    return diff%2===0;
+  };
+  if(freq==='weekly'||freq==='biweekly'){
+    if(!byDay.size)byDay.add(dowName(eventStart));
+    const cur=new Date(baseDate+'T00:00:00');
+    while(cur<=end&&count<maxCount){
+      const ds=calPad(cur);
+      if(byDay.has(dowName(cur))&&isMatchingWeek(cur)){
+        if(ds>=startStr&&ds<=endStr&&!exceptions.has(ds)){
+          out.push({dateStr:ds,isOverride:!!overrides[ds],override:overrides[ds]||null});
+        }
+        count++;
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+  } else if(freq==='daily'){
+    const cur=new Date(baseDate+'T00:00:00');
+    while(cur<=end&&count<maxCount){
+      const ds=calPad(cur);
+      if(ds>=startStr&&ds<=endStr&&!exceptions.has(ds)){
+        out.push({dateStr:ds,isOverride:!!overrides[ds],override:overrides[ds]||null});
+      }
+      count++;cur.setDate(cur.getDate()+1);
+    }
+  } else if(freq==='monthly'){
+    const cur=new Date(baseDate+'T00:00:00');
+    while(cur<=end&&count<maxCount){
+      const ds=calPad(cur);
+      if(ds>=startStr&&ds<=endStr&&!exceptions.has(ds)){
+        out.push({dateStr:ds,isOverride:!!overrides[ds],override:overrides[ds]||null});
+      }
+      count++;cur.setMonth(cur.getMonth()+1);
+    }
+  }
+  return out;
+}
+const liveItems=()=>DATA?Object.values(DATA.items).filter(i=>!i.deleted):[];
+const liveEvents=()=>DATA?Object.values(DATA.events).filter(e=>!e.deleted):[];
+// All calendar-visible entries: items with a date + events. Returned as [{kind:'item'|'event',rec,dateMs,timeStr}].
+function calEntries(filter,dateStr){
+  const out=[];
+  liveItems().forEach(it=>{
+    if(!matchKid(it,filter))return;if(!hasDate(it))return;
+    const d=it.dueDate||it.startDate||it.date||'';
+    if(dateStr&&d.slice(0,10)!==dateStr)return;
+    const ms=itemDateMs(it);
+    const ts=(!it.allDay&&/T\d\d:/.test(d))?d.replace(/.*T/,'').slice(0,5):'';
+    out.push({kind:'item',rec:it,dateMs:ms,dateStr:d.slice(0,10),timeStr:ts,isDue:!!it.dueDate,allDay:it.allDay!==false});
+  });
+  liveEvents().forEach(ev=>{
+    if(!matchKid(ev,filter))return;
+    const d=ev.startDate||ev.date||'';if(!d)return;
+    const ts=(!ev.allDay&&/T\d\d:/.test(d))?d.replace(/.*T/,'').slice(0,5):'';
+    if(ev.recurrenceRule&&ev.recurrenceRule.frequency){
+      const rangeStart=dateStr||(calPad(new Date(nowMs()-90*dayMs)));
+      const rangeEnd=dateStr||(calPad(new Date(nowMs()+180*dayMs)));
+      expandRecurrence(ev,rangeStart,rangeEnd).forEach(inst=>{
+        const ov=inst.override?Object.assign({},ev,inst.override,{id:ev.id}):ev;
+        const ms=Date.parse(inst.dateStr+'T'+(ts||'00:00:00'))||0;
+        out.push({kind:'event',rec:ov,dateMs:ms,dateStr:inst.dateStr,timeStr:ts,isDue:false,allDay:ev.allDay!==false,isInstance:true,instanceDate:inst.dateStr,seriesId:ev.id});
+      });
+    } else {
+      if(dateStr&&d.slice(0,10)!==dateStr)return;
+      const ms=Date.parse(d.length<=10?d+'T00:00:00':d)||0;
+      out.push({kind:'event',rec:ev,dateMs:ms,dateStr:d.slice(0,10),timeStr:ts,isDue:false,allDay:ev.allDay!==false});
+    }
+  });
+  out.sort((a,b)=>{
+    // timed events first, then all-day events, then due items
+    const rank=e=>e.isDue?2:e.allDay?1:0;
+    const ra=rank(a),rb=rank(b);if(ra!==rb)return ra-rb;
+    if(a.timeStr!==b.timeStr)return a.timeStr<b.timeStr?-1:1;
+    return (a.rec.title||'').localeCompare(b.rec.title||'');
+  });
+  return out;
+}
+function calEntriesForMonth(filter,year,month){
+  // all entries whose dateStr falls in the given month (or spills into leading/trailing weeks)
+  const first=new Date(year,month,1),last=new Date(year,month+1,0);
+  const startPad=new Date(first);startPad.setDate(1-(first.getDay()+6)%7);   // Monday of first week
+  const endPad=new Date(last);endPad.setDate(last.getDate()+(7-last.getDay())%7);  // Sunday of last week
+  const pad=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const s0=pad(startPad),s1=pad(endPad);
+  return calEntries(filter).filter(e=>e.dateStr>=s0&&e.dateStr<=s1);
+}
+function kidColorFor(entry){
+  const k=kidKey(entry.rec);
+  if(k==='AV')return {bar:'var(--av-bar)',txt:'var(--av-txt)',tint:'var(--av-tint)',edge:'var(--av-edge)'};
+  if(k==='IV')return {bar:'var(--iv-bar)',txt:'var(--iv-txt)',tint:'var(--iv-tint)',edge:'var(--iv-edge)'};
+  return {bar:'var(--both-bar)',txt:'var(--both-txt)',tint:'var(--both-tint)',edge:'var(--both-edge)'};
+}
+function fmtTime(t){if(!t)return '';const [h,m]=t.split(':');const hh=+h;return (hh>12?hh-12:hh||12)+':'+m+(hh>=12?' pm':' am')}
+function calInit(){const d=new Date(nowMs());CAL_YEAR=d.getFullYear();CAL_MONTH=d.getMonth();CAL_SEL_DATE=calPad(d);CAL_WEEK_OFF=0}
+function calPad(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function calToday(){return calPad(new Date(nowMs()))}
+
+function itemDateMs(it){const d=it.dueDate||it.startDate||it.date;return d?Date.parse(d.length<=10?d+'T00:00:00':d)||0:0}
+function hasDate(it){return !!(it.dueDate||it.startDate||it.date)}
+const dayMs=86400000;
+function startOfToday(){const d=new Date(nowMs());d.setHours(0,0,0,0);return d.getTime()}
+function matchKid(it,filter){if(filter==='all')return true;return (it.kidIds||[]).includes(filter)}
+// This Week: overdue open + next 7 days + undated open Critical/Action. Grouped Crit/Action/Info.
+// Monday 00:00 (local) of the week containing today, shifted by n whole weeks. Uses calendar-date arithmetic
+// (setDate), never +7*24h, so a daylight-saving change inside the week cannot move a boundary.
+function weekStartMs(n){const d=new Date(startOfToday());const dow=(d.getDay()+6)%7;d.setDate(d.getDate()-dow+7*(n||0));return d.getTime()}
+function weekRange(which){
+  const n=which==='next'?1:0,s=weekStartMs(n),e=weekStartMs(n+1);
+  const sun=new Date(s);sun.setDate(sun.getDate()+6);
+  return {startMs:s,endMs:e,sundayMs:sun.getTime()};
+}
+function weekRangeLabel(which){
+  const r=weekRange(which),f=ms=>new Date(ms).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  return f(r.startMs)+' \u2013 '+f(r.sundayMs);
+}
+// This week = overdue + Mon–Sun of the current week + undated Critical/Action. Next week = the following Mon–Sun, dated items only.
+function weekItems(filter='all',opts={}){
+  const next=opts.week==='next';
+  const ws=weekStartMs(next?1:0),we=weekStartMs(next?2:1);
+  return liveItems().filter(it=>{
+    if(!matchKid(it,filter))return false;
+    const done=it.status==='done'||it.status==='cancelled';
+    const dated=hasDate(it),m=dated?itemDateMs(it):0;
+    if(next){if(!dated||m<ws||m>=we)return false;return done?!!opts.showDone:true}
+    if(done)return !!opts.showDone;
+    if(!dated)return it.priority==='Critical'||it.priority==='Action';
+    return m<we; // includes overdue (m<today) and the rest of this week
+  }).sort(itemSort);
+}
+function thisWeekItems(filter='all',opts={}){return weekItems(filter,Object.assign({},opts,{week:'this'}))}
+function nextWeekItems(filter='all',opts={}){return weekItems(filter,Object.assign({},opts,{week:'next'}))}
+function criticalItems(filter='all',opts={}){
+  return liveItems().filter(it=>matchKid(it,filter)&&it.priority==='Critical'&&(opts.showDone||(it.status!=='done'&&it.status!=='cancelled'))).sort(itemSort);
+}
+function todoItems(filter='all',opts={}){
+  return liveItems().filter(it=>matchKid(it,filter)&&(it.priority==='Critical'||it.priority==='Action')&&(opts.showDone||(it.status!=='done'&&it.status!=='cancelled'))).sort(itemSort);
+}
+function itemSort(a,b){
+  const pa=PRANK[a.priority]??3,pb=PRANK[b.priority]??3;if(pa!==pb)return pa-pb;
+  const da=hasDate(a),db=hasDate(b);if(da!==db)return da?-1:1;        // undated last
+  const ma=itemDateMs(a),mb=itemDateMs(b);if(ma!==mb)return ma-mb;    // soonest first
+  return String(a.title||'').localeCompare(String(b.title||''));
+}
+function groupByPriority(list){return {Critical:list.filter(i=>i.priority==='Critical'),Action:list.filter(i=>i.priority==='Action'),Info:list.filter(i=>i.priority==='Info')}}
+
+function fmtDate(it){
+  if(!hasDate(it))return 'No date';
+  const s=it.startDate||it.date||it.dueDate,e=it.endDate;
+  const one=d=>{const dt=new Date((d.length<=10?d+'T00:00:00':d));return dt.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})};
+  let base=(it.dueDate?'Due ':'')+one(s);
+  if(e&&e!==s)base+=' – '+one(e);
+  if(!it.allDay&&/T\d\d:/.test(s)){const dt=new Date(s);base+=' · '+dt.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
+  else if(it.allDay)base+=' · All day';
+  return base;
+}
+function relLabel(it){
+  if(!hasDate(it))return '';
+  const t0=startOfToday(),m=itemDateMs(it);
+  if(m<t0)return 'Overdue';if(m<t0+dayMs)return 'Today';if(m<t0+2*dayMs)return 'Tomorrow';return '';
+}
+
+
+/* ════════════════════════════════════════════════════
+   CALENDAR VIEWS (Phase 2b, v0.3.0)
+════════════════════════════════════════════════════ */
+function renderCalendar(root){
+  if(!CAL_YEAR)calInit();
+  // bar: ← month → | Today | chips | Month Week Agenda
+  const bar=el('div','cal-bar');
+  const prev=el('button','nb');prev.innerHTML='<i class="ti ti-chevron-left" aria-hidden="true"></i>';
+  prev.addEventListener('click',()=>{if(CAL_SUB==='month'){CAL_MONTH--;if(CAL_MONTH<0){CAL_MONTH=11;CAL_YEAR--}}else{calWeekNav(-1)}renderView()});
+  const next=el('button','nb');next.innerHTML='<i class="ti ti-chevron-right" aria-hidden="true"></i>';
+  next.addEventListener('click',()=>{if(CAL_SUB==='month'){CAL_MONTH++;if(CAL_MONTH>11){CAL_MONTH=0;CAL_YEAR++}}else{calWeekNav(1)}renderView()});
+  const lbl=el('span','month-label',calBarLabel());
+  bar.appendChild(prev);bar.appendChild(lbl);bar.appendChild(next);
+  const tb=el('button','today-btn','Today');tb.addEventListener('click',()=>{calInit();renderView()});bar.appendChild(tb);
+  bar.appendChild(chipsRow());
+  const seg=el('div','cal-seg');
+  ['month','week','agenda'].forEach(v=>{const b=el('button',CAL_SUB===v?'on':'',cap(v));b.addEventListener('click',()=>{CAL_SUB=v;renderView()});seg.appendChild(b)});
+  bar.appendChild(seg);
+  root.appendChild(bar);
+  if(CAL_SUB==='month')renderMonth(root);
+  else if(CAL_SUB==='week')renderCalWeek(root);
+  else renderAgenda(root);
+}
+function calBarLabel(){
+  if(CAL_SUB==='agenda')return 'Next 30 days';
+  if(CAL_SUB==='week'){const ws=weekStartMs(calWeekOff());const d=new Date(ws);return d.toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})+' week'}
+  return new Date(CAL_YEAR,CAL_MONTH).toLocaleDateString(undefined,{month:'long',year:'numeric'});
+}
+// ─── Month ───
+function renderMonth(root){
+  const today=calToday();
+  const first=new Date(CAL_YEAR,CAL_MONTH,1),dow1=(first.getDay()+6)%7;
+  const daysInMonth=new Date(CAL_YEAR,CAL_MONTH+1,0).getDate();
+  const startDate=new Date(first);startDate.setDate(1-dow1);
+  const entries=calEntriesForMonth(KFILTER,CAL_YEAR,CAL_MONTH);
+  const byDate={};entries.forEach(e=>{(byDate[e.dateStr]=byDate[e.dateStr]||[]).push(e)});
+  const totalCells=Math.ceil((dow1+daysInMonth)/7)*7;
+  // desktop grid
+  const dowRow=el('div','cal-dow cal-dow-d');['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d=>dowRow.appendChild(el('span',null,d)));
+  root.appendChild(dowRow);
+  const grid=el('div','cal-grid');
+  // mobile grid
+  const mdow=el('div','cal-dow cal-dow-m');['M','T','W','T','F','S','S'].forEach(d=>mdow.appendChild(el('span',null,d)));
+  root.appendChild(mdow);
+  const mgrid=el('div','cal-mgrid');
+  for(let i=0;i<totalCells;i++){
+    const d=new Date(startDate);d.setDate(d.getDate()+i);
+    const ds=calPad(d),inMonth=d.getMonth()===CAL_MONTH;
+    const sel=ds===CAL_SEL_DATE,isToday=ds===today;
+    const dayEntries=byDate[ds]||[];
+    // desktop cell
+    const cell=el('div','cal-cell'+(inMonth?'':' other')+(sel?' sel':''));
+    cell.addEventListener('click',()=>{CAL_SEL_DATE=ds;renderView()});
+    const cn=el('div','cn');cn.innerHTML=isToday?'<b>'+d.getDate()+'</b>':''+d.getDate();cell.appendChild(cn);
+    dayEntries.slice(0,2).forEach(e=>{
+      const c=kidColorFor(e),x=el('div','cal-ev '+(e.isDue?'du':'ev'));
+      x.textContent=(e.rec.recurrenceRule?'\u21BB ':'')+((e.timeStr&&!e.isDue)?fmtTime(e.timeStr)+' ':'')+e.rec.title;
+      x.style.color=c.txt;
+      if(e.isDue){x.style.borderColor=c.bar}else{x.style.background=c.tint;x.style.borderLeftColor=c.bar}
+      cell.appendChild(x);
+    });
+    if(dayEntries.length>2){cell.appendChild(el('div','cal-more','+'+(dayEntries.length-2)+' more'))}
+    grid.appendChild(cell);
+    // mobile cell
+    const md=el('div','cal-md'+(inMonth?'':' other')+(sel?' sel':''));
+    md.addEventListener('click',()=>{CAL_SEL_DATE=ds;renderView()});
+    md.innerHTML=isToday?'<b>'+d.getDate()+'</b>':'<span>'+d.getDate()+'</span>';
+    const dots=el('div','cal-dots');
+    dayEntries.slice(0,3).forEach(e=>{const dt=el('span','cal-dt'+(e.isDue?' du':''));const c=kidColorFor(e);dt.style.background=c.bar;dt.style.borderColor=c.bar;dots.appendChild(dt)});
+    md.appendChild(dots);mgrid.appendChild(md);
+  }
+  root.appendChild(grid);root.appendChild(mgrid);
+  // selected-day panel
+  const selEntries=byDate[CAL_SEL_DATE]||[];
+  const hd=el('div','cal-day-hd');
+  const dd=new Date(CAL_SEL_DATE+'T00:00:00');
+  hd.textContent=dd.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+  if(selEntries.length)hd.appendChild(el('span','cnt',selEntries.length+' item'+(selEntries.length===1?'':'s')));
+  root.appendChild(hd);
+  if(!selEntries.length){root.appendChild(el('div','cal-empty','Nothing on this day.'))}
+  else selEntries.forEach(e=>root.appendChild(calDayRow(e)));
+  const add=el('button','cal-add');add.innerHTML='<i class="ti ti-plus" style="font-size:14px" aria-hidden="true"></i> Add event';
+  add.addEventListener('click',()=>openEdit(null,{date:CAL_SEL_DATE,isEvent:true}));root.appendChild(add);
+}
+// ─── Week ───
+let CAL_WEEK_OFF=0;  // 0 = current week, -1 = last week, +1 = next week
+function calWeekOff(){return CAL_WEEK_OFF||0}
+function calWeekNav(dir){CAL_WEEK_OFF=(CAL_WEEK_OFF||0)+dir}
+function renderCalWeek(root){
+  const today=calToday();
+  const ws=weekStartMs(calWeekOff());
+  const wgrid=el('div','wk-grid');
+  const mlist=el('div','cal-wk-mob');
+  for(let i=0;i<7;i++){
+    const d=new Date(ws);d.setDate(d.getDate()+i);
+    const ds=calPad(d),isToday=ds===today;
+    const dayEntries=calEntries(KFILTER,ds);
+    // desktop col
+    const col=el('div','wk-col');
+    const dh=el('div','wk-dh');
+    dh.innerHTML=(isToday?'<b>':'')+'<span>'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]+' '+d.getDate()+'</span>'+(isToday?'</b>':'');
+    if(isToday){const dot=el('span','today-dot');dh.appendChild(dot)}
+    col.appendChild(dh);
+    dayEntries.forEach(e=>{
+      const c=kidColorFor(e),r=el('div','wk-row '+(e.isDue?'du':'ev'));
+      r.textContent=(e.rec.recurrenceRule?'\u21BB ':'')+(e.timeStr&&!e.isDue?fmtTime(e.timeStr)+' ':e.isDue?'Due ':e.allDay?'':'')+(e.rec.title||'');
+      r.style.color=c.txt;
+      if(e.isDue){r.style.borderColor=c.bar}else{r.style.borderLeftColor=c.bar}
+      r.addEventListener('click',()=>openDetail(e.rec.id,e));col.appendChild(r);
+    });
+    wgrid.appendChild(col);
+    // mobile: agenda-style day
+    const ah=el('div','agenda-hd');ah.innerHTML=(isToday?'<b>Today \u00b7 ':'<b>')+d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+'</b>';
+    mlist.appendChild(ah);
+    if(!dayEntries.length){mlist.appendChild(el('div','cal-empty','No items'))}
+    else dayEntries.forEach(e=>mlist.appendChild(calDayRow(e)));
+  }
+  root.appendChild(wgrid);root.appendChild(mlist);
+}
+// ─── Agenda ───
+function renderAgenda(root){
+  const today=calToday();
+  const d0=new Date(nowMs());d0.setHours(0,0,0,0);
+  const d30=new Date(d0);d30.setDate(d30.getDate()+30);
+  const entries=calEntries(KFILTER).filter(e=>{
+    const m=e.dateMs;return m>=d0.getTime()&&m<d30.getTime();
+  });
+  const byDate={};entries.forEach(e=>{(byDate[e.dateStr]=byDate[e.dateStr]||[]).push(e)});
+  const dates=Object.keys(byDate).sort();
+  if(!dates.length){root.appendChild(el('div','cal-empty','Nothing in the next 30 days.'));return}
+  dates.forEach(ds=>{
+    const dd=new Date(ds+'T00:00:00');
+    const hd=el('div','agenda-hd');
+    hd.innerHTML=(ds===today?'<b>Today \u00b7 ':'<b>')+dd.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+'</b>';
+    root.appendChild(hd);
+    byDate[ds].forEach(e=>root.appendChild(calDayRow(e)));
+  });
+}
+// shared day-row for agenda + mobile month panel
+function calDayRow(e){
+  const c=kidColorFor(e),row=el('div','agenda-row'+(e.isDue?' du':''));
+  row.style.borderColor=c.bar;if(!e.isDue)row.style.background=c.tint;
+  const tm=el('span','agenda-tm',e.isDue?'Due':(e.allDay?'All day':fmtTime(e.timeStr)||''));
+  row.appendChild(tm);
+  const body=el('div','');body.style.flex='1';body.style.minWidth='0';
+  body.appendChild(el('div','rt',(e.rec.recurrenceRule?'\u21BB ':'')+e.rec.title));
+  if(e.rec.summary)body.appendChild(el('div','rs',e.rec.summary));
+  row.appendChild(body);
+  row.appendChild(kidBadge(e.rec));
+  row.addEventListener('click',()=>openDetail(e.rec.id,e));
+  return row;
+}
+/* ════════════════════════════════════════════════════
+   IMPORT PARSER — APEXTRACK-IMPORT v1 (Lane 1, spec §9.2/§9.4)
+   Line-oriented: header, @item blocks of key:value, @body sentinel → free text, @end, @end-import.
+════════════════════════════════════════════════════ */
+const IMPORT_MAJOR=1;
+function parseImport(text){
+  const out={version:null,items:[],error:null,warnings:[]};
+  if(!text||!text.trim()){out.error='Nothing to import.';return out}
+  const lines=String(text).replace(/\r\n?/g,'\n').split('\n');
+  let i=0;while(i<lines.length&&!lines[i].trim())i++;
+  const hdr=(lines[i]||'').trim();const hm=hdr.match(/^APEXTRACK-IMPORT\s+v(\d+)$/i);
+  if(!hm){out.error='This does not look like an ApexTrack import block (missing the APEXTRACK-IMPORT v1 header).';return out}
+  const major=parseInt(hm[1],10);out.version=major;
+  if(major!==IMPORT_MAJOR){out.error='This import block is version '+major+', but this app reads version '+IMPORT_MAJOR+'. Ask Claude for a v'+IMPORT_MAJOR+' block.';return out}
+  i++;
+  let declaredCount=null,sawEnd=false;
+  let cur=null,inBody=false,body=[];
+  const finish=()=>{if(cur){cur.messageBody=body.join('\n').replace(/\s+$/,'');out.items.push(cur);cur=null;inBody=false;body=[]}};
+  for(;i<lines.length;i++){
+    const raw=lines[i],line=raw.trim();
+    if(inBody){
+      if(line==='@end'){finish();continue}
+      body.push(raw.replace(/^\\(@)/,'$1'));continue;   // un-escape a leading \@
+    }
+    if(!line)continue;
+    if(line==='@end-import'){sawEnd=true;break}
+    if(line==='@item'){finish();cur={_raw:{}};continue}
+    if(line==='@body'){if(cur){inBody=true;body=[]}continue}
+    if(line==='@end'){finish();continue}
+    const ci=line.indexOf(':');
+    if(ci<0){out.warnings.push('Ignored a line without a key: '+line.slice(0,40));continue}
+    const key=line.slice(0,ci).trim().toLowerCase(),val=line.slice(ci+1).trim();
+    if(!cur){if(key==='count')declaredCount=parseInt(val,10);continue}   // header-level keys (generated, count) before first @item
+    cur._raw[key]=val;
+  }
+  finish();
+  if(!sawEnd){out.error='The import block looks cut off — the @end-import marker is missing. Re-copy the whole block from Claude.';return out}
+  if(declaredCount!=null&&declaredCount!==out.items.length){out.error='The block says count: '+declaredCount+' but contains '+out.items.length+' item(s). It may be truncated — re-copy the whole block.';return out}
+  if(!out.items.length){out.error='No items found in the block.';return out}
+  return out;
+}
+const KID_ALIAS={av:'AV',iv:'IV',both:'both','av,iv':'both','iv,av':'both'};
+function normalizeImportItem(raw){
+  const r=raw._raw||{},errs=[];
+  const kidTok=(r.kid||'').toLowerCase().replace(/\s+/g,'');
+  const kid=KID_ALIAS[kidTok]; if(!kid)errs.push(r.kid?('unknown kid "'+r.kid+'"'):'missing kid');
+  const kidIds=kid==='both'?['AV','IV']:(kid?[kid]:[]);
+  let type=(r.type||'').toLowerCase();if(type&&!ITEM_TYPES.includes(type)){errs.push('unknown type "'+r.type+'"');}
+  let priority=cap(r.priority||'');if(priority&&!PRIORITIES.includes(priority))errs.push('invalid priority "'+r.priority+'"');
+  const title=(r.title||'').trim();if(!title)errs.push('missing title');
+  const src=(r.source||'').trim();if(!src)errs.push('missing source message id');
+  // dates
+  let dueDate=null,startDate=null,endDate=null,dateErr=false;
+  const dval=(r.date||'').trim();
+  if(dval){
+    const parts=dval.split('..');
+    const okd=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(Date.parse(s));
+    if(parts.length===2){if(okd(parts[0])&&okd(parts[1])){startDate=parts[0];endDate=parts[1]}else dateErr=true}
+    else if(okd(parts[0])){if(type==='form/payment'||type==='assignment'||type==='test')dueDate=parts[0];else startDate=parts[0]}
+    else dateErr=true;
+  }
+  if(dateErr)errs.push('bad date "'+dval+'"');
+  // time: field (optional, e.g. "18:00" or "18:00-19:30")
+  const timeRaw=(r.time||'').trim();let startTime='',endTime='';
+  if(timeRaw){const tp=timeRaw.split(/[-–]/);if(/^\d\d:\d\d$/.test(tp[0])){startTime=tp[0];if(tp[1]&&/^\d\d:\d\d$/.test(tp[1].trim()))endTime=tp[1].trim()}else{errs.push('bad time "'+timeRaw+'"')}}
+  if(startTime&&startDate)startDate=startDate+'T'+startTime;
+  if(startTime&&dueDate)dueDate=dueDate+'T'+startTime;
+  if(endTime&&startDate){const base=startDate.slice(0,10);endDate=base+'T'+endTime}
+  const allDay=/^(yes|true|1)$/i.test(r.allday||'')? true : (/^(no|false|0)$/i.test(r.allday||'')?false:!startTime&&!/T\d\d:/.test(startDate||dueDate||''));
+  const seq=(r.id||'').trim();
+  const stableId=seq||('imp-'+(src||'x')+'-'+(kid||'x'));
+  const needsReview=/^(yes|true|1)$/i.test(r.review||'');
+  const needsSource=/^(yes|true|1)$/i.test(r.needssource||'');
+  const rec={
+    id:stableId,kidIds,type:type||'info',priority:priority||'Info',title,
+    summary:(r.summary||'').trim(),details:(r.details||'').trim(),
+    dueDate,startDate,endDate,allDay,
+    messageBody:raw.messageBody||'',messageSender:(r.sourcefrom||'').trim(),messageSentAt:(r.sourcesent||'').trim(),messageSchool:(r.school||'').trim(),
+    sourceMessageId:src,status:'open',
+    needsReview,needsReviewReason:needsReview?((r.reviewnote||'').trim()||'Flagged for review'):'',
+    needsSource,needsSourceReason:needsSource?((r.sourcenote||'').trim()||'Source not in the message'):''
+  };
+  return {rec,errs};
+}
+// classify a candidate against current DATA: new | update | duplicate | rejected | needsReview
+function previewImport(parsed){
+  const rows=[];
+  for(const raw of parsed.items){
+    const {rec,errs}=normalizeImportItem(raw);
+    if(errs.length){rows.push({status:'rejected',rec,reason:errs.join('; ')});continue}
+    const existing=DATA.items[rec.id];
+    if(existing&&!existing.deleted){
+      if(sameContent(existing,rec))rows.push({status:'duplicate',rec,existing});
+      else rows.push({status:'update',rec,existing,choice:'update'});
+    }else if(rec.needsReview){
+      rows.push({status:'needsReview',rec});
+    }else{
+      rows.push({status:'new',rec});
+    }
+  }
+  return rows;
+}
+const IMPORT_CONTENT_KEYS=['kidIds','type','priority','title','summary','details','dueDate','startDate','endDate','allDay'];
+function sameContent(a,b){return IMPORT_CONTENT_KEYS.every(k=>stable(a[k]??null)===stable(b[k]??null))}
+// commit atomically with an auto-backup and an undo journal entry (spec §9.4)
+// All mutations happen locally first (instant), then ONE save round-trip at the end.
+async function commitImport(rows){
+  const apply=rows.filter(r=>(r.status==='new'||r.status==='needsReview')||(r.status==='update'&&r.choice!=='new')||(r.status==='update'&&r.choice==='new'));
+  if(!apply.length)return {ok:true,count:0};
+  try{await backupNow('pre-import')}catch(e){log('pre-import backup:',errMsg(e))}  // non-fatal
+  assertWritable();
+  const journal={id:'imp-'+compactStamp()+'-'+randHex(2),at:iso(),by:ME.email,created:[],updated:[],stamps:{}};
+  for(const r of rows){
+    if(r.status==='new'||r.status==='needsReview'){
+      const rec=Object.assign({},r.rec,{statusUpdatedAt:iso(),statusUpdatedBy:ME.email});
+      const old=DATA.items[rec.id],alive=old&&!old.deleted?old:null,t=stampNow(alive);
+      const fin=Object.assign({},alive||{},rec,{deleted:false});if(!alive){fin.createdAt=t;fin.createdBy=ME.email}
+      fin.updatedAt=t;fin.updatedBy=ME.email;DATA.items[fin.id]=fin;mutationSeq++;
+      journal.created.push(fin.id);journal.stamps[fin.id]=fin.updatedAt;
+    }else if(r.status==='update'){
+      if(r.choice==='new'){
+        const nid=r.rec.id+'-'+compactStamp();
+        const rec=Object.assign({},r.rec,{id:nid,deleted:false,statusUpdatedAt:iso(),statusUpdatedBy:ME.email});
+        const t=stampNow(null);Object.assign(rec,{createdAt:t,createdBy:ME.email,updatedAt:t,updatedBy:ME.email});
+        DATA.items[nid]=rec;mutationSeq++;
+        journal.created.push(nid);journal.stamps[nid]=rec.updatedAt;
+      }else{
+        journal.updated.push({id:r.rec.id,prev:clone(r.existing)});
+        const keep={status:r.existing.status,statusUpdatedAt:r.existing.statusUpdatedAt,statusUpdatedBy:r.existing.statusUpdatedBy,pushedToCalendar:r.existing.pushedToCalendar};
+        const rec=Object.assign({},r.rec,keep,{deleted:false});
+        const old=DATA.items[rec.id],t=stampNow(old);
+        Object.assign(rec,{updatedAt:t,updatedBy:ME.email});DATA.items[rec.id]=Object.assign({},old||{},rec);mutationSeq++;
+        journal.stamps[rec.id]=DATA.items[rec.id].updatedAt;
+      }
+    }
+  }
+  DATA.settings.lastImportAt=iso();DATA.settings.lastImportJournal=journal;DATA.settings.updatedAt=stampNow(DATA.settings);
+  const r=await requestSave();  // single round-trip for the whole batch
+  return {ok:true,count:journal.created.length+journal.updated.length,journal};
+}
+// Undo plan: what an undo would do right now. Pure read — the confirmation dialog shows it, undoLastImport applies it.
+// Created items that are already gone are ignored; anything edited since the import (updatedAt != recorded stamp) is kept.
+function planUndo(){
+  const j=DATA&&DATA.settings&&DATA.settings.lastImportJournal;if(!j)return {ok:false,message:'Nothing to undo.'};
+  const stamps=j.stamps||{};
+  const edited=(id,cur)=>stamps[id]&&cur.updatedAt!==stamps[id];
+  const remove=[],restore=[],skipped=[];
+  for(const id of (j.created||[])){
+    const cur=DATA.items[id];if(!cur||cur.deleted)continue;
+    (edited(id,cur)?skipped:remove).push({id,title:cur.title||'(untitled)'});
+  }
+  for(const u of (j.updated||[])){
+    const cur=DATA.items[u.id];
+    if(!cur){skipped.push({id:u.id,title:(u.prev&&u.prev.title)||'(untitled)'});continue}
+    (edited(u.id,cur)?skipped:restore).push({id:u.id,title:cur.title||'(untitled)'});
+  }
+  return {ok:true,remove,restore,skipped,journal:j};
+}
+// undo: tombstone created items, revert updated ones to prev — but skip any item edited since (spec §9.4 "one-click undo")
+// All mutations happen locally first (instant), then ONE save round-trip.
+async function undoLastImport(){
+  const plan=planUndo();if(!plan.ok)return plan;
+  assertWritable();
+  for(const r of plan.remove){
+    const cur=DATA.items[r.id];
+    // local tombstone (same as removeRecord but without triggering a save per item)
+    const t=stampNow(cur);DATA.items[r.id]=Object.assign({},cur,{deleted:true,updatedAt:t,updatedBy:ME.email});mutationSeq++;
+  }
+  for(const r of plan.restore){
+    const u=plan.journal.updated.find(x=>x.id===r.id);
+    // local revert
+    const prev=clone(u.prev);prev.updatedAt=stampNow(prev);prev.updatedBy=ME.email;DATA.items[r.id]=prev;mutationSeq++;
+  }
+  DATA.settings.lastImportJournal=null;DATA.settings.updatedAt=stampNow(DATA.settings);
+  await requestSave();  // single round-trip
+  return {ok:true,undone:plan.remove.length+plan.restore.length,skipped:plan.skipped.length};
+}
+function cap(s){s=String(s||'');return s?s[0].toUpperCase()+s.slice(1).toLowerCase():s}
+
+/* ════════════════════════════════════════════════════
+   PHASE 2a — RENDERING
+════════════════════════════════════════════════════ */
+let VIEW='thisweek',KFILTER='all',SHOWDONE=false,DETAIL_ID=null,WEEKSEL='this',MENU_OPEN=false;
+let CAL_SUB='month',CAL_YEAR=0,CAL_MONTH=0,CAL_SEL_DATE='';  // calendar state, initialized in calInit
+// tab = also in the mobile bottom bar; soon = dimmed, shows the message on tap
+const NAVS=[
+  {id:'thisweek',label:'This week',icon:'ti-calendar-week',tab:true},
+  {id:'calendar',label:'Calendar',icon:'ti-calendar',tab:true},
+  {id:'todo',label:'To-do',icon:'ti-list-check',tab:true},
+  {id:'critical',label:'Critical',icon:'ti-alert-triangle',tab:true},
+  {id:'grades',label:'Grades',icon:'ti-school',soon:'Grades arrive in Phase 2c.'}
+];
+const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
+function kidBadge(it){const k=kidKey(it);const b=el('span','kb '+(k==='both'?'both':k==='AV'?'av':'iv'),kidBadgeLabel(k));return b}
+
+function staleText(){
+  const at=DATA&&DATA.settings&&DATA.settings.lastImportAt;
+  if(!at)return {text:'No imports yet',warn:true};
+  const d=new Date(at),days=(nowMs()-d.getTime())/dayMs;
+  const lbl='Last import: '+d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+', '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  const warnDays=(DATA.settings.importStaleDays||3);
+  return {text:lbl,warn:days>warnDays};
+}
+function myInitial(){const n=ME&&ME.name?String(ME.name).trim():'';return n?n[0].toUpperCase():'?'}
+function renderShell(){
+  if(!DATA)return;
+  recordMyName();
+  const av=$('app-avatar');if(av)av.textContent=myInitial();       // mobile: the initial; desktop adds the first name beside it
+  const mn=$('me-name');if(mn)mn.textContent=ME&&ME.name?ME.name:'';
+  // top nav (desktop)
+  const tn=$('topnav');if(tn){tn.textContent='';
+    NAVS.forEach(n=>{const b=el('button','nav'+(n.id===VIEW?' active':'')+(n.soon?' soon':''));
+      b.innerHTML='<i class="ti '+n.icon+'" aria-hidden="true"></i>';b.appendChild(el('span','nav-l',n.label));
+      b.setAttribute('aria-label',n.label);b.title=n.label;
+      b.addEventListener('click',()=>{if(n.soon)toast(n.soon,'info');else setView(n.id)});
+      tn.appendChild(b)});
+  }
+  // tab bar (mobile)
+  const tb=$('tabbar');if(tb){tb.textContent='';
+    [...NAVS.filter(n=>n.tab),{id:'more',label:'More',icon:'ti-dots'}].forEach(n=>{
+      const act=n.id===VIEW||(n.id==='more'&&(VIEW==='grades'||VIEW==='settings'));
+      const b=el('button',(act?'active':'')+(n.soon?' soon':''));
+      b.innerHTML='<i class="ti '+n.icon+'" aria-hidden="true"></i>'+n.label;
+      b.addEventListener('click',()=>{if(n.id==='more')openMenu();else if(n.soon)toast(n.soon,'info');else setView(n.id)});
+      tb.appendChild(b)});
+  }
+}
+/* account menu: desktop dropdown / mobile bottom sheet (one element, styled per breakpoint) */
+function menuItem(icon,label,fn,cls,note){
+  const b=el('button','mi'+(cls?' '+cls:''));b.innerHTML='<i class="ti '+icon+'" aria-hidden="true"></i>';
+  b.appendChild(el('span','mi-l',label));if(note)b.appendChild(el('span','mi-note',note));
+  b.addEventListener('click',fn);return b;
+}
+function renderMenu(){
+  const p=$('menu-panel');if(!p)return;p.textContent='';
+  p.appendChild(el('div','handle'));
+  const hd=el('div','menu-head');hd.appendChild(el('div','avatar',myInitial()));
+  const nm=el('div');nm.appendChild(el('div','mh-name',ME&&ME.name?ME.name:''));nm.appendChild(el('div','mh-sub','Signed in'));
+  hd.appendChild(nm);p.appendChild(hd);
+  p.appendChild(menuItem('ti-school','Grades',()=>{toast('Grades arrive in Phase 2c.','info')},'mob-only soon','Soon'));
+  p.appendChild(menuItem('ti-upload','Import',()=>{closeMenu();openImport()}));
+  p.appendChild(menuItem('ti-calendar-down','Export .ics',()=>{closeMenu();if(VIEW!=='thisweek'&&VIEW!=='todo'&&VIEW!=='critical')setView('todo');toggleExportMode()}));
+  p.appendChild(menuItem('ti-settings','Settings',()=>{closeMenu();setView('settings')}));
+  p.appendChild(menuItem('ti-lock','Lock now',()=>{closeMenu();lockApp('manual')}));
+  p.appendChild(menuItem('ti-logout','Sign out',()=>{closeMenu();signOutGoogle()},'danger'));
+}
+function openMenu(){renderMenu();const w=$('menu-wrap');if(w)w.classList.add('open');MENU_OPEN=true}
+function closeMenu(){const w=$('menu-wrap');if(w)w.classList.remove('open');MENU_OPEN=false}
+function initialsOf(name){if(!name)return '?';const p=String(name).trim().split(/\s+/);return (p[0][0]||'')+(p[1]?p[1][0]:'');}
+function setView(v){
+  if(v==='import'){openImport();return}     // Import is a sheet, not a view — the screen underneath stays put
+  if(v==='calendar'&&!CAL_YEAR)calInit();
+  VIEW=v;DETAIL_ID=null;const ab=$('app-body');if(ab)ab.classList.remove('in-detail');const dc=$('detail-col');if(dc)dc.classList.remove('open');
+  renderShell();renderView();
+}
+function renderView(){
+  const root=$('view-root');if(!root)return;root.textContent='';
+  if(VIEW==='thisweek')return renderList(root,WEEKSEL==='next'?'Next week':'This week',weekItems(KFILTER,{week:WEEKSEL,showDone:SHOWDONE}),true);
+  if(VIEW==='todo'){
+    if(EXPORT_MODE)return renderList(root,'Export',exportableList(KFILTER).sort(itemSort),false);
+    return renderList(root,'To-do',todoItems(KFILTER,{showDone:SHOWDONE}),false);
+  }
+  if(VIEW==='critical')return renderList(root,'Critical',criticalItems(KFILTER,{showDone:SHOWDONE}),false);
+  if(VIEW==='calendar')return renderCalendar(root);
+  if(VIEW==='grades')return renderPlaceholder(root,'Grades','ti-school','Grades arrive in Phase 2c.');
+  if(VIEW==='settings')return renderSettings(root);
+}
+function weekSeg(){
+  const wrap=el('div','week-head');const seg=el('div','seg');
+  [['this','This week'],['next','Next week']].forEach(([id,label])=>{
+    const b=el('button',WEEKSEL===id?'on':'',label);b.addEventListener('click',()=>{WEEKSEL=id;renderView()});seg.appendChild(b)});
+  wrap.appendChild(seg);wrap.appendChild(el('span','week-range',weekRangeLabel(WEEKSEL)));return wrap;
+}
+function chipsRow(extra){
+  const wrap=el('div','chips-row');
+  const mk=(id,label,cls)=>{const c=el('button','fchip'+(cls?' '+cls:'')+(KFILTER===id?' active':''),label);c.addEventListener('click',()=>{KFILTER=id;renderView()});return c};
+  wrap.appendChild(mk('all','All'));wrap.appendChild(mk('AV','AV','av'));wrap.appendChild(mk('IV','IV','iv'));
+  if(extra)wrap.appendChild(extra);
+  return wrap;
+}
+function renderList(root,title,list,withStale){
+  const head=el('div','view-head');
+  let stale=null;
+  if(withStale){head.appendChild(weekSeg());const st=staleText();stale=el('span','stale-inline'+(st.warn?' warn':''),st.text)}
+  else head.appendChild(el('div','view-title',title));
+  head.appendChild(chipsRow(stale));
+  root.appendChild(head);
+  if(EXPORT_MODE){
+    const allRecs=[...liveItems(),...liveEvents()].filter(r=>r.priority!=='Info'&&!r.deleted);
+    const nNew=allRecs.filter(r=>!r.pushedToCalendar).length;
+    const nChg=allRecs.filter(r=>r.pushedToCalendar&&r.changedSincePushed).length;
+    const nNeeds=nNew+nChg;
+    const bar=el('div','exp-bar');
+    // segment: Needs push | Show all
+    const seg=el('div','exp-seg');
+    const bNeed=el('button',EXPORT_FILTER==='needs'?'on':'');
+    bNeed.innerHTML='Needs push<span class="badge">'+nNeeds+'</span>';
+    bNeed.addEventListener('click',()=>setExportFilter('needs'));seg.appendChild(bNeed);
+    const bAll=el('button',EXPORT_FILTER==='all'?'on':'');
+    bAll.innerHTML='Show all<span class="badge">'+allRecs.length+'</span>';
+    bAll.addEventListener('click',()=>setExportFilter('all'));seg.appendChild(bAll);
+    bar.appendChild(seg);
+    bar.appendChild(el('span','exp-count',EXPORT_SEL.size?EXPORT_SEL.size+' selected':''));
+    const sa=el('button','btn small','Select all');sa.addEventListener('click',selectAllExportable);bar.appendChild(sa);
+    const xb=el('button','btn small primary','Export .ics');xb.disabled=!EXPORT_SEL.size;xb.addEventListener('click',doExport);bar.appendChild(xb);
+    const cb=el('button','btn small','Cancel');cb.addEventListener('click',toggleExportMode);bar.appendChild(cb);
+    root.appendChild(bar);
+  }
+  const scroll=el('div','view-scroll');
+  if(!list.length){
+    if(EXPORT_MODE&&EXPORT_FILTER==='needs'){
+      const emp=el('div','empty-state');emp.innerHTML='<i class="ti ti-circle-check" aria-hidden="true" style="font-size:40px;color:var(--both-bar);display:block;margin-bottom:8px"></i>';
+      emp.appendChild(el('div','empty-msg','All caught up'));
+      emp.appendChild(el('div','empty-sub','Everything has been pushed to calendar.'));
+      scroll.appendChild(emp);
+    } else scroll.appendChild(emptyState(title));
+  }
+  else if(EXPORT_MODE&&EXPORT_FILTER==='needs'){
+    const newRecs=list.filter(r=>!r.pushedToCalendar);
+    const chgRecs=list.filter(r=>r.pushedToCalendar&&r.changedSincePushed);
+    if(newRecs.length){scroll.appendChild(el('div','grp-label','New — never exported'));newRecs.forEach(it=>scroll.appendChild(itemRow(it)))}
+    if(chgRecs.length){scroll.appendChild(el('div','grp-label','Changed — needs re-export'));chgRecs.forEach(it=>scroll.appendChild(itemRow(it)))}
+  }
+  else{
+    const g=groupByPriority(list);
+    [['Critical','sec-crit','crit-dot'],['Action','sec-act','act-dot'],['Info','sec-info','info-dot']].forEach(([p,cls,dot])=>{
+      if(!g[p].length)return;
+      const h=el('div','sec-head '+cls);const d=el('span','pd');d.style.background='var(--'+dot+')';h.appendChild(d);h.appendChild(document.createTextNode(p));scroll.appendChild(h);
+      g[p].forEach(it=>scroll.appendChild(itemRow(it)));
+    });
+  }
+  if(!EXPORT_MODE){
+    const td=el('button','toggle-done',SHOWDONE?'Hide done':'Show done');
+    td.addEventListener('click',()=>{SHOWDONE=!SHOWDONE;renderView()});
+    scroll.appendChild(td);
+  }
+  root.appendChild(scroll);
+}
+function itemRow(it){
+  const done=it.status==='done'||it.status==='cancelled';
+  const row=el('div','row'+(done?' done':''));
+  if(EXPORT_MODE&&it.priority!=='Info'){
+    const ec=el('button','exp-chk'+(EXPORT_SEL.has(it.id)?' on':''));
+    ec.setAttribute('aria-label','Select for export');
+    ec.addEventListener('click',e=>{e.stopPropagation();toggleExportSel(it.id)});
+    row.appendChild(ec);
+  }
+  const dot=el('span','pdot');dot.style.background='var(--'+(it.priority==='Critical'?'crit-dot':it.priority==='Action'?'act-dot':'info-dot')+')';
+  row.appendChild(dot);
+  const chk=el('button','chk'+(done?' done':''));chk.setAttribute('aria-label',done?'Mark open':'Mark done');
+  chk.addEventListener('click',e=>{e.stopPropagation();toggleItem(it)});
+  row.appendChild(chk);
+  const body=el('div','row-body');
+  const tl=el('div','row-title-line');
+  tl.appendChild(el('span','row-title',it.title||'(untitled)'));
+  tl.appendChild(kidBadge(it));
+  if(it.needsReview)tl.appendChild(tagEl('review','confirm','ti-alert-circle'));
+  if(it.needsSource)tl.appendChild(tagEl('needssrc','needs source','ti-link'));
+  if(it.pushedToCalendar&&it.changedSincePushed)tl.appendChild(tagEl('changed','changed','ti-calendar-bolt'));
+  else if(it.pushedToCalendar)tl.appendChild(tagEl('pushed','pushed','ti-calendar-check'));
+  body.appendChild(tl);
+  body.appendChild(el('div','row-meta',kidSchool(it)+' · '+(TYPE_LABEL[it.type]||it.type)));
+  if(done)body.lastChild.textContent='Done by '+nameFor(it.statusUpdatedBy)+(it.statusUpdatedAt?' · '+shortWhen(it.statusUpdatedAt):'');
+  else{const rl=relLabel(it);const dr=el('div','row-date',fmtDate(it)+(rl?'  ':''));if(rl){const s=el('span',null,rl);s.style.color='var(--crit-txt)';s.style.fontWeight='600';dr.appendChild(s)}body.appendChild(dr)}
+  row.appendChild(body);
+  row.addEventListener('click',()=>openDetail(it.id));
+  return row;
+}
+function tagEl(cls,label,icon){const t=el('span','tag '+cls);if(icon)t.innerHTML='<i class="ti '+icon+'" style="font-size:12px" aria-hidden="true"></i>';t.appendChild(document.createTextNode(label));return t}
+function shortWhen(iso_){const d=new Date(iso_);const t0=startOfToday();return (d.getTime()>=t0?'Today':d.toLocaleDateString(undefined,{month:'short',day:'numeric'}))+', '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
+function emptyState(title){const e=el('div','empty');e.innerHTML='<i class="ti ti-checkbox" aria-hidden="true"></i>';e.appendChild(el('div','et','Nothing here'));e.appendChild(el('div','eb',title==='Critical'?'No critical items right now.':title==='Next week'?'Nothing due next week.':'Nothing due. Import a digest or add an item.'));return e}
+function renderPlaceholder(root,title,icon,msg){
+  const head=el('div','view-head');head.appendChild(el('div','view-title',title));root.appendChild(head);
+  const e=el('div','empty');e.innerHTML='<i class="ti '+icon+'" aria-hidden="true"></i>';e.appendChild(el('div','et',title));e.appendChild(el('div','eb',msg));root.appendChild(e);
+}
+async function toggleItem(it){
+  const open=it.status!=='done';
+  try{
+    setStatus('items',it.id,open?'done':'open');  // mutates locally (sync) then saves in background — no await
+    renderView();if(DETAIL_ID===it.id)renderDetail();
+    toast(open?'Marked done':'Reopened','success');
+  }catch(e){toast(errMsg(e),'error')}
+}
+
+/* detail view */
+let _detailEntry=null;
+function openDetail(id,entry){_detailEntry=entry||null;DETAIL_ID=id;const ab=$('app-body');if(ab)ab.classList.add('in-detail');const dc=$('detail-col');if(dc)dc.classList.add('open');renderDetail()}
+function closeDetail(){DETAIL_ID=null;const ab=$('app-body');if(ab)ab.classList.remove('in-detail');const dc=$('detail-col');if(dc)dc.classList.remove('open');}
+function renderDetail(){
+  const dc=$('detail-col');if(!dc)return;dc.textContent='';
+  const it=DETAIL_ID&&(DATA.items[DETAIL_ID]||DATA.events[DETAIL_ID]);
+  if(!it||it.deleted){dc.innerHTML='<div class="detail-empty">Select an item to see its details.</div>';return}
+  const head=el('div','detail-head');
+  const back=el('button','icon-btn');back.innerHTML='<i class="ti ti-arrow-left" aria-hidden="true"></i>';back.addEventListener('click',closeDetail);
+  head.appendChild(back);head.appendChild(el('div','dt-title',it.title||'(untitled)'));dc.appendChild(head);
+  const s=el('div','detail-scroll');
+  const meta=el('div','det-meta');meta.appendChild(kidBadge(it));
+  const pb=el('span','pb '+(it.priority==='Critical'?'crit':it.priority==='Action'?'act':'info'),it.priority);meta.appendChild(pb);
+  meta.appendChild(el('span','det-school',kidSchool(it)));s.appendChild(meta);
+  if(hasDate(it)){const dd=el('div','det-date');dd.innerHTML='<i class="ti ti-calendar" aria-hidden="true"></i>';dd.appendChild(document.createTextNode(fmtDate(it)));s.appendChild(dd)}
+  if(it.needsSource){const w=el('div','det-date');w.style.borderColor='var(--crit-tint)';w.innerHTML='<i class="ti ti-link" aria-hidden="true" style="color:var(--crit-txt)"></i>';w.appendChild(document.createTextNode('Needs source: '+(it.needsSourceReason||'source not in the message')));s.appendChild(w)}
+  if(it.pushedToCalendar){
+    const pw=el('div','det-date');pw.style.borderColor=it.changedSincePushed?'var(--act-tint)':'var(--both-tint)';
+    pw.innerHTML=it.changedSincePushed?'<i class="ti ti-calendar-bolt" aria-hidden="true" style="color:var(--act-txt)"></i>':'<i class="ti ti-calendar-check" aria-hidden="true" style="color:var(--both-txt)"></i>';
+    pw.appendChild(document.createTextNode(it.changedSincePushed?'Changed since last push'+(it.pushedAt?' ('+shortWhen(it.pushedAt)+')':''):'Pushed to calendar'+(it.pushedAt?' · '+shortWhen(it.pushedAt):'')));
+    s.appendChild(pw);
+  }
+  if(it.summary){const sec=el('div','det-sec');sec.appendChild(el('div','lab','Summary'));sec.appendChild(el('div','bod',it.summary));s.appendChild(sec)}
+  if(it.details){const sec=el('div','det-sec');sec.appendChild(el('div','lab','Details'));sec.appendChild(el('div','bod',it.details));s.appendChild(sec)}
+  // actions
+  const acts=el('div','det-actions');
+  const done=it.status==='done';
+  const doneBtn=el('button','btn'+(done?'':' '),(done?'Reopen':'Done'));doneBtn.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> '+(done?'Reopen':'Done');
+  if(it.needsSource&&!done)doneBtn.disabled=true;
+  doneBtn.addEventListener('click',()=>toggleItem(it));
+  acts.appendChild(doneBtn);
+  s.appendChild(acts);
+  const er=el('div','det-edit-row');
+  const editB=el('button','btn');editB.innerHTML='<i class="ti ti-edit" aria-hidden="true"></i> Edit';editB.addEventListener('click',()=>{const entry=_detailEntry;editWithScope(it.id,entry&&entry.instanceDate)});
+  const delB=el('button','btn danger');delB.innerHTML='<i class="ti ti-trash" aria-hidden="true"></i> Delete';delB.addEventListener('click',()=>deleteItem(it.id,_detailEntry&&_detailEntry.instanceDate));
+  if(it.needsSource){const sb=el('button','btn');sb.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Source found';sb.addEventListener('click',async()=>{await upsert('items',{id:it.id,needsSource:false,needsSourceReason:''});toast('Source cleared','success');renderDetail();renderView()});er.appendChild(sb)}
+  er.appendChild(editB);er.appendChild(delB);s.appendChild(er);
+  // original message
+  if(it.messageBody){
+    const sec=el('div','det-sec');sec.style.marginTop='18px';sec.appendChild(el('div','lab','Original message'));
+    const mc=el('div','msg-card');const hd=el('div','msg-hd');
+    hd.appendChild(el('span','s',(it.messageSender||'')+(it.messageSchool?' · '+it.messageSchool:'')));
+    if(it.messageSentAt)hd.appendChild(el('span','d',shortWhen(it.messageSentAt)));
+    mc.appendChild(hd);mc.appendChild(el('div','msg-bd',it.messageBody));sec.appendChild(mc);s.appendChild(sec);
+  }
+  dc.appendChild(s);
+}
+async function deleteItem(id,instanceDate){
+  deleteWithScope(id,instanceDate);
+}
+// generic confirm dialog
+let _confirmFn=null;
+function confirmDialog(title,msg,fn,okLabel,okCls){
+  $('confirm-title').textContent=title;$('confirm-msg').textContent=msg;
+  const ob=$('confirm-ok');ob.textContent=okLabel||'OK';ob.className='btn '+(okCls||'primary');
+  _confirmFn=fn;const w=$('confirm-wrap');if(w)w.classList.add('open');
+}
+function closeConfirm(){const w=$('confirm-wrap');if(w)w.classList.remove('open');_confirmFn=null}
+function doConfirm(){if(_confirmFn)_confirmFn();closeConfirm()}
+
+/* quick-add / edit sheet */
+let EDIT_ID=null,EDIT_KID='AV',EDIT_SCOPE=null,EDIT_INSTANCE_DATE=null,EDIT_BYDAYS=new Set();
+function openEdit(id,opts){
+  opts=opts||{};
+  EDIT_ID=id||null;
+  // resolve source: could be an item or an event
+  const it=id?(DATA.items[id]||DATA.events[id]):null;
+  const isEvent=opts.isEvent||(it&&!it.dueDate&&!it.type)||(VIEW==='calendar');
+  $('sheet-edit-title').textContent=id?'Edit '+(isEvent?'event':'item'):(isEvent?'Add event':'Add item');
+  $('f-title').value=it?it.title||'':'';
+  EDIT_KID=it?kidKey(it):'AV';paintKidPick();
+  $('f-type').value=it?it.type||'info':(isEvent?'event':'form/payment');
+  $('f-priority').value=it?it.priority||'Action':(isEvent?'Info':'Action');
+  const d=it?(it.dueDate||it.startDate||it.date||''):(opts.date||'');
+  $('f-date').value=d?d.slice(0,10):'';
+  const allDay=it?!!it.allDay:!opts.time;
+  $('f-allday').checked=allDay;
+  toggleTimeFields(!allDay);
+  const startTime=(!allDay&&d&&/T\d\d:/.test(d))?d.replace(/.*T/,'').slice(0,5):(opts.time||'');
+  $('f-start-time').value=startTime;
+  const endTime=it&&it.endDate&&/T\d\d:/.test(it.endDate)?it.endDate.replace(/.*T/,'').slice(0,5):'';
+  $('f-end-time').value=endTime;
+  $('f-summary').value=it?it.summary||'':'';
+  $('f-details').value=it?it.details||'':'';
+  // repeat fields (events only)
+  const rFields=$('repeat-fields');if(rFields)rFields.style.display=isEvent?'':'none';
+  EDIT_SCOPE=opts.editScope||null;EDIT_INSTANCE_DATE=opts.instanceDate||null;
+  const rule=it&&it.recurrenceRule;
+  if($('f-repeat'))$('f-repeat').value=rule?rule.frequency:'none';
+  if($('f-repeat-end'))$('f-repeat-end').value=rule?(rule.until?'date':(rule.count?'count':'never')):'never';
+  if($('f-repeat-until'))$('f-repeat-until').value=rule&&rule.until?rule.until:'';
+  if($('f-repeat-count'))$('f-repeat-count').value=rule&&rule.count?rule.count:'10';
+  EDIT_BYDAYS=new Set(rule&&rule.byDay?rule.byDay:[]);
+  paintRepeatFields();
+  clearFieldErr();
+  openSheet('sheet-edit');setTimeout(()=>{const t=$('f-title');if(t&&t.focus)t.focus()},60);
+}
+function toggleTimeFields(show){
+  const tf=$('time-fields');if(tf)tf.style.display=show?'':'none';
+}
+function paintRepeatFields(){
+  const freq=$('f-repeat')?$('f-repeat').value:'none';
+  const showDays=freq==='weekly'||freq==='biweekly';
+  const dp=$('f-day-pick');if(dp){dp.style.display=showDays?'':'none';dp.textContent='';
+    if(showDays){DOW_NAMES.forEach((d,i)=>{
+      const b=el('button',EDIT_BYDAYS.has(d)?'on':'',DOW_LABELS[i].slice(0,3));b.type='button';
+      b.addEventListener('click',()=>{if(EDIT_BYDAYS.has(d))EDIT_BYDAYS.delete(d);else EDIT_BYDAYS.add(d);paintRepeatFields()});
+      dp.appendChild(b)})}}
+  const endVal=$('f-repeat-end')?$('f-repeat-end').value:'never';
+  const uw=$('f-repeat-until-row');if(uw)uw.style.display=endVal==='date'?'':'none';
+  const cw=$('f-repeat-count-row');if(cw)cw.style.display=endVal==='count'?'':'none';
+  const ew=$('f-repeat-end-wrap');if(ew)ew.style.display=freq==='none'?'none':'';
+}
+function paintKidPick(){document.querySelectorAll('#f-kid button').forEach(b=>{b.className='';const k=b.getAttribute('data-kid');if(k===EDIT_KID)b.className='sel-'+(k==='both'?'both':k==='AV'?'av':'iv')})}
+function clearFieldErr(){['f-title'].forEach(id=>{const f=$(id);if(f&&f.parentElement)f.parentElement.classList.remove('err')});const kp=$('f-kid');if(kp&&kp.parentElement)kp.parentElement.classList.remove('err')}
+async function saveEdit(){
+  const title=($('f-title').value||'').trim();
+  let bad=false;
+  if(!title){$('f-title').parentElement.classList.add('err');bad=true}
+  if(!EDIT_KID){$('f-kid').parentElement.classList.add('err');bad=true}
+  if(bad)return;
+  const kidIds=EDIT_KID==='both'?['AV','IV']:[EDIT_KID];
+  const type=$('f-type').value,priority=$('f-priority').value;
+  const dateVal=$('f-date').value||'';const allDay=$('f-allday').checked;
+  const rec={id:EDIT_ID||('man-'+compactStamp()+'-'+randHex(2)),kidIds,type,priority,title,
+    summary:($('f-summary').value||'').trim(),details:($('f-details').value||'').trim(),allDay};
+  // date routing: due-type vs event-type
+  rec.dueDate=null;rec.startDate=null;rec.endDate=null;
+  const startTime=allDay?'':($('f-start-time').value||'');
+  const endTime=allDay?'':($('f-end-time').value||'');
+  if(dateVal){
+    const dWithTime=startTime?(dateVal+'T'+startTime):(dateVal);
+    if(type==='form/payment'||type==='assignment'||type==='test'||type==='grade-flag')rec.dueDate=dWithTime;
+    else rec.startDate=dWithTime;
+    if(endTime)rec.endDate=dateVal+'T'+endTime;
+  }
+  // recurrence rule (events only)
+  if(type==='event'){
+    const freq=$('f-repeat')?$('f-repeat').value:'none';
+    if(freq!=='none'){
+      const rule={frequency:freq};
+      if(freq==='weekly'||freq==='biweekly')rule.byDay=EDIT_BYDAYS.size?[...EDIT_BYDAYS]:null;
+      const endMode=$('f-repeat-end')?$('f-repeat-end').value:'never';
+      if(endMode==='date')rule.until=$('f-repeat-until')?$('f-repeat-until').value||null:null;
+      else if(endMode==='count')rule.count=parseInt($('f-repeat-count')?$('f-repeat-count').value:'10')||10;
+      rec.recurrenceRule=rule;
+    } else {rec.recurrenceRule=null}
+  }
+  // instance override: save only this date's changes
+  if(EDIT_SCOPE==='instance'&&EDIT_INSTANCE_DATE&&EDIT_ID){
+    const master=DATA.events[EDIT_ID];
+    if(master){
+      master.recOverrides=master.recOverrides||{};
+      master.recOverrides[EDIT_INSTANCE_DATE]={title:rec.title,summary:rec.summary,details:rec.details};
+      master.updatedAt=stampNow(master);master.updatedBy=ME.email;mutationSeq++;
+      requestSave();toast('Instance updated','success');
+      closeSheet('sheet-edit');renderView();return;
+    }
+  }
+  // decide collection: event types go in events, everything else in items
+  const coll=(type==='event')?'events':'items';
+  if(!EDIT_ID){rec.status='open';rec.statusUpdatedAt=iso();rec.statusUpdatedBy=ME.email}
+  // if editing and the item moved collections, remove from old
+  if(EDIT_ID){
+    const oldInItems=!!DATA.items[EDIT_ID],oldInEvents=!!DATA.events[EDIT_ID];
+    if(oldInItems&&coll==='events'){removeRecord('items',EDIT_ID)}
+    else if(oldInEvents&&coll==='items'){removeRecord('events',EDIT_ID)}
+  }
+  try{upsert(coll,rec);toast(EDIT_ID?'Updated':'Added','success')}  // mutates locally (sync) — save runs in background
+  catch(e){toast(errMsg(e),'error');return}
+  closeSheet('sheet-edit');renderView();if(EDIT_ID===DETAIL_ID&&DETAIL_ID)renderDetail();
+}
+
+/* import sheet */
+let IMPORT_ROWS=null;
+function openImport(){IMPORT_ROWS=null;$('import-text').value='';$('import-stage-paste').style.display='';$('import-stage-preview').style.display='none';$('import-title').textContent='Import';openSheet('sheet-import')}
+function doPreview(){
+  const parsed=parseImport($('import-text').value);
+  if(parsed.error){toast(parsed.error,'error');return}
+  const rows=previewImport(parsed);IMPORT_ROWS=rows;renderImportPreview(rows);
+  $('import-stage-paste').style.display='none';$('import-stage-preview').style.display='';
+}
+function renderImportPreview(rows){
+  const counts={new:0,update:0,duplicate:0,needsReview:0,rejected:0};
+  rows.forEach(r=>counts[r.status]++);
+  $('import-title').textContent='Import preview · '+rows.length+' item'+(rows.length===1?'':'s');
+  const sum=$('import-summary');sum.textContent='';
+  const add=(n,cls,label)=>{if(n)sum.appendChild(el('span','sc '+cls,n+' '+label))};
+  add(counts.new,'new','new');add(counts.update,'upd','update');add(counts.needsReview,'rev','review');add(counts.duplicate,'dup','duplicate');add(counts.rejected,'rej','rejected');
+  const list=$('import-list');list.textContent='';
+  rows.forEach((r,idx)=>list.appendChild(importRow(r,idx)));
+  const willApply=rows.filter(r=>r.status==='new'||r.status==='needsReview'||r.status==='update').length;
+  $('import-commit').textContent=willApply?('Import '+willApply+' item'+(willApply===1?'':'s')):'Nothing to import';
+  $('import-commit').disabled=!willApply;
+}
+function importRow(r,idx){
+  const map={new:['new','+','new'],update:['upd','↻','update'],duplicate:['dup','—','duplicate'],needsReview:['rev','?','review'],rejected:['rej','!','rejected']};
+  const [cls,ic,tag]=map[r.status];
+  const row=el('div','imp-row'+(r.status==='duplicate'?' dup':''));
+  const icon=el('div','imp-ic '+cls,ic);row.appendChild(icon);
+  const body=el('div','imp-body');
+  const t=el('div','imp-t');t.appendChild(el('span',null,r.rec.title||'(untitled)'));
+  if(r.rec.kidIds&&r.rec.kidIds.length){const k=r.rec.kidIds.length>=2?'both':r.rec.kidIds[0];t.appendChild(el('span','kb '+(k==='both'?'both':k==='AV'?'av':'iv'),kidBadgeLabel(k)))}
+  t.appendChild(el('span','tag '+(cls==='upd'?'upd':cls==='new'?'new':cls==='rev'?'review':cls==='rej'?'rej':'dup'),tag));
+  body.appendChild(t);
+  const metabits=[r.rec.priority,hasDate(r.rec)?fmtDate(r.rec):null,TYPE_LABEL[r.rec.type]||r.rec.type].filter(Boolean);
+  body.appendChild(el('div','imp-m',metabits.join(' · ')));
+  if(r.status==='rejected')body.appendChild(el('div','imp-note rej',r.reason));
+  if(r.status==='needsReview'&&r.rec.needsReviewReason)body.appendChild(el('div','imp-note rev',r.rec.needsReviewReason));
+  if(r.status==='update'){
+    const note=el('div','imp-note upd');note.textContent='Updates "'+(r.existing.title||'')+'"';body.appendChild(note);
+    const ch=el('div','imp-choice');
+    const up=el('button',r.choice!=='new'?'on':'','Update');const nw=el('button',r.choice==='new'?'on':'','Add as new');
+    up.addEventListener('click',()=>{r.choice='update';up.className='on';nw.className=''});
+    nw.addEventListener('click',()=>{r.choice='new';nw.className='on';up.className=''});
+    ch.appendChild(up);ch.appendChild(nw);body.appendChild(ch);
+  }
+  row.appendChild(body);return row;
+}
+async function doCommitImport(){
+  if(!IMPORT_ROWS)return;
+  const btn=$('import-commit');btn.disabled=true;
+  const n=IMPORT_ROWS.filter(r=>r.status==='new'||r.status==='needsReview'||r.status==='update').length;
+  busy('Importing '+n+' item'+(n===1?'':'s')+'\u2026');
+  try{const r=await commitImport(IMPORT_ROWS);
+    busyDone();closeSheet('sheet-import');
+    if(r.count){toastUndo(r.count)}else toast('Nothing to import','info');
+    setView('thisweek');
+  }catch(e){busyDone();toast(errMsg(e),'error');btn.disabled=false}
+}
+function toastUndo(n){
+  const t=document.createElement('div');t.className='toast success';t.style.cursor='pointer';t.style.pointerEvents='auto';
+  const i=document.createElement('span');i.textContent='✓';
+  const m=document.createElement('span');m.textContent='Imported '+n+' item'+(n===1?'':'s');
+  const u=document.createElement('span');u.textContent='Undo';u.style.textDecoration='underline';u.style.marginLeft='6px';u.style.fontWeight='700';
+  t.appendChild(i);t.appendChild(m);t.appendChild(u);
+  const te=$('toastEl');if(te)te.appendChild(t);
+  let gone=false;const kill=()=>{if(!gone){gone=true;t.remove()}};
+  t.addEventListener('click',()=>{kill();requestUndo()});
+  setTimeout(kill,6000);
+}
+
+/* undo-last-import confirmation */
+function undoNames(list){const n=list.slice(0,4).map(x=>'\u201C'+x.title+'\u201D').join(', ');return n+(list.length>4?' +'+(list.length-4)+' more':'')}
+function requestUndo(){
+  const plan=planUndo();
+  if(!plan.ok){toast(plan.message||'Nothing to undo','info');return}
+  const b=$('undo-body');b.textContent='';
+  const at=DATA.settings.lastImportAt;
+  b.appendChild(el('p','sub','Your last import'+(at?' ('+shortWhen(at)+')':'')+'. Here is what would change:'));
+  const line=(icon,color,title,list)=>{
+    const d=el('div','undo-line');d.innerHTML='<i class="ti '+icon+'" style="color:'+color+'" aria-hidden="true"></i>';
+    const t=el('div');t.appendChild(el('div','ul-t',title));t.appendChild(el('div','ul-n',undoNames(list)));d.appendChild(t);b.appendChild(d)};
+  const n1=plan.remove.length,n2=plan.restore.length,n3=plan.skipped.length;
+  if(n1)line('ti-trash','var(--crit-txt)',n1+' new item'+(n1===1?'':'s')+' will be removed',plan.remove);
+  if(n2)line('ti-arrow-back-up','var(--both-txt)',n2+' updated item'+(n2===1?'':'s')+' will go back to how '+(n2===1?'it was':'they were'),plan.restore);
+  if(n3)line('ti-lock','var(--text3)',n3+' item'+(n3===1?'':'s')+' will stay as '+(n3===1?'it is':'they are')+' \u2014 edited since the import',plan.skipped);
+  const nothing=!n1&&!n2;
+  if(nothing)b.appendChild(el('p','sub','Nothing can be undone \u2014 every imported item has been edited or removed since.'));
+  $('undo-confirm').textContent=nothing?'Clear import record':'Undo import';
+  openSheet('sheet-undo');
+}
+async function runUndo(){
+  closeSheet('sheet-undo');busy('Undoing import\u2026');
+  try{
+    const r=await undoLastImport();busyDone();
+    if(!r.ok)toast(r.message||'Nothing to undo','info');
+    else if(!r.undone)toast('Nothing was undone \u2014 every item was edited since','info');
+    else toast('Undid import'+(r.skipped?' ('+r.skipped+' kept \u2014 edited since)':''),'success');
+    renderView();if(DETAIL_ID)renderDetail();
+  }catch(e){busyDone();toast(errMsg(e),'error')}
+}
+
+
+/* ════════════════════════════════════════════════════
+   ICS EXPORT + PUSH TRACKING (v0.3.2)
+   Wall-clock times in America/New_York via a named VTIMEZONE.
+   Info-priority items are never pushed. pushedToCalendar marks
+   exported items; changedSincePushed flags edits after last push.
+════════════════════════════════════════════════════ */
+const ICS_TZ='America/New_York';
+const VTIMEZONE=[
+  'BEGIN:VTIMEZONE','TZID:America/New_York',
+  'BEGIN:STANDARD','DTSTART:19701101T020000','RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+  'TZOFFSETFROM:-0400','TZOFFSETTO:-0500','TZNAME:EST','END:STANDARD',
+  'BEGIN:DAYLIGHT','DTSTART:19700308T020000','RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+  'TZOFFSETFROM:-0500','TZOFFSETTO:-0400','TZNAME:EDT','END:DAYLIGHT',
+  'END:VTIMEZONE'
+].join('\r\n');
+
+function icsUid(id){return 'apextrack-'+id+'@apextrack.local'}
+function icsFold(text){
+  const lines=[];let line='';
+  for(const ch of text){if(line.length>=73){lines.push(line);line=' '}line+=ch}
+  if(line)lines.push(line);return lines.join('\r\n');
+}
+function icsEscape(s){return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n')}
+function icsDateVal(d){
+  // d is a local date string like "2026-10-28" or "2026-10-28T15:30"
+  if(!d)return null;
+  if(/T\d\d:\d\d/.test(d)){
+    return {type:'datetime',val:d.slice(0,10).replace(/-/g,'')+
+      'T'+d.slice(11,16).replace(/:/g,'')+'00',tz:ICS_TZ};
+  }
+  return {type:'date',val:d.slice(0,10).replace(/-/g,'')};
+}
+function icsRRule(rule){
+  if(!rule||!rule.frequency)return null;
+  const parts=['FREQ='+{daily:'DAILY',weekly:'WEEKLY',biweekly:'WEEKLY',monthly:'MONTHLY'}[rule.frequency]];
+  if(rule.frequency==='biweekly')parts.push('INTERVAL=2');
+  if(rule.byDay&&rule.byDay.length)parts.push('BYDAY='+rule.byDay.join(','));
+  if(rule.until)parts.push('UNTIL='+rule.until.replace(/-/g,''));
+  else if(rule.count)parts.push('COUNT='+rule.count);
+  return 'RRULE:'+parts.join(';');
+}
+function icsExdate(exceptions){
+  if(!exceptions||!exceptions.length)return '';
+  // We emit VALUE=DATE since exceptions apply to the date regardless of time
+  return 'EXDATE;VALUE=DATE:'+exceptions.map(d=>d.replace(/-/g,'')).join(',');
+}
+function buildIcsEvent(rec){
+  const lines=['BEGIN:VEVENT'];
+  lines.push('UID:'+icsUid(rec.id));
+  const seq=rec._icsSequence||0;
+  lines.push('SEQUENCE:'+seq);
+  const now=new Date(nowMs());
+  lines.push('DTSTAMP:'+now.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,''));
+
+  const summary=icsEscape(rec.title||'(untitled)');
+  lines.push(icsFold('SUMMARY:'+summary));
+
+  // description: summary + details combined
+  const desc=[rec.summary,rec.details].filter(Boolean).join('\n');
+  if(desc)lines.push(icsFold('DESCRIPTION:'+icsEscape(desc)));
+
+  // dates
+  const startRaw=rec.startDate||rec.dueDate||rec.date||'';
+  const endRaw=rec.endDate||'';
+  const dtStart=icsDateVal(startRaw);
+  if(!dtStart){lines.push('END:VEVENT');return lines.join('\r\n')}
+
+  if(dtStart.type==='datetime'){
+    lines.push('DTSTART;TZID='+dtStart.tz+':'+dtStart.val);
+    const dtEnd=endRaw?icsDateVal(endRaw):null;
+    if(dtEnd&&dtEnd.type==='datetime')lines.push('DTEND;TZID='+dtEnd.tz+':'+dtEnd.val);
+    else{
+      // default 1-hour duration
+      const endVal=dtStart.val.replace(/T(\d{2})(\d{2})00/,(_,h,m)=>{
+        const hh=parseInt(h)+1;return 'T'+String(hh).padStart(2,'0')+m+'00'});
+      lines.push('DTEND;TZID='+dtStart.tz+':'+endVal);
+    }
+    // timed event alarms: 30 min + 1 day
+    lines.push('BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:Reminder','END:VALARM');
+    lines.push('BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:Reminder','END:VALARM');
+  }else{
+    lines.push('DTSTART;VALUE=DATE:'+dtStart.val);
+    if(endRaw){const dtEnd=icsDateVal(endRaw);if(dtEnd)lines.push('DTEND;VALUE=DATE:'+dtEnd.val)}
+    else{
+      // all-day events: DTEND = next day
+      const nd=new Date(startRaw+'T00:00:00');nd.setDate(nd.getDate()+1);
+      const nds=nd.getFullYear()+String(nd.getMonth()+1).padStart(2,'0')+String(nd.getDate()).padStart(2,'0');
+      lines.push('DTEND;VALUE=DATE:'+nds);
+    }
+    // all-day alarm: 1 day only
+    lines.push('BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:Reminder','END:VALARM');
+  }
+
+  // recurrence
+  const rrule=icsRRule(rec.recurrenceRule);
+  if(rrule)lines.push(rrule);
+  const exd=icsExdate(rec.recExceptions);
+  if(exd)lines.push(exd);
+
+  lines.push('END:VEVENT');
+  return lines.join('\r\n');
+}
+function buildIcsFile(records){
+  const lines=[
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ApexTrack//EN',
+    'CALSCALE:GREGORIAN','METHOD:PUBLISH',
+    'X-WR-CALNAME:ApexTrack','X-WR-TIMEZONE:'+ICS_TZ,
+    VTIMEZONE
+  ];
+  records.forEach(r=>lines.push(buildIcsEvent(r)));
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n')+'\r\n';
+}
+
+// Mark items as pushed; bump SEQUENCE if re-exported after edits
+function markPushed(recIds){
+  if(!DATA||!CRYPTO)return;
+  const t=iso();
+  recIds.forEach(id=>{
+    const it=DATA.items[id]||DATA.events[id];
+    if(!it||it.deleted)return;
+    const coll=DATA.items[id]?'items':'events';
+    const seq=(it._icsSequence||0)+(it.changedSincePushed?1:0);
+    DATA[coll][id]=Object.assign({},it,{
+      pushedToCalendar:true,
+      pushedAt:t,
+      changedSincePushed:false,
+      _icsSequence:seq,
+      updatedAt:stampNow(it),
+      updatedBy:ME.email
+    });
+    mutationSeq++;
+  });
+  requestSave();
+}
+// Call after any content edit to flag pushed items as changed
+function flagChangedSincePush(id){
+  const it=DATA.items[id]||DATA.events[id];
+  if(!it||!it.pushedToCalendar)return;
+  const coll=DATA.items[id]?'items':'events';
+  DATA[coll][id]=Object.assign({},it,{changedSincePushed:true});
+  // no mutationSeq++ here — the caller already incremented for the edit itself
+}
+
+// Export selection state
+let EXPORT_MODE=false,EXPORT_SEL=new Set(),EXPORT_FILTER='needs';
+function toggleExportMode(){
+  EXPORT_MODE=!EXPORT_MODE;EXPORT_SEL.clear();EXPORT_FILTER='needs';renderView();
+}
+function setExportFilter(f){EXPORT_FILTER=f;renderView()}
+function toggleExportSel(id){
+  if(EXPORT_SEL.has(id))EXPORT_SEL.delete(id);else EXPORT_SEL.add(id);
+  renderView();
+}
+function needsPush(r){return r&&!r.deleted&&r.priority!=='Info'&&(!r.pushedToCalendar||r.changedSincePushed)}
+function exportableList(filter){
+  const all=[...liveItems(),...liveEvents()].filter(r=>r.priority!=='Info'&&!r.deleted&&matchKid(r,filter||'all'));
+  if(EXPORT_FILTER==='needs')return all.filter(needsPush);
+  return all;
+}
+function selectAllExportable(){
+  exportableList(KFILTER).forEach(r=>{if(!EXPORT_SEL.has(r.id))EXPORT_SEL.add(r.id)});
+  renderView();
+}
+function doExport(){
+  const recs=[];
+  EXPORT_SEL.forEach(id=>{
+    const it=DATA.items[id]||DATA.events[id];
+    if(!it||it.deleted||it.priority==='Info')return;
+    recs.push(it);
+  });
+  if(!recs.length){toast('Nothing to export','info');return}
+  const ics=buildIcsFile(recs);
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='apextrack-export.ics';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  markPushed([...EXPORT_SEL]);
+  toast('Exported '+recs.length+' item'+(recs.length===1?'':'s'),'success');
+  EXPORT_MODE=false;EXPORT_SEL.clear();renderView();
+}
+
+/* ════════════════════════════════════════════════════
+   SCOPE PROMPT + REPEAT HELPERS (v0.3.1)
+════════════════════════════════════════════════════ */
+let _scopeFn=null,_scopeChoice='this';
+function openScope(title,sub,choices,fn){
+  $('scope-title').textContent=title;$('scope-sub').textContent=sub;
+  const opts=$('scope-opts');opts.textContent='';_scopeChoice=choices[0].id;
+  choices.forEach(c=>{
+    const d=el('div','scope-opt'+(c.id===_scopeChoice?' on':''));
+    d.innerHTML='<span class="sd"></span>';
+    const body=el('div');body.appendChild(el('div','sl',c.label));if(c.desc)body.appendChild(el('div','sm',c.desc));
+    d.appendChild(body);
+    d.addEventListener('click',()=>{_scopeChoice=c.id;Array.from(opts.children).forEach(o=>{if(o.classList)o.classList.remove('on')});d.classList.add('on')});
+    opts.appendChild(d);
+  });
+  _scopeFn=fn;$('scope-wrap').classList.add('open');
+}
+function closeScope(){$('scope-wrap').classList.remove('open');_scopeFn=null}
+function doScope(){if(_scopeFn)_scopeFn(_scopeChoice);closeScope()}
+function freqLabel(rule){
+  if(!rule)return '';
+  const f=rule.frequency;
+  const days=(rule.byDay||[]).map(d=>DOW_LABELS[DOW_NAMES.indexOf(d)]||d).join(', ');
+  if(f==='daily')return 'daily';
+  if(f==='weekly')return 'weekly'+(days?' on '+days:'');
+  if(f==='biweekly')return 'every other week'+(days?' on '+days:'');
+  if(f==='monthly')return 'monthly';
+  return f;
+}
+function fmtDateStr(ds){return new Date(ds+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}
+function deleteWithScope(id,instanceDate){
+  const ev=DATA.events[id];
+  if(!ev||!ev.recurrenceRule||!ev.recurrenceRule.frequency){
+    const it=DATA.items[id]||DATA.events[id];
+    const title=it?it.title||'(untitled)':'this item';
+    confirmDialog('Delete \u201C'+title+'\u201D?','This removes it for both of you.',()=>{
+      const coll=DATA.events[id]?'events':'items';
+      removeRecord(coll,id);toast('Deleted','success');closeDetail();renderView();
+    },'Delete','danger');
+    return;
+  }
+  openScope('Delete repeating event',ev.title+' \u00b7 repeats '+freqLabel(ev.recurrenceRule),[
+    {id:'this',label:'This event only',desc:instanceDate?fmtDateStr(instanceDate)+'. The rest of the series is unchanged.':''},
+    {id:'all',label:'All events',desc:'The entire series will be removed.'}
+  ],(choice)=>{
+    if(choice==='this'&&instanceDate){
+      ev.recExceptions=ev.recExceptions||[];
+      if(!ev.recExceptions.includes(instanceDate))ev.recExceptions.push(instanceDate);
+      ev.updatedAt=stampNow(ev);ev.updatedBy=ME.email;mutationSeq++;
+      requestSave();toast('Instance removed','success');
+    } else {
+      removeRecord('events',id);toast('Series deleted','success');
+    }
+    closeDetail();renderView();
+  });
+}
+function editWithScope(id,instanceDate){
+  const ev=DATA.events[id];
+  if(!ev||!ev.recurrenceRule||!ev.recurrenceRule.frequency){openEdit(id);return}
+  openScope('Edit repeating event',ev.title+' \u00b7 repeats '+freqLabel(ev.recurrenceRule),[
+    {id:'this',label:'This event only',desc:instanceDate?fmtDateStr(instanceDate)+'. The rest of the series is unchanged.':''},
+    {id:'all',label:'All events',desc:'Edit the entire series.'}
+  ],(choice)=>{
+    if(choice==='this'&&instanceDate){openEdit(id,{isEvent:true,date:instanceDate,editScope:'instance',instanceDate})}
+    else{openEdit(id,{isEvent:true,editScope:'series'})}
+  });
+}
+/* settings view */
+function renderSettings(root){
+  const head=el('div','view-head');head.appendChild(el('div','view-title','Settings'));root.appendChild(head);
+  const s=el('div','view-scroll');s.style.padding='16px';s.style.paddingBottom='88px';
+  const grp=(title,lines)=>{const g=el('div','settings-grp');g.appendChild(el('div','gl',title));lines.forEach(l=>g.appendChild(l));s.appendChild(g)};
+  const line=(label,ctrl)=>{const d=el('div','set-line');d.appendChild(el('span',null,label));d.appendChild(ctrl);return d};
+  const mkBtn=(label,fn,cls)=>{const b=el('button','btn small'+(cls?' '+cls:''),label);b.style.width='auto';b.style.margin='0';b.addEventListener('click',fn);return b};
+  // account
+  grp('Account',[
+    line('Signed in as',el('span',null,ME?ME.name:'—')),
+    line('Encryption',el('span',null,CRYPTO?'Unlocked':'Locked')),
+    line('Lock the app now',mkBtn('Lock now',()=>lockApp('manual'))),
+    line('Sign out of Google',mkBtn('Sign out',()=>signOutGoogle(),'danger'))
+  ]);
+  // data
+  const lastImp=DATA.settings.lastImportJournal;
+  grp('Import',[
+    line('Last import',el('span',null,DATA.settings.lastImportAt?shortWhen(DATA.settings.lastImportAt):'never')),
+    line('Undo last import',mkBtn(lastImp?'Undo':'Nothing to undo',()=>requestUndo()))
+  ]);
+  // backups
+  grp('Backups',[
+    line('Last backup',el('span',null,DATA.settings.lastBackupAt?DATA.settings.lastBackupAt.slice(0,16).replace('T',' ')+' UTC':'never')),
+    line('Backup now',mkBtn('Backup',async()=>{busy('Creating backup\u2026');try{const r=await backupNow('manual');busyDone();toast(r.ok?'Backup saved':r.message,r.ok?'success':'warning')}catch(e){busyDone();toast(errMsg(e),'error')}renderView()})),
+    line('Backups kept',el('span',null,String(liveBackups().length)+' of '+KEEP_BACKUPS))
+  ]);
+  // files / access
+  grp('Files',[
+    line('Data file',el('span',null,fileId?fileId.slice(0,10)+'…':'—')),
+    line('Re-pick shared files',mkBtn('Re-pick',()=>show('setup'))),
+    line('Grant Backups folder',mkBtn('Grant',()=>doPickBackupsFolder())),
+    line('Check access',mkBtn('Check',async()=>{busy('Checking access\u2026');await probeAccess();busyDone();const p=lastProbe;toast(p&&p.lock.ok&&p.backups.ok?'Access looks good':'Access check — see details','info')}))
+  ]);
+  grp('About',[
+    line('Version',el('span',null,APP_NAME+' '+APP_VERSION)),
+    line('Idle timeout',el('span',null,'10 min'))
+  ]);
+  root.appendChild(s);
+}
+
+/* sheet open/close */
+function openSheet(id){const w=$(id);if(w&&w.classList)w.classList.add('open')}
+function closeSheet(id){const w=$(id);if(w&&w.classList)w.classList.remove('open')}
+
+/* busy overlay — shows a spinner + message during Drive operations */
+function busy(msg){const el=$('busyEl');if(el)el.classList.add('on');const m=$('busyMsg');if(m)m.textContent=msg||'Saving\u2026'}
+function busyDone(){const el=$('busyEl');if(el)el.classList.remove('on')}
+
+/* renderPanel is now the whole-app render entry point (kept name so existing callers work) */
+function renderPanel(){if(!$('view-root'))return;renderShell();renderView();if(DETAIL_ID)renderDetail()}
+function renderLog(){}
+function wire(){
+  document.querySelectorAll('[data-ver]').forEach(e=>e.textContent=APP_NAME+' '+APP_VERSION);
+  const on=(id,fn)=>{const e=$(id);if(e)e.addEventListener('click',()=>Promise.resolve().then(fn).catch(err=>{toast(errMsg(err),'error');log('action failed:',errMsg(err));renderPanel()}))};
+  on('btn-signin',doSignIn);on('btn-reconnect',reconnect);
+  on('btn-pickfiles',doPickFiles);on('btn-firsttime',doFirstTime);
+  on('btn-savekey',()=>{const v=($('in-pickerkey').value||'').trim();if(v.length<20)return toast('That does not look like an API key','error');lsSet(LS.pickerKey,v);$('keybox').style.display='none';toast('Key saved on this device','success')});
+  on('btn-setup-signout',signOutGoogle);on('btn-unlock-signout',signOutGoogle);
+  on('btn-unlock-file',()=>{lsDel(LS.fileId);lsDel(LS.lockId);fileId=null;lockId=null;show('setup')});
+  on('btn-create-back',()=>show('setup'));on('btn-setup-back',()=>show('app'));
+  on('btn-showpw',()=>{const i=$('in-pw');const s=i.type==='password';i.type=s?'text':'password';$('btn-showpw').textContent=s?'Hide':'Show'});
+  const fc=$('form-create');if(fc)fc.addEventListener('submit',e=>{e.preventDefault&&e.preventDefault();return doCreate()});
+  const fu=$('form-unlock');if(fu)fu.addEventListener('submit',e=>{e.preventDefault&&e.preventDefault();return doUnlock()});
+  // Phase 2a app UI
+  on('fab-add',()=>openEdit(null));
+  on('btn-nav-add',()=>openEdit(null));
+  on('btn-me',openMenu);
+  const mw=$('menu-wrap');if(mw)mw.addEventListener('click',e=>{if(e.target===mw)closeMenu()});
+  document.addEventListener('keydown',e=>{if(e&&e.key==='Escape'){closeMenu();closeSheet('sheet-undo');closeScope();closeConfirm()}});
+  on('undo-close',()=>closeSheet('sheet-undo'));on('undo-cancel',()=>closeSheet('sheet-undo'));on('undo-confirm',runUndo);
+  on('sheet-edit-close',()=>closeSheet('sheet-edit'));
+  on('sheet-edit-cancel',()=>closeSheet('sheet-edit'));
+  on('sheet-edit-save',saveEdit);
+  const ad=$('f-allday');if(ad)ad.addEventListener('change',()=>toggleTimeFields(!ad.checked));
+  const fr=$('f-repeat');if(fr)fr.addEventListener('change',paintRepeatFields);
+  const fre=$('f-repeat-end');if(fre)fre.addEventListener('change',paintRepeatFields);
+  on('scope-cancel',closeScope);on('scope-ok',doScope);
+  const sw=$('scope-wrap');if(sw)sw.addEventListener('click',e=>{if(e.target===sw)closeScope()});
+  on('confirm-cancel',closeConfirm);on('confirm-ok',doConfirm);
+  const cw=$('confirm-wrap');if(cw)cw.addEventListener('click',e=>{if(e.target===cw)closeConfirm()});
+  document.querySelectorAll('#f-kid button').forEach(b=>b.addEventListener('click',()=>{EDIT_KID=b.getAttribute('data-kid');paintKidPick();const kp=$('f-kid');if(kp&&kp.parentElement)kp.parentElement.classList.remove('err')}));
+  const ft=$('f-title');if(ft)ft.addEventListener('input',()=>{if(ft.parentElement)ft.parentElement.classList.remove('err')});
+  on('sheet-import-close',()=>closeSheet('sheet-import'));
+  on('import-cancel',()=>closeSheet('sheet-import'));
+  on('import-preview-btn',doPreview);
+  on('import-back',()=>{$('import-stage-preview').style.display='none';$('import-stage-paste').style.display='';$('import-title').textContent='Import'});
+  on('import-commit',doCommitImport);
+}
+function netWatch(){
+  const upd=()=>{const b=$('banner-offline');if(b)b.style.display=isOnline()?'none':'block'};
+  window.addEventListener('online',()=>{upd();log('back online');if(dirty&&CRYPTO)requestSave()});
+  window.addEventListener('offline',()=>{upd();log('offline')});upd();
+}
+function activityWatch(){
+  ['pointerdown','keydown','touchstart','wheel','scroll','input'].forEach(e=>document.addEventListener(e,touch,{passive:true,capture:true}));
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState!=='visible')return;
+    checkIdle();                                                   // timers are throttled in background tabs — check the wall clock
+    if(CRYPTO&&!dirty&&nowMs()-lastPulledAt>CFG.pullThrottleMs)pullLatest().catch(e=>log('pull:',errMsg(e)));
+  });
+}
+async function boot(){
+  wire();netWatch();activityWatch();
+  document.title='ApexTrack '+APP_VERSION+' — Family School Tracker';
+  if(restoreToken()){
+    try{await afterSignIn();return}
+    catch(e){log('resume failed:',errMsg(e))}
+  }
+  show('signin');
+}
+window.AT={           // test hooks (headless harness) — not used by the UI
+  CFG,mergeData,mergeRecord,newData,stable,encryptEnvelope,decryptEnvelope,parseEnvelope,deriveKey,b64e,b64d,
+  acquireLock,releaseLock,saveOnce,requestSave,upsert,setStatus,removeRecord,pullLatest,backupNow,backupIfDue,rotateBackups,probeAccess,
+  unlock,createNewStore,locateDataFile,lockApp,checkIdle,touch,show,boot,afterSignIn,openPicker,doPickFiles,doPickBackupsFolder,
+  // Phase 2a logic
+  parseImport,normalizeImportItem,previewImport,commitImport,undoLastImport,
+  liveItems,liveEvents,calEntries,calEntriesForMonth,calInit,calToday,calPad,weekStartMs,weekRange,weekRangeLabel,
+  thisWeekItems,nextWeekItems,weekItems,todoItems,criticalItems,groupByPriority,kidKey,itemSort,
+  planUndo,requestUndo,runUndo,openMenu,closeMenu,confirmDialog,closeConfirm,doConfirm,
+  expandRecurrence,freqLabel,deleteWithScope,editWithScope,openScope,closeScope,doScope,paintRepeatFields,
+  fmtTime,kidColorFor,weekItems,
+  buildIcsEvent,buildIcsFile,icsUid,icsDateVal,icsRRule,icsExdate,markPushed,flagChangedSincePush,
+  toggleExportMode,toggleExportSel,selectAllExportable,doExport,setExportFilter,needsPush,exportableList,
+  setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
+  get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER}),
+  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS},
+  liveBackups,LS,LOGS
+};
+window.addEventListener('load',boot);
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</body>
+</html>
