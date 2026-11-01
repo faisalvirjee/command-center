@@ -358,7 +358,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .gr-trend{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;margin-left:6px}
 .gr-trend.up{color:#34d399}.gr-trend.flat{color:var(--text3)}.gr-trend.down{color:#f87171}
 .gr-body{display:none;border-top:1px solid var(--border);padding:10px 14px}
-.gr-card-head.open+.gr-body{display:block}
+.gr-card-head.open~.gr-body{display:block}
 .gr-comp{margin-bottom:10px}
 .gr-comp-hd{font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:flex;justify-content:space-between}
 .gr-comp-hd .wt{font-weight:500;text-transform:none;letter-spacing:0}
@@ -3215,7 +3215,6 @@ async function giCommit(){
         setCourseAvg(f.rec.kidId,f.rec.courseCode,f.rec.course,f.rec.teacher,f.rec.term,f.rec.period,f.rec.rawScore,f.rec.missingAssignments||0);
       }
     }
-    await scheduleSave();
     busyDone();closeSheet('sheet-grade-import');
     toast('Imported '+total+' change'+(total===1?'':'s'),'success');
     renderView();
