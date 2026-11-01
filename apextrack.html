@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.3.2 | 2026-10-30 -->
+<!-- ApexTrack — Family School Tracker | v0.4.0 | 2026-11-01 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -337,6 +337,53 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .busy-spin{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--both-txt);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .busy-msg{font-size:14px;color:var(--text2);font-weight:600;text-align:center}
+/* ───────── Phase 2c: grades ───────── */
+.gr-head{padding:6px 16px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.gr-kid-seg{display:flex;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:2px}
+.gr-kid-seg button{border:none;background:none;color:var(--text2);font-size:13px;font-weight:600;padding:6px 14px;border-radius:7px;cursor:pointer;font-family:var(--font);white-space:nowrap}
+.gr-kid-seg button.on{background:var(--both-bar);color:#fff}
+.gr-add-btn{margin-left:auto;display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1px solid var(--both-edge);color:var(--both-txt);font-size:12.5px;font-weight:600;background:none;font-family:var(--font);cursor:pointer}
+.gr-cards{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.gr-card{background:var(--card);border:1px solid var(--border2);border-radius:12px;overflow:hidden}
+.gr-card-head{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer}
+.gr-card-head i{font-size:18px;color:var(--text3);transition:transform .15s}
+.gr-card-head.open i.ti-chevron-down{transform:rotate(180deg)}
+.gr-course{flex:1;min-width:0}
+.gr-course .gc-name{font-size:14.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gr-course .gc-sub{font-size:11.5px;color:var(--text3);margin-top:1px}
+.gr-avg{text-align:right;flex-shrink:0}
+.gr-avg .ga-num{font-family:var(--cond);font-size:28px;font-weight:700;line-height:1}
+.gr-avg .ga-num.green{color:#34d399}.gr-avg .ga-num.amber{color:#fbbf24}.gr-avg .ga-num.red{color:#f87171}
+.gr-avg .ga-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px}
+.gr-trend{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;margin-left:6px}
+.gr-trend.up{color:#34d399}.gr-trend.flat{color:var(--text3)}.gr-trend.down{color:#f87171}
+.gr-body{display:none;border-top:1px solid var(--border);padding:10px 14px}
+.gr-card-head.open+.gr-body{display:block}
+.gr-comp{margin-bottom:10px}
+.gr-comp-hd{font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:flex;justify-content:space-between}
+.gr-comp-hd .wt{font-weight:500;text-transform:none;letter-spacing:0}
+.gr-asgn{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.gr-asgn:last-child{border-bottom:none}
+.gr-asgn .asgn-date{width:42px;flex-shrink:0;font-size:11px;color:var(--text3);text-align:center;font-family:var(--mono)}
+.gr-asgn .asgn-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.gr-asgn .asgn-score{font-weight:700;font-family:var(--mono);flex-shrink:0}
+.gr-asgn .asgn-score.green{color:#34d399}.gr-asgn .asgn-score.amber{color:#fbbf24}.gr-asgn .asgn-score.red{color:#f87171}
+.gr-asgn .asgn-edit{background:none;border:none;color:var(--text3);font-size:15px;padding:2px;cursor:pointer;flex-shrink:0;line-height:1}
+.gr-empty{padding:24px;text-align:center;color:var(--text3);font-size:13px}
+.gr-wi{padding:12px 14px;border-top:1px solid var(--border);background:var(--surface)}
+.gr-wi .wi-title{font-size:12px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.gr-wi .wi-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.gr-wi .fld{margin-bottom:8px;flex:1;min-width:100px}
+.gr-wi .fld label{font-size:11px}
+.gr-wi .fld input,.gr-wi .fld select{padding:7px 10px;font-size:14px}
+.gr-wi .wi-result{font-size:14px;font-weight:700;padding:6px 0;min-height:26px}
+.gr-wi .wi-result.green{color:#34d399}.gr-wi .wi-result.amber{color:#fbbf24}.gr-wi .wi-result.red{color:#f87171}
+.gr-esnu{display:inline-block;padding:2px 8px;border-radius:5px;font-size:12px;font-weight:700}
+.gr-esnu.E{background:rgba(52,211,153,.15);color:#34d399}
+.gr-esnu.S{background:rgba(59,130,246,.15);color:#60a5fa}
+.gr-esnu.N{background:rgba(251,191,36,.15);color:#fbbf24}
+.gr-esnu.U{background:rgba(248,113,113,.15);color:#f87171}
+.gr-official{font-size:11px;color:var(--text3);padding:6px 14px 2px}
 @media(min-width:860px){
   .view-title{display:block}
   .fab{display:none}
@@ -556,6 +603,39 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   </div>
 </div></div>
 
+<!-- grade add/edit sheet -->
+<div class="sheet-wrap" id="sheet-grade"><div class="sheet">
+  <div class="handle"></div>
+  <div class="sh-title"><span id="gr-sheet-title">Add grade</span><button class="x" id="gr-sheet-close" type="button" aria-label="Close">&times;</button></div>
+  <div class="fld"><label>Kid</label>
+    <input type="hidden" id="gr-f-kid-val" value="AV">
+    <div class="kidpick" id="gr-f-kid">
+      <button type="button" data-kid="AV">AV</button><button type="button" data-kid="IV">IV</button>
+    </div>
+  </div>
+  <div class="fld"><label>Course name</label><input id="gr-f-course" list="gr-courses" placeholder="e.g. Accelerated Earth Science Gifted"><datalist id="gr-courses"></datalist></div>
+  <div class="fld"><label>Course code (optional)</label><input id="gr-f-code" list="gr-codes" placeholder="e.g. ACCL EARTH SC GF 6"><datalist id="gr-codes"></datalist></div>
+  <div class="fld"><label>Assignment name</label><input id="gr-f-asgn" placeholder="e.g. Minerals Quiz"></div>
+  <div class="fld-2">
+    <div class="fld"><label>Score</label><input id="gr-f-score" placeholder="e.g. 100 or E/S/N/U"></div>
+    <div class="fld"><label>Date</label><input id="gr-f-date" type="date"></div>
+  </div>
+  <div class="fld-2">
+    <div class="fld"><label>Component</label>
+      <select id="gr-f-comp"><option value="AKS Progress*">AKS Progress*</option><option value="AKS Mastery*">AKS Mastery*</option><option value="MidYr/EOY*">MidYr/EOY*</option></select>
+    </div>
+    <div class="fld"><label>Scale</label>
+      <select id="gr-f-scale"><option value="numeric-100">Numeric (0–100)</option><option value="ESNU">ESNU</option></select>
+    </div>
+  </div>
+  <div class="fld"><label>Teacher (optional)</label><input id="gr-f-teacher" placeholder=""></div>
+  <div class="sheet-actions">
+    <button class="btn danger" id="gr-delete-btn" type="button" style="display:none;flex:0 0 auto;width:auto;padding:6px 14px">Delete</button>
+    <button class="btn" id="gr-sheet-cancel" type="button">Cancel</button>
+    <button class="btn primary" id="gr-sheet-save" type="button">Save</button>
+  </div>
+</div></div>
+
 <!-- scope prompt (this one / all events) -->
 <div class="scope-wrap" id="scope-wrap">
   <div class="scope-box">
@@ -586,7 +666,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.3.2';
+const APP_VERSION='v0.4.0';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -1880,7 +1960,7 @@ const NAVS=[
   {id:'calendar',label:'Calendar',icon:'ti-calendar',tab:true},
   {id:'todo',label:'To-do',icon:'ti-list-check',tab:true},
   {id:'critical',label:'Critical',icon:'ti-alert-triangle',tab:true},
-  {id:'grades',label:'Grades',icon:'ti-school',soon:'Grades arrive in Phase 2c.'}
+  {id:'grades',label:'Grades',icon:'ti-school'}
 ];
 const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
 function kidBadge(it){const k=kidKey(it);const b=el('span','kb '+(k==='both'?'both':k==='AV'?'av':'iv'),kidBadgeLabel(k));return b}
@@ -1929,7 +2009,7 @@ function renderMenu(){
   const hd=el('div','menu-head');hd.appendChild(el('div','avatar',myInitial()));
   const nm=el('div');nm.appendChild(el('div','mh-name',ME&&ME.name?ME.name:''));nm.appendChild(el('div','mh-sub','Signed in'));
   hd.appendChild(nm);p.appendChild(hd);
-  p.appendChild(menuItem('ti-school','Grades',()=>{toast('Grades arrive in Phase 2c.','info')},'mob-only soon','Soon'));
+  p.appendChild(menuItem('ti-school','Grades',()=>{closeMenu();setView('grades')},'mob-only'));
   p.appendChild(menuItem('ti-upload','Import',()=>{closeMenu();openImport()}));
   p.appendChild(menuItem('ti-calendar-down','Export .ics',()=>{closeMenu();if(VIEW!=='thisweek'&&VIEW!=='todo'&&VIEW!=='critical')setView('todo');toggleExportMode()}));
   p.appendChild(menuItem('ti-settings','Settings',()=>{closeMenu();setView('settings')}));
@@ -1954,7 +2034,7 @@ function renderView(){
   }
   if(VIEW==='critical')return renderList(root,'Critical',criticalItems(KFILTER,{showDone:SHOWDONE}),false);
   if(VIEW==='calendar')return renderCalendar(root);
-  if(VIEW==='grades')return renderPlaceholder(root,'Grades','ti-school','Grades arrive in Phase 2c.');
+  if(VIEW==='grades')return renderGrades(root);
   if(VIEW==='settings')return renderSettings(root);
 }
 function weekSeg(){
@@ -2350,6 +2430,346 @@ async function runUndo(){
 
 
 /* ════════════════════════════════════════════════════
+   GRADES ENGINE (v0.4.0)
+   Unified AKS Progress / Mastery computation for both kids.
+   ESNU marks (IV non-academic) stored as-is, no numeric avg.
+   Spec S10: grades are permanent, never wiped.
+════════════════════════════════════════════════════ */
+const DEFAULT_WEIGHTS={'AKS Progress*':0.55,'AKS Mastery*':0.45};
+const ESNU_ORDER={E:4,S:3,N:2,U:1};
+const GRADE_THRESHOLDS={green:90,amber:80}; // ≥90 green, ≥80 amber, <80 red
+
+function gradeColor(score){
+  if(score==null||isNaN(score))return '';
+  return score>=GRADE_THRESHOLDS.green?'green':score>=GRADE_THRESHOLDS.amber?'amber':'red';
+}
+function esnuColor(mark){return (mark&&'ESNU'.includes(mark[0]))?mark[0]:''}
+
+/** Return all live (non-deleted) grades, optionally filtered by kidId */
+function liveGrades(kidFilter){
+  if(!DATA||!DATA.grades)return [];
+  return Object.values(DATA.grades).filter(g=>!g.deleted&&(!kidFilter||kidFilter==='all'||g.kidId===kidFilter));
+}
+
+/** Group grades into courses, each with components and assignments */
+function gradeCourses(kidFilter){
+  const grades=liveGrades(kidFilter);
+  const courses={};  // keyed by kidId+courseCode
+  for(const g of grades){
+    if(g.type==='diagnostic'||g.type==='conference')continue; // separate display later
+    const key=g.kidId+'|'+(g.courseCode||g.course||'Unknown');
+    if(!courses[key])courses[key]={key,kidId:g.kidId,course:g.course||'',courseCode:g.courseCode||'',teacher:g.teacher||'',
+      term:g.term||'',period:g.period||'',scale:g.scale||'numeric-100',officialAvg:null,missingAssignments:0,assignments:[]};
+    const c=courses[key];
+    if(g.teacher&&!c.teacher)c.teacher=g.teacher;
+    if(g.type==='course-final'){c.officialAvg=g.rawScore;c.missingAssignments=g.missingAssignments||0;continue}
+    c.assignments.push(g);
+    if(g.scale==='ESNU')c.scale='ESNU';
+  }
+  return Object.values(courses).sort((a,b)=>{
+    if(a.kidId!==b.kidId)return a.kidId<b.kidId?-1:1;
+    return (a.period||99)-(b.period||99)||(a.course||'').localeCompare(b.course||'');
+  });
+}
+
+/** Compute running weighted average for a course (numeric-100 scale only) */
+function computeCourseAvg(course){
+  if(course.scale==='ESNU')return {avg:null,components:{},estimated:false};
+  const comps={}; // componentName → {scores:[], weight}
+  for(const a of course.assignments){
+    const cn=a.componentName||'AKS Progress*';
+    if(!comps[cn])comps[cn]={scores:[],weight:a.componentWeight||(DEFAULT_WEIGHTS[cn]||null),name:cn};
+    const s=parseFloat(a.rawScore);
+    if(!isNaN(s))comps[cn].scores.push(s);
+  }
+  const compNames=Object.keys(comps);
+  if(!compNames.length)return {avg:null,components:comps,estimated:false};
+  // check if we have weights
+  const hasWeights=compNames.every(cn=>comps[cn].weight!=null);
+  if(hasWeights){
+    let total=0,totalWeight=0;
+    for(const cn of compNames){
+      const c=comps[cn];if(!c.scores.length)continue;
+      const avg=c.scores.reduce((a,b)=>a+b,0)/c.scores.length;
+      c.avg=Math.round(avg*100)/100;
+      total+=avg*c.weight;totalWeight+=c.weight;
+    }
+    return {avg:totalWeight>0?Math.round((total/totalWeight)*100)/100:null,components:comps,estimated:false};
+  }else{
+    // fallback: simple average
+    const all=[];
+    for(const cn of compNames){
+      const c=comps[cn];
+      if(c.scores.length){c.avg=Math.round(c.scores.reduce((a,b)=>a+b,0)/c.scores.length*100)/100;all.push(...c.scores)}
+    }
+    return {avg:all.length?Math.round(all.reduce((a,b)=>a+b,0)/all.length*100)/100:null,components:comps,estimated:true};
+  }
+}
+
+/** What-if: what score is needed on next assignment in a given component to reach targetAvg? */
+function whatIfScore(course,targetAvg,componentName){
+  const calc=computeCourseAvg(course);
+  if(calc.avg==null)return {needed:null,message:'No scores entered yet.'};
+  const comps=calc.components;
+  const cn=componentName||'AKS Mastery*';
+  const comp=comps[cn];
+  if(!comp)return {needed:null,message:'Component "'+cn+'" not found.'};
+  const weight=comp.weight||(DEFAULT_WEIGHTS[cn]||0.5);
+  if(!weight)return {needed:null,message:'No weight known for component.'};
+  // Current contribution from other components
+  let otherTotal=0,otherWeight=0;
+  for(const k of Object.keys(comps)){
+    if(k===cn)continue;const c=comps[k];if(!c.scores.length||!c.weight)continue;
+    otherTotal+=c.avg*c.weight;otherWeight+=c.weight;
+  }
+  // newCount scores in this component after adding 1
+  const newCount=comp.scores.length+1;
+  // target: (otherTotal + weight * ((sum + x) / newCount)) / (otherWeight + weight) = targetAvg
+  const sum=comp.scores.reduce((a,b)=>a+b,0);
+  // solve: sum + x = newCount * (targetAvg * (otherWeight + weight) - otherTotal) / weight
+  const needed=((targetAvg*(otherWeight+weight)-otherTotal)/weight)*newCount-sum;
+  const r=Math.round(needed*100)/100;
+  if(r>100)return {needed:r,achievable:false,message:'Need '+r+' — not achievable with one assignment (max 100).'};
+  if(r<0)return {needed:0,achievable:true,message:'Any score will reach the target.'};
+  return {needed:r,achievable:true,message:'Need at least '+r+' on the next '+cn.replace('*','')+' assignment.'};
+}
+
+/** Quick-add a single grade */
+function addGrade(gradeObj){
+  const id=gradeObj.id||('gr-'+randHex(6));
+  const rec=Object.assign({type:'assignment',scale:'numeric-100',source:'manual'},gradeObj,{id});
+  return upsert('grades',rec);
+}
+/** Update a grade */
+function updateGrade(id,changes){return upsert('grades',Object.assign({id},changes))}
+/** Remove a grade */
+function removeGrade(id){return removeRecord('grades',id)}
+
+/** Add or update official (portal) course average */
+function setCourseAvg(kidId,courseCode,course,teacher,term,period,rawScore,missingAssignments){
+  const id='cfinal-'+kidId+'-'+(courseCode||course).replace(/\W/g,'');
+  return upsert('grades',{id,kidId,courseCode,course,teacher,term,period,type:'course-final',
+    rawScore,scale:'numeric-100',missingAssignments:missingAssignments||0,source:'portal'});
+}
+
+/* ════════════════════════════════════════════════════
+   GRADES VIEW (v0.4.0)
+   Course cards with running averages, expandable assignments,
+   what-if calculator. Kid filter (AV/IV/Both).
+════════════════════════════════════════════════════ */
+function renderGrades(root){
+  const head=el('div','view-head');head.appendChild(el('div','view-title','Grades'));
+  const bar=el('div','gr-head');
+  // kid filter segment
+  const seg=el('div','gr-kid-seg');
+  [['all','Both'],['AV','AV'],['IV','IV']].forEach(([id,label])=>{
+    const b=el('button',GRADE_KID===id?'on':'',label);
+    b.addEventListener('click',()=>{GRADE_KID=id;renderView()});seg.appendChild(b)});
+  bar.appendChild(seg);
+  // add grade button
+  const addBtn=el('button','gr-add-btn');addBtn.innerHTML='<i class="ti ti-plus" aria-hidden="true"></i> Add grade';
+  addBtn.addEventListener('click',()=>openGradeEdit(null));bar.appendChild(addBtn);
+  head.appendChild(bar);root.appendChild(head);
+  const scroll=el('div','view-scroll');
+  const courses=gradeCourses(GRADE_KID);
+  if(!courses.length){
+    const e=el('div','empty');e.innerHTML='<i class="ti ti-school" aria-hidden="true"></i>';
+    e.appendChild(el('div','et','No grades yet'));e.appendChild(el('div','eb','Tap + Add grade to enter assignment scores.'));
+    scroll.appendChild(e);root.appendChild(scroll);return;
+  }
+  const cards=el('div','gr-cards');
+  for(const course of courses){
+    const card=el('div','gr-card');
+    const isOpen=!!GRADE_OPEN[course.key];
+    const calc=computeCourseAvg(course);
+    // header
+    const hd=el('div','gr-card-head'+(isOpen?' open':''));
+    const cDiv=el('div','gr-course');
+    cDiv.appendChild(el('div','gc-name',course.course||course.courseCode||'Unknown'));
+    const subParts=[kidBadgeLabel(course.kidId)];
+    if(course.teacher)subParts.push(course.teacher);
+    if(course.period)subParts.push('P'+course.period);
+    cDiv.appendChild(el('div','gc-sub',subParts.join(' · ')));
+    hd.appendChild(cDiv);
+    // average display
+    const avgDiv=el('div','gr-avg');
+    if(course.scale==='ESNU'){
+      avgDiv.appendChild(el('div','ga-lbl','ESNU'));
+    }else if(calc.avg!=null){
+      const num=el('div','ga-num '+gradeColor(calc.avg),String(Math.round(calc.avg*10)/10));
+      avgDiv.appendChild(num);
+      // trend vs official
+      if(course.officialAvg!=null){
+        const diff=calc.avg-course.officialAvg;
+        const arrow=diff>0.5?'↑':diff<-0.5?'↓':'→';
+        const cls=diff>0.5?'up':diff<-0.5?'down':'flat';
+        const trend=el('span','gr-trend '+cls,arrow+' '+Math.abs(Math.round(diff*10)/10));
+        avgDiv.appendChild(trend);
+      }
+      if(calc.estimated)avgDiv.appendChild(el('div','ga-lbl','Estimated'));
+    }else{
+      avgDiv.appendChild(el('div','ga-num','—'));
+    }
+    hd.appendChild(avgDiv);
+    hd.appendChild(el('i','ti ti-chevron-down'));
+    hd.addEventListener('click',()=>{GRADE_OPEN[course.key]=!GRADE_OPEN[course.key];renderView()});
+    card.appendChild(hd);
+    // official portal line
+    if(course.officialAvg!=null){
+      const ol=el('div','gr-official');
+      ol.textContent='Portal average: '+course.officialAvg+(course.missingAssignments?' · '+course.missingAssignments+' missing':'');
+      card.appendChild(ol);
+    }
+    // body (assignments grouped by component)
+    const body=el('div','gr-body');
+    if(course.scale==='ESNU'){
+      for(const a of course.assignments.sort((x,y)=>(x.date||'').localeCompare(y.date||''))){
+        const row=el('div','gr-asgn');
+        row.appendChild(el('span','asgn-date',a.date?shortDate(a.date):''));
+        row.appendChild(el('span','asgn-name',a.assignmentName||a.componentName||''));
+        const sc=el('span','gr-esnu '+esnuColor(a.rawScore),a.rawScore||'');row.appendChild(sc);
+        const eb=el('button','asgn-edit');eb.innerHTML='<i class="ti ti-pencil"></i>';eb.addEventListener('click',e=>{e.stopPropagation();openGradeEdit(a)});row.appendChild(eb);
+        body.appendChild(row);
+      }
+    }else{
+      // group by component
+      const byComp={};
+      for(const a of course.assignments){const cn=a.componentName||'AKS Progress*';(byComp[cn]=byComp[cn]||[]).push(a)}
+      for(const cn of Object.keys(byComp)){
+        const cg=el('div','gr-comp');
+        const chd=el('div','gr-comp-hd');
+        chd.appendChild(el('span','',cn));
+        const wt=DEFAULT_WEIGHTS[cn]?Math.round(DEFAULT_WEIGHTS[cn]*100)+'%':'';
+        const compCalc=calc.components[cn];
+        const avg=compCalc&&compCalc.avg!=null?Math.round(compCalc.avg*10)/10:'';
+        chd.appendChild(el('span','wt',(wt?wt+' · ':'')+byComp[cn].length+' items'+(avg?' · Avg '+avg:'')));
+        cg.appendChild(chd);
+        const sorted=byComp[cn].sort((x,y)=>(x.date||'').localeCompare(y.date||''));
+        for(const a of sorted){
+          const row=el('div','gr-asgn');
+          row.appendChild(el('span','asgn-date',a.date?shortDate(a.date):''));
+          row.appendChild(el('span','asgn-name',a.assignmentName||'(untitled)'));
+          const s=parseFloat(a.rawScore);
+          const sc=el('span','asgn-score '+gradeColor(s),isNaN(s)?String(a.rawScore||''):String(s));row.appendChild(sc);
+          const eb=el('button','asgn-edit');eb.innerHTML='<i class="ti ti-pencil"></i>';eb.addEventListener('click',e=>{e.stopPropagation();openGradeEdit(a)});row.appendChild(eb);
+          cg.appendChild(row);
+        }
+        if(!sorted.length)cg.appendChild(el('div','gr-empty','No assignments.'));
+        body.appendChild(cg);
+      }
+      // what-if calculator (numeric courses only)
+      if(calc.avg!=null)body.appendChild(renderWhatIf(course));
+    }
+    card.appendChild(body);
+    cards.appendChild(card);
+  }
+  scroll.appendChild(cards);root.appendChild(scroll);
+}
+function shortDate(d){if(!d)return '';const p=d.slice(0,10).split('-');return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(p[1])-1]+' '+parseInt(p[2])}
+
+function renderWhatIf(course){
+  const wi=el('div','gr-wi');
+  const title=el('div','wi-title');title.innerHTML='<i class="ti ti-calculator" aria-hidden="true"></i> What-if calculator';
+  wi.appendChild(title);
+  const row=el('div','wi-row');
+  // target input
+  const fTarget=el('div','fld');fTarget.appendChild(el('label','','Target avg'));
+  const inp=document.createElement('input');inp.type='number';inp.min='0';inp.max='100';inp.value='90';inp.placeholder='90';fTarget.appendChild(inp);row.appendChild(fTarget);
+  // component select
+  const fComp=el('div','fld');fComp.appendChild(el('label','','Component'));
+  const sel=document.createElement('select');
+  ['AKS Mastery*','AKS Progress*'].forEach(cn=>{const o=document.createElement('option');o.value=cn;o.textContent=cn;sel.appendChild(o)});
+  fComp.appendChild(sel);row.appendChild(fComp);
+  wi.appendChild(row);
+  // result
+  const result=el('div','wi-result','');
+  wi.appendChild(result);
+  const compute=()=>{
+    const target=parseFloat(inp.value);
+    if(isNaN(target)){result.textContent='Enter a target average.';result.className='wi-result';return}
+    const r=whatIfScore(course,target,sel.value);
+    result.textContent=r.message;
+    result.className='wi-result'+(r.achievable===false?' red':r.needed!=null&&r.needed<=100?' green':' amber');
+  };
+  inp.addEventListener('input',compute);sel.addEventListener('change',compute);
+  compute();
+  return wi;
+}
+
+/* ── grade add/edit sheet ── */
+let GRADE_EDIT_ID=null;
+function openGradeEdit(existing){
+  GRADE_EDIT_ID=existing?existing.id:null;
+  const s=$('sheet-grade');if(!s)return;
+  // populate known courses as datalist options
+  const courses=gradeCourses('all');
+  const dl=$('gr-courses');if(dl){dl.textContent='';
+    const seen=new Set();courses.forEach(c=>{const n=c.course||c.courseCode;if(n&&!seen.has(n)){seen.add(n);const o=document.createElement('option');o.value=n;dl.appendChild(o)}});}
+  // populate known course codes
+  const dlc=$('gr-codes');if(dlc){dlc.textContent='';
+    const seen=new Set();courses.forEach(c=>{if(c.courseCode&&!seen.has(c.courseCode)){seen.add(c.courseCode);const o=document.createElement('option');o.value=c.courseCode;dlc.appendChild(o)}});}
+  // fill fields
+  const f=id=>$(id);
+  if(existing){
+    f('gr-f-kid-val').value=existing.kidId||'AV';
+    f('gr-f-course').value=existing.course||'';
+    f('gr-f-code').value=existing.courseCode||'';
+    f('gr-f-asgn').value=existing.assignmentName||'';
+    f('gr-f-score').value=existing.rawScore!=null?String(existing.rawScore):'';
+    f('gr-f-date').value=existing.date?existing.date.slice(0,10):'';
+    f('gr-f-comp').value=existing.componentName||'AKS Progress*';
+    f('gr-f-scale').value=existing.scale||'numeric-100';
+    f('gr-f-teacher').value=existing.teacher||'';
+    $('gr-sheet-title').textContent='Edit grade';
+    $('gr-delete-btn').style.display='';
+  }else{
+    f('gr-f-kid-val').value=GRADE_KID!=='all'?GRADE_KID:'AV';
+    f('gr-f-course').value='';f('gr-f-code').value='';f('gr-f-asgn').value='';
+    f('gr-f-score').value='';f('gr-f-date').value='';f('gr-f-comp').value='AKS Progress*';
+    f('gr-f-scale').value='numeric-100';f('gr-f-teacher').value='';
+    $('gr-sheet-title').textContent='Add grade';
+    $('gr-delete-btn').style.display='none';
+  }
+  paintGradeKidPick();
+  openSheet('sheet-grade');
+}
+function paintGradeKidPick(){
+  const val=$('gr-f-kid-val').value;
+  document.querySelectorAll('#gr-f-kid button').forEach(b=>{
+    const k=b.getAttribute('data-kid');b.className=k===val?('sel-'+k.toLowerCase()):'';
+  });
+}
+async function saveGrade(){
+  const f=id=>$(id);
+  const kid=f('gr-f-kid-val').value;
+  const course=f('gr-f-course').value.trim();
+  const score=f('gr-f-score').value.trim();
+  if(!course){toast('Course name is required','error');return}
+  if(!score){toast('Score is required','error');return}
+  const obj={
+    kidId:kid,course,courseCode:f('gr-f-code').value.trim()||'',
+    assignmentName:f('gr-f-asgn').value.trim(),
+    rawScore:f('gr-f-scale').value==='ESNU'?score:parseFloat(score),
+    date:f('gr-f-date').value||null,
+    componentName:f('gr-f-comp').value,
+    componentWeight:DEFAULT_WEIGHTS[f('gr-f-comp').value]||null,
+    scale:f('gr-f-scale').value,
+    teacher:f('gr-f-teacher').value.trim()||'',
+    type:'assignment',source:'manual'
+  };
+  if(GRADE_EDIT_ID)obj.id=GRADE_EDIT_ID;
+  try{
+    if(GRADE_EDIT_ID)await updateGrade(GRADE_EDIT_ID,obj);
+    else await addGrade(obj);
+    closeSheet('sheet-grade');toast(GRADE_EDIT_ID?'Grade updated':'Grade added','success');renderView();
+  }catch(e){toast(errMsg(e),'error')}
+}
+async function deleteGrade(){
+  if(!GRADE_EDIT_ID)return;
+  try{await removeGrade(GRADE_EDIT_ID);closeSheet('sheet-grade');toast('Grade deleted','success');renderView()}catch(e){toast(errMsg(e),'error')}
+}
+
+/* ════════════════════════════════════════════════════
    ICS EXPORT + PUSH TRACKING (v0.3.2)
    Wall-clock times in America/New_York via a named VTIMEZONE.
    Info-priority items are never pushed. pushedToCalendar marks
@@ -2495,6 +2915,7 @@ function flagChangedSincePush(id){
 
 // Export selection state
 let EXPORT_MODE=false,EXPORT_SEL=new Set(),EXPORT_FILTER='needs';
+let GRADE_KID='all',GRADE_OPEN={}; // per-courseKey open/closed state
 function toggleExportMode(){
   EXPORT_MODE=!EXPORT_MODE;EXPORT_SEL.clear();EXPORT_FILTER='needs';renderView();
 }
@@ -2680,6 +3101,11 @@ function wire(){
   const cw=$('confirm-wrap');if(cw)cw.addEventListener('click',e=>{if(e.target===cw)closeConfirm()});
   document.querySelectorAll('#f-kid button').forEach(b=>b.addEventListener('click',()=>{EDIT_KID=b.getAttribute('data-kid');paintKidPick();const kp=$('f-kid');if(kp&&kp.parentElement)kp.parentElement.classList.remove('err')}));
   const ft=$('f-title');if(ft)ft.addEventListener('input',()=>{if(ft.parentElement)ft.parentElement.classList.remove('err')});
+  on('gr-sheet-close',()=>closeSheet('sheet-grade'));
+  on('gr-sheet-cancel',()=>closeSheet('sheet-grade'));
+  on('gr-sheet-save',saveGrade);
+  on('gr-delete-btn',deleteGrade);
+  document.querySelectorAll('#gr-f-kid button').forEach(b=>b.addEventListener('click',()=>{$('gr-f-kid-val').value=b.getAttribute('data-kid');paintGradeKidPick()}));
   on('sheet-import-close',()=>closeSheet('sheet-import'));
   on('import-cancel',()=>closeSheet('sheet-import'));
   on('import-preview-btn',doPreview);
@@ -2721,9 +3147,12 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   fmtTime,kidColorFor,weekItems,
   buildIcsEvent,buildIcsFile,icsUid,icsDateVal,icsRRule,icsExdate,markPushed,flagChangedSincePush,
   toggleExportMode,toggleExportSel,selectAllExportable,doExport,setExportFilter,needsPush,exportableList,
+  // Phase 2c grades
+  liveGrades,gradeCourses,computeCourseAvg,whatIfScore,addGrade,updateGrade,removeGrade,setCourseAvg,
+  gradeColor,esnuColor,DEFAULT_WEIGHTS,GRADE_THRESHOLDS,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
-  get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER}),
-  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS},
+  get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER,GRADE_KID}),
+  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS;if('GRADE_KID' in o)GRADE_KID=o.GRADE_KID},
   liveBackups,LS,LOGS
 };
 window.addEventListener('load',boot);
