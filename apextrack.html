@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.4.0 | 2026-11-01 -->
+<!-- ApexTrack — Family School Tracker | v0.4.1 | 2026-11-01 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -384,6 +384,18 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .gr-esnu.N{background:rgba(251,191,36,.15);color:#fbbf24}
 .gr-esnu.U{background:rgba(248,113,113,.15);color:#f87171}
 .gr-official{font-size:11px;color:var(--text3);padding:6px 14px 2px}
+.crs-list{padding:0 0 8px}
+.crs-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.crs-item:last-child{border-bottom:none}
+.crs-item .crs-info{flex:1;min-width:0}
+.crs-item .crs-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crs-item .crs-sub{font-size:11.5px;color:var(--text3);margin-top:1px}
+.crs-item .crs-badge{flex-shrink:0;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600}
+.crs-item .crs-actions{display:flex;gap:4px;flex-shrink:0}
+.crs-item .crs-actions button{background:none;border:none;color:var(--text3);font-size:16px;padding:4px;cursor:pointer}
+.gr-course-sel{width:100%;padding:9px 12px;font-size:14px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-family:var(--font)}
+.gr-course-sel option{padding:4px 8px}
+.gr-new-course-link{font-size:12px;color:var(--amber);cursor:pointer;margin-top:4px;display:inline-flex;align-items:center;gap:3px}
 @media(min-width:860px){
   .view-title{display:block}
   .fab{display:none}
@@ -607,40 +619,80 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 <div class="sheet-wrap" id="sheet-grade"><div class="sheet">
   <div class="handle"></div>
   <div class="sh-title"><span id="gr-sheet-title">Add grade</span><button class="x" id="gr-sheet-close" type="button" aria-label="Close">&times;</button></div>
-  <!-- kid: buttons in add mode, static badge in edit mode -->
-  <div class="fld" id="gr-f-kid-row">
-    <label>Kid</label>
-    <input type="hidden" id="gr-f-kid-val" value="AV">
-    <div class="kidpick" id="gr-f-kid">
-      <button type="button" data-kid="AV">AV</button><button type="button" data-kid="IV">IV</button>
-    </div>
-    <div id="gr-f-kid-label" style="display:none"></div>
+  <!-- course selector (add mode) or static label (edit mode) -->
+  <div class="fld" id="gr-f-course-row">
+    <label>Course</label>
+    <select class="gr-course-sel" id="gr-f-course-sel"></select>
+    <div id="gr-f-course-label" style="display:none"></div>
+    <span class="gr-new-course-link" id="gr-new-course-link"><i class="ti ti-plus" aria-hidden="true"></i> Add new course</span>
   </div>
-  <!-- course context (sticky per course) -->
-  <div class="fld"><label>Course name</label><input id="gr-f-course" list="gr-courses" placeholder="Accelerated Earth Science Gifted"><datalist id="gr-courses"></datalist></div>
-  <div class="fld-2">
-    <div class="fld"><label>Course code</label><input id="gr-f-code" list="gr-codes" placeholder="ACCL EARTH SC GF 6"><datalist id="gr-codes"></datalist></div>
-    <div class="fld"><label>Teacher</label><input id="gr-f-teacher" placeholder="Amanda Goedtel"></div>
+  <!-- hidden fields populated by course selection -->
+  <input type="hidden" id="gr-f-kid-val" value="AV">
+  <input type="hidden" id="gr-f-course" value="">
+  <input type="hidden" id="gr-f-code" value="">
+  <input type="hidden" id="gr-f-teacher" value="">
+  <input type="hidden" id="gr-f-scale" value="numeric-100">
+  <input type="hidden" id="gr-f-comp" value="AKS Progress*">
+  <!-- component override (visible, defaults from course but user can change per assignment) -->
+  <div class="fld" id="gr-f-comp-row">
+    <label>Component</label>
+    <select id="gr-f-comp-vis"><option value="AKS Progress*">AKS Progress*</option><option value="AKS Mastery*">AKS Mastery*</option><option value="MidYr/EOY*">MidYr/EOY*</option></select>
   </div>
-  <!-- scale + component (set before score so the right input appears) -->
-  <div class="fld-2">
-    <div class="fld"><label>Scale</label>
-      <select id="gr-f-scale"><option value="numeric-100">Numeric (0–100)</option><option value="ESNU">ESNU</option></select>
-    </div>
-    <div class="fld"><label>Component</label>
-      <select id="gr-f-comp"><option value="AKS Progress*">AKS Progress*</option><option value="AKS Mastery*">AKS Mastery*</option><option value="MidYr/EOY*">MidYr/EOY*</option></select>
-    </div>
-  </div>
-  <!-- per-assignment fields (change every entry, closest to Save) -->
-  <div class="fld"><label>Assignment name</label><input id="gr-f-asgn" placeholder="Minerals Quiz"></div>
+  <!-- per-assignment fields -->
+  <div class="fld"><label>Assignment name</label><input id="gr-f-asgn"></div>
   <div class="fld-2">
     <div class="fld"><label>Date</label><input id="gr-f-date" type="date"></div>
-    <div class="fld"><label>Score</label><div id="gr-f-score-wrap"><input id="gr-f-score" placeholder="100"><select id="gr-f-score-esnu" style="display:none"><option value="">— pick —</option><option value="E">E — Exceeding</option><option value="S">S — Satisfactory</option><option value="N">N — Needs Improvement</option><option value="U">U — Unsatisfactory</option></select></div></div>
+    <div class="fld"><label>Score</label><div id="gr-f-score-wrap"><input id="gr-f-score-num"><select id="gr-f-score-esnu" style="display:none"><option value="">— pick —</option><option value="E">E — Exceeding</option><option value="S">S — Satisfactory</option><option value="N">N — Needs Improvement</option><option value="U">U — Unsatisfactory</option></select></div></div>
   </div>
   <div class="sheet-actions">
     <button class="btn danger" id="gr-delete-btn" type="button" style="display:none;flex:0 0 auto;width:auto;padding:6px 14px">Delete</button>
     <button class="btn" id="gr-sheet-cancel" type="button">Cancel</button>
     <button class="btn primary" id="gr-sheet-save" type="button">Save</button>
+  </div>
+</div></div>
+
+<!-- course add/edit sheet -->
+<div class="sheet-wrap" id="sheet-course"><div class="sheet">
+  <div class="handle"></div>
+  <div class="sh-title"><span id="crs-sheet-title">Add course</span><button class="x" id="crs-sheet-close" type="button" aria-label="Close">&times;</button></div>
+  <div class="fld"><label>Kid</label>
+    <input type="hidden" id="crs-f-kid-val" value="AV">
+    <div class="kidpick" id="crs-f-kid">
+      <button type="button" data-kid="AV">AV</button><button type="button" data-kid="IV">IV</button>
+    </div>
+    <div id="crs-f-kid-label" style="display:none"></div>
+  </div>
+  <div class="fld"><label>Course name</label><input id="crs-f-name"></div>
+  <div class="fld-2">
+    <div class="fld"><label>Course code</label><input id="crs-f-code"></div>
+    <div class="fld"><label>Teacher</label><input id="crs-f-teacher"></div>
+  </div>
+  <div class="fld-2">
+    <div class="fld"><label>Period</label><input id="crs-f-period" type="number" min="1" max="12"></div>
+    <div class="fld"><label>Term</label><input id="crs-f-term" value="Sem1"></div>
+  </div>
+  <div class="fld-2">
+    <div class="fld"><label>Scale</label>
+      <select id="crs-f-scale"><option value="numeric-100">Numeric (0–100)</option><option value="ESNU">ESNU</option></select>
+    </div>
+    <div class="fld"><label>Default component</label>
+      <select id="crs-f-comp"><option value="AKS Progress*">AKS Progress*</option><option value="AKS Mastery*">AKS Mastery*</option><option value="MidYr/EOY*">MidYr/EOY*</option></select>
+    </div>
+  </div>
+  <div class="sheet-actions">
+    <button class="btn danger" id="crs-delete-btn" type="button" style="display:none;flex:0 0 auto;width:auto;padding:6px 14px">Delete</button>
+    <button class="btn" id="crs-sheet-cancel" type="button">Cancel</button>
+    <button class="btn primary" id="crs-sheet-save" type="button">Save</button>
+  </div>
+</div></div>
+
+<!-- manage courses sheet -->
+<div class="sheet-wrap" id="sheet-courses-manage"><div class="sheet">
+  <div class="handle"></div>
+  <div class="sh-title"><span>Manage courses</span><button class="x" id="courses-manage-close" type="button" aria-label="Close">&times;</button></div>
+  <div id="courses-manage-list" class="crs-list"></div>
+  <div class="sheet-actions">
+    <button class="btn primary" id="courses-manage-add" type="button"><i class="ti ti-plus" aria-hidden="true"></i> Add course</button>
   </div>
 </div></div>
 
@@ -674,7 +726,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.4.0';
+const APP_VERSION='v0.4.1';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -689,7 +741,7 @@ const BACKUP_PREFIX='apextrack_backup_';
 const KEEP_BACKUPS=10;
 const TOKEN_KEY='apextrack_drive_token';                   // sessionStorage — clears when the tab closes
 const LS={fileId:'apextrack_file_id',lockId:'apextrack_lock_id',email:'apextrack_last_email',pickerKey:'apextrack_picker_key'};
-const COLLECTIONS=['kids','items','events','grades','backups'];
+const COLLECTIONS=['kids','items','events','grades','courses','backups'];
 const WIPEABLE=new Set(['items','events']);                // grades/kids/backups survive a year-end wipe
 const CFG={                                                 // overridable by the test harness only
   pbkdf2Iter:600000, idleMs:10*60*1000, idleCheckMs:10000,
@@ -931,7 +983,7 @@ function newData(){
       nameMap:{},lastImportAt:null,lastImportJournal:null,importStaleDays:3},
     kids:{AV:{id:'AV',initials:'AV',color:'#D4537E',school:'North Gwinnett Middle School',gradeLevel:6,teachers:[],updatedAt:t},
           IV:{id:'IV',initials:'IV',color:'#378ADD',school:'Roberts Elementary School',gradeLevel:3,teachers:[],updatedAt:t}},
-    items:{},events:{},grades:{},backups:{}};
+    items:{},events:{},grades:{},courses:{},backups:{}};
 }
 function normalizeData(d){
   if(!d||typeof d!=='object')throw new ATError('BAD_FORMAT','Decrypted data is unreadable.');
@@ -2561,7 +2613,26 @@ function setCourseAvg(kidId,courseCode,course,teacher,term,period,rawScore,missi
 }
 
 /* ════════════════════════════════════════════════════
-   GRADES VIEW (v0.4.0)
+   COURSE REGISTRY (v0.4.1)
+   Each kid's enrolled courses live in DATA.courses.
+   Schema: {id, kidId, name, code, teacher, period, term,
+            scale, defaultComponent, defaultWeight, active}
+   Grades reference courseId to auto-fill context fields.
+════════════════════════════════════════════════════ */
+function liveCourses(kidFilter){
+  if(!DATA||!DATA.courses)return [];
+  return Object.values(DATA.courses).filter(c=>!c.deleted&&(!kidFilter||kidFilter==='all'||c.kidId===kidFilter))
+    .sort((a,b)=>{if(a.kidId!==b.kidId)return a.kidId<b.kidId?-1:1;return (a.period||99)-(b.period||99)||(a.name||'').localeCompare(b.name||'')});
+}
+function addCourse(obj){
+  const id=obj.id||('crs-'+randHex(6));
+  return upsert('courses',Object.assign({active:true},obj,{id}));
+}
+function updateCourse(id,changes){return upsert('courses',Object.assign({id},changes))}
+function removeCourse(id){return removeRecord('courses',id)}
+
+/* ════════════════════════════════════════════════════
+   GRADES VIEW (v0.4.1)
    Course cards with running averages, expandable assignments,
    what-if calculator. Kid filter (AV/IV/Both).
 ════════════════════════════════════════════════════ */
@@ -2574,6 +2645,10 @@ function renderGrades(root){
     const b=el('button',GRADE_KID===id?'on':'',label);
     b.addEventListener('click',()=>{GRADE_KID=id;renderView()});seg.appendChild(b)});
   bar.appendChild(seg);
+  // manage courses button
+  const mgrBtn=el('button','gr-add-btn');mgrBtn.innerHTML='<i class="ti ti-settings" aria-hidden="true"></i> Courses';
+  mgrBtn.style.marginLeft='auto';
+  mgrBtn.addEventListener('click',()=>openManageCourses());bar.appendChild(mgrBtn);
   // add grade button
   const addBtn=el('button','gr-add-btn');addBtn.innerHTML='<i class="ti ti-plus" aria-hidden="true"></i> Add grade';
   addBtn.addEventListener('click',()=>openGradeEdit(null));bar.appendChild(addBtn);
@@ -2706,106 +2781,117 @@ function renderWhatIf(course){
 
 /* ── grade add/edit sheet ── */
 let GRADE_EDIT_ID=null;
+/* ── grade add/edit sheet logic ── */
+function populateCourseSelector(){
+  const sel=$('gr-f-course-sel');if(!sel)return;
+  sel.textContent='';
+  const kidFilter=GRADE_KID;
+  const courses=liveCourses(kidFilter);
+  if(!courses.length){
+    const o=document.createElement('option');o.value='';o.textContent='No courses — add one first';sel.appendChild(o);return;
+  }
+  const o0=document.createElement('option');o0.value='';o0.textContent='Select a course…';sel.appendChild(o0);
+  let lastKid='';
+  for(const c of courses){
+    if(kidFilter==='all'&&c.kidId!==lastKid){
+      const og=document.createElement('optgroup');og.label=c.kidId;sel.appendChild(og);lastKid=c.kidId;
+    }
+    const parent=(kidFilter==='all'&&sel.lastElementChild.tagName==='OPTGROUP')?sel.lastElementChild:sel;
+    const o=document.createElement('option');o.value=c.id;
+    o.textContent=c.name+(c.teacher?' — '+c.teacher:'')+(c.period?' (P'+c.period+')':'');
+    parent.appendChild(o);
+  }
+}
+function onCourseSelect(){
+  const sel=$('gr-f-course-sel');if(!sel)return;
+  const crs=DATA&&DATA.courses&&DATA.courses[sel.value];
+  if(!crs){$('gr-f-kid-val').value=GRADE_KID!=='all'?GRADE_KID:'AV';return}
+  $('gr-f-kid-val').value=crs.kidId;
+  $('gr-f-course').value=crs.name||'';
+  $('gr-f-code').value=crs.code||'';
+  $('gr-f-teacher').value=crs.teacher||'';
+  $('gr-f-scale').value=crs.scale||'numeric-100';
+  $('gr-f-comp').value=crs.defaultComponent||'AKS Progress*';
+  $('gr-f-comp-vis').value=crs.defaultComponent||'AKS Progress*';
+  syncScoreField();
+}
 function openGradeEdit(existing){
   GRADE_EDIT_ID=existing?existing.id:null;
   const s=$('sheet-grade');if(!s)return;
-  // re-enable buttons (may have been disabled by previous save)
   const saveBtn=$('gr-sheet-save');if(saveBtn)saveBtn.disabled=false;
   const delBtn=$('gr-delete-btn');if(delBtn)delBtn.disabled=false;
-  // populate known courses as datalist options
-  const courses=gradeCourses('all');
-  const dl=$('gr-courses');if(dl){dl.textContent='';
-    const seen=new Set();courses.forEach(c=>{const n=c.course||c.courseCode;if(n&&!seen.has(n)){seen.add(n);const o=document.createElement('option');o.value=n;dl.appendChild(o)}});}
-  // populate known course codes
-  const dlc=$('gr-codes');if(dlc){dlc.textContent='';
-    const seen=new Set();courses.forEach(c=>{if(c.courseCode&&!seen.has(c.courseCode)){seen.add(c.courseCode);const o=document.createElement('option');o.value=c.courseCode;dlc.appendChild(o)}});}
-  // fill fields
-  const f=id=>$(id);
   if(existing){
-    f('gr-f-kid-val').value=existing.kidId||'AV';
-    f('gr-f-course').value=existing.course||'';
-    f('gr-f-code').value=existing.courseCode||'';
-    f('gr-f-teacher').value=existing.teacher||'';
-    f('gr-f-scale').value=existing.scale||'numeric-100';
-    f('gr-f-comp').value=existing.componentName||'AKS Progress*';
-    f('gr-f-asgn').value=existing.assignmentName||'';
-    f('gr-f-date').value=existing.date?existing.date.slice(0,10):'';
+    // edit mode: show static course label, hide selector
+    $('gr-f-course-sel').style.display='none';
+    $('gr-new-course-link').style.display='none';
+    const lbl=$('gr-f-course-label');lbl.style.display='';
+    const kidBadge='<span class="sel-'+existing.kidId.toLowerCase()+'" style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;margin-right:6px">'+existing.kidId+'</span>';
+    lbl.innerHTML=kidBadge+'<strong>'+(existing.course||existing.courseCode||'Unknown')+'</strong>';
+    $('gr-f-kid-val').value=existing.kidId||'AV';
+    $('gr-f-course').value=existing.course||'';
+    $('gr-f-code').value=existing.courseCode||'';
+    $('gr-f-teacher').value=existing.teacher||'';
+    $('gr-f-scale').value=existing.scale||'numeric-100';
+    $('gr-f-comp').value=existing.componentName||'AKS Progress*';
+    $('gr-f-comp-vis').value=existing.componentName||'AKS Progress*';
+    $('gr-f-asgn').value=existing.assignmentName||'';
+    $('gr-f-date').value=existing.date?existing.date.slice(0,10):'';
     $('gr-sheet-title').textContent='Edit grade';
     $('gr-delete-btn').style.display='';
     syncScoreField();
     setScoreValue(existing.rawScore!=null?String(existing.rawScore):'');
   }else{
-    f('gr-f-kid-val').value=GRADE_KID!=='all'?GRADE_KID:'AV';
-    f('gr-f-course').value='';f('gr-f-code').value='';f('gr-f-teacher').value='';
-    f('gr-f-scale').value='numeric-100';f('gr-f-comp').value='AKS Progress*';
-    f('gr-f-asgn').value='';f('gr-f-date').value='';
+    // add mode: show course selector
+    $('gr-f-course-sel').style.display='';
+    $('gr-new-course-link').style.display='';
+    $('gr-f-course-label').style.display='none';
+    populateCourseSelector();
+    $('gr-f-course-sel').value='';
+    $('gr-f-comp-vis').value='AKS Progress*';
+    $('gr-f-asgn').value='';$('gr-f-date').value='';
     $('gr-sheet-title').textContent='Add grade';
     $('gr-delete-btn').style.display='none';
+    $('gr-f-scale').value='numeric-100';
     syncScoreField();
     setScoreValue('');
   }
-  paintGradeKidPick(!!existing);
   openSheet('sheet-grade');
 }
-/** Toggle score field between numeric input and ESNU dropdown based on scale */
 function syncScoreField(){
   const isESNU=$('gr-f-scale').value==='ESNU';
-  $('gr-f-score').style.display=isESNU?'none':'';
+  $('gr-f-score-num').style.display=isESNU?'none':'';
   $('gr-f-score-esnu').style.display=isESNU?'':'none';
+  // hide component override for ESNU (all ESNU assignments are Progress)
+  $('gr-f-comp-row').style.display=isESNU?'none':'';
 }
 function setScoreValue(val){
-  if($('gr-f-scale').value==='ESNU'){
-    $('gr-f-score-esnu').value=val||'';
-    $('gr-f-score').value='';
-  }else{
-    $('gr-f-score').value=val;
-    $('gr-f-score-esnu').value='';
-  }
+  if($('gr-f-scale').value==='ESNU'){$('gr-f-score-esnu').value=val||'';$('gr-f-score-num').value=''}
+  else{$('gr-f-score-num').value=val;$('gr-f-score-esnu').value=''}
 }
 function getScoreValue(){
-  return $('gr-f-scale').value==='ESNU'?$('gr-f-score-esnu').value:$('gr-f-score').value;
-}
-function paintGradeKidPick(isEdit){
-  const val=$('gr-f-kid-val').value;
-  const picker=$('gr-f-kid');
-  const label=$('gr-f-kid-label');
-  if(isEdit){
-    // edit mode: hide buttons, show static badge
-    picker.style.display='none';
-    label.style.display='';
-    label.innerHTML='<span class="sel-'+val.toLowerCase()+'" style="display:inline-block;padding:6px 16px;border-radius:8px;font-size:13px;font-weight:600">'+val+'</span>';
-  }else{
-    // add mode: show interactive buttons
-    picker.style.display='';
-    label.style.display='none';
-    document.querySelectorAll('#gr-f-kid button').forEach(b=>{
-      const k=b.getAttribute('data-kid');
-      b.className=k===val?('sel-'+k.toLowerCase()):'';
-      b.disabled=false;b.style.opacity='';
-    });
-  }
+  return $('gr-f-scale').value==='ESNU'?$('gr-f-score-esnu').value:$('gr-f-score-num').value;
 }
 async function saveGrade(){
-  const btn=$('gr-sheet-save');if(btn)btn.disabled=true;  // prevent double-tap
-  const f=id=>$(id);
-  const kid=f('gr-f-kid-val').value;
-  const course=f('gr-f-course').value.trim();
+  const btn=$('gr-sheet-save');if(btn)btn.disabled=true;
+  const course=$('gr-f-course').value.trim();
   const score=getScoreValue().trim();
-  if(!course){toast('Course name is required','error');if(btn)btn.disabled=false;return}
+  if(!GRADE_EDIT_ID&&!$('gr-f-course-sel').value){toast('Select a course first','error');if(btn)btn.disabled=false;return}
   if(!score){toast('Score is required','error');if(btn)btn.disabled=false;return}
+  const scale=$('gr-f-scale').value;
+  const comp=$('gr-f-comp-vis').value;
   const obj={
-    kidId:kid,course,courseCode:f('gr-f-code').value.trim()||'',
-    assignmentName:f('gr-f-asgn').value.trim(),
-    rawScore:f('gr-f-scale').value==='ESNU'?score:parseFloat(score),
-    date:f('gr-f-date').value||null,
-    componentName:f('gr-f-comp').value,
-    componentWeight:DEFAULT_WEIGHTS[f('gr-f-comp').value]||null,
-    scale:f('gr-f-scale').value,
-    teacher:f('gr-f-teacher').value.trim()||'',
+    kidId:$('gr-f-kid-val').value,
+    course:course||'',courseCode:$('gr-f-code').value||'',
+    assignmentName:$('gr-f-asgn').value.trim(),
+    rawScore:scale==='ESNU'?score:parseFloat(score),
+    date:$('gr-f-date').value||null,
+    componentName:comp,
+    componentWeight:DEFAULT_WEIGHTS[comp]||null,
+    scale,teacher:$('gr-f-teacher').value||'',
+    courseId:GRADE_EDIT_ID?undefined:($('gr-f-course-sel').value||undefined),
     type:'assignment',source:'manual'
   };
   if(GRADE_EDIT_ID)obj.id=GRADE_EDIT_ID;
-  // close sheet and render immediately (local mutation is sync), Drive save runs in background
   try{
     if(GRADE_EDIT_ID)updateGrade(GRADE_EDIT_ID,obj);
     else addGrade(obj);
@@ -2816,6 +2902,115 @@ async function deleteGrade(){
   if(!GRADE_EDIT_ID)return;
   const btn=$('gr-delete-btn');if(btn)btn.disabled=true;
   try{removeGrade(GRADE_EDIT_ID);closeSheet('sheet-grade');toast('Grade deleted','success');renderView()}catch(e){toast(errMsg(e),'error');if(btn)btn.disabled=false}
+}
+
+/* ── course add/edit sheet logic ── */
+let COURSE_EDIT_ID=null,COURSE_RETURN_TO=null;
+function openCourseEdit(existing,returnTo){
+  COURSE_EDIT_ID=existing?existing.id:null;
+  COURSE_RETURN_TO=returnTo||null;
+  const saveBtn=$('crs-sheet-save');if(saveBtn)saveBtn.disabled=false;
+  const delBtn=$('crs-delete-btn');if(delBtn)delBtn.disabled=false;
+  if(existing){
+    $('crs-f-kid-val').value=existing.kidId||'AV';
+    $('crs-f-name').value=existing.name||'';
+    $('crs-f-code').value=existing.code||'';
+    $('crs-f-teacher').value=existing.teacher||'';
+    $('crs-f-period').value=existing.period||'';
+    $('crs-f-term').value=existing.term||'Sem1';
+    $('crs-f-scale').value=existing.scale||'numeric-100';
+    $('crs-f-comp').value=existing.defaultComponent||'AKS Progress*';
+    $('crs-sheet-title').textContent='Edit course';
+    $('crs-delete-btn').style.display='';
+    paintCourseKidPick(true);
+  }else{
+    $('crs-f-kid-val').value=GRADE_KID!=='all'?GRADE_KID:'AV';
+    $('crs-f-name').value='';$('crs-f-code').value='';$('crs-f-teacher').value='';
+    $('crs-f-period').value='';$('crs-f-term').value='Sem1';
+    $('crs-f-scale').value='numeric-100';$('crs-f-comp').value='AKS Progress*';
+    $('crs-sheet-title').textContent='Add course';
+    $('crs-delete-btn').style.display='none';
+    paintCourseKidPick(false);
+  }
+  openSheet('sheet-course');
+}
+function paintCourseKidPick(isEdit){
+  const val=$('crs-f-kid-val').value;
+  const picker=$('crs-f-kid');
+  const lbl=$('crs-f-kid-label');
+  if(isEdit){
+    picker.style.display='none';lbl.style.display='';
+    lbl.innerHTML='<span class="sel-'+val.toLowerCase()+'" style="display:inline-block;padding:6px 16px;border-radius:8px;font-size:13px;font-weight:600">'+val+'</span>';
+  }else{
+    picker.style.display='';lbl.style.display='none';
+    document.querySelectorAll('#crs-f-kid button').forEach(b=>{
+      const k=b.getAttribute('data-kid');b.className=k===val?('sel-'+k.toLowerCase()):'';b.disabled=false;b.style.opacity='';
+    });
+  }
+}
+async function saveCourse(){
+  const btn=$('crs-sheet-save');if(btn)btn.disabled=true;
+  const name=$('crs-f-name').value.trim();
+  if(!name){toast('Course name is required','error');if(btn)btn.disabled=false;return}
+  const obj={
+    kidId:$('crs-f-kid-val').value,name,code:$('crs-f-code').value.trim(),
+    teacher:$('crs-f-teacher').value.trim(),
+    period:parseInt($('crs-f-period').value)||null,
+    term:$('crs-f-term').value.trim()||'Sem1',
+    scale:$('crs-f-scale').value,
+    defaultComponent:$('crs-f-comp').value,
+    defaultWeight:DEFAULT_WEIGHTS[$('crs-f-comp').value]||null,
+    active:true
+  };
+  if(COURSE_EDIT_ID)obj.id=COURSE_EDIT_ID;
+  try{
+    if(COURSE_EDIT_ID)updateCourse(COURSE_EDIT_ID,obj);
+    else addCourse(obj);
+    closeSheet('sheet-course');
+    toast(COURSE_EDIT_ID?'Course updated':'Course added','success');
+    if(COURSE_RETURN_TO==='manage')openManageCourses();
+    else if(COURSE_RETURN_TO==='grade'){populateCourseSelector();openSheet('sheet-grade')}
+    else renderView();
+  }catch(e){toast(errMsg(e),'error');if(btn)btn.disabled=false}
+}
+async function deleteCourse(){
+  if(!COURSE_EDIT_ID)return;
+  const btn=$('crs-delete-btn');if(btn)btn.disabled=true;
+  try{removeCourse(COURSE_EDIT_ID);closeSheet('sheet-course');
+    toast('Course removed','success');
+    if(COURSE_RETURN_TO==='manage')openManageCourses();else renderView();
+  }catch(e){toast(errMsg(e),'error');if(btn)btn.disabled=false}
+}
+
+/* ── manage courses sheet ── */
+function openManageCourses(){
+  const list=$('courses-manage-list');if(!list)return;
+  list.textContent='';
+  const courses=liveCourses(GRADE_KID);
+  if(!courses.length){
+    list.appendChild(el('div','gr-empty','No courses registered. Tap Add course to get started.'));
+  }else{
+    for(const c of courses){
+      const item=el('div','crs-item');
+      const badge=el('span','crs-badge sel-'+c.kidId.toLowerCase(),c.kidId);
+      item.appendChild(badge);
+      const info=el('div','crs-info');
+      info.appendChild(el('div','crs-name',c.name));
+      const subParts=[];
+      if(c.teacher)subParts.push(c.teacher);
+      if(c.period)subParts.push('P'+c.period);
+      if(c.scale==='ESNU')subParts.push('ESNU');
+      info.appendChild(el('div','crs-sub',subParts.join(' · ')||c.code||''));
+      item.appendChild(info);
+      const actions=el('div','crs-actions');
+      const editBtn=el('button','');editBtn.innerHTML='<i class="ti ti-pencil"></i>';
+      editBtn.addEventListener('click',()=>{closeSheet('sheet-courses-manage');openCourseEdit(c,'manage')});
+      actions.appendChild(editBtn);
+      item.appendChild(actions);
+      list.appendChild(item);
+    }
+  }
+  openSheet('sheet-courses-manage');
 }
 
 /* ════════════════════════════════════════════════════
@@ -3154,8 +3349,19 @@ function wire(){
   on('gr-sheet-cancel',()=>closeSheet('sheet-grade'));
   on('gr-sheet-save',saveGrade);
   on('gr-delete-btn',deleteGrade);
-  document.querySelectorAll('#gr-f-kid button').forEach(b=>b.addEventListener('click',()=>{if(!b.disabled){$('gr-f-kid-val').value=b.getAttribute('data-kid');paintGradeKidPick(false)}}));
-  $('gr-f-scale').addEventListener('change',()=>{syncScoreField();setScoreValue('')});
+  on('gr-new-course-link',()=>{closeSheet('sheet-grade');openCourseEdit(null,'grade')});
+  $('gr-f-course-sel').addEventListener('change',onCourseSelect);
+  $('gr-f-comp-vis').addEventListener('change',()=>{$('gr-f-comp').value=$('gr-f-comp-vis').value});
+  // course sheet
+  on('crs-sheet-close',()=>closeSheet('sheet-course'));
+  on('crs-sheet-cancel',()=>closeSheet('sheet-course'));
+  on('crs-sheet-save',saveCourse);
+  on('crs-delete-btn',deleteCourse);
+  document.querySelectorAll('#crs-f-kid button').forEach(b=>b.addEventListener('click',()=>{
+    if(!b.disabled){$('crs-f-kid-val').value=b.getAttribute('data-kid');paintCourseKidPick(false)}}));
+  // manage courses
+  on('courses-manage-close',()=>closeSheet('sheet-courses-manage'));
+  on('courses-manage-add',()=>{closeSheet('sheet-courses-manage');openCourseEdit(null,'manage')});
   on('sheet-import-close',()=>closeSheet('sheet-import'));
   on('import-cancel',()=>closeSheet('sheet-import'));
   on('import-preview-btn',doPreview);
@@ -3197,9 +3403,10 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   fmtTime,kidColorFor,weekItems,
   buildIcsEvent,buildIcsFile,icsUid,icsDateVal,icsRRule,icsExdate,markPushed,flagChangedSincePush,
   toggleExportMode,toggleExportSel,selectAllExportable,doExport,setExportFilter,needsPush,exportableList,
-  // Phase 2c grades
+  // Phase 2c grades + course registry
   liveGrades,gradeCourses,computeCourseAvg,whatIfScore,addGrade,updateGrade,removeGrade,setCourseAvg,
   gradeColor,esnuColor,DEFAULT_WEIGHTS,GRADE_THRESHOLDS,
+  liveCourses,addCourse,updateCourse,removeCourse,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
   get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER,GRADE_KID}),
   set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS;if('GRADE_KID' in o)GRADE_KID=o.GRADE_KID},
