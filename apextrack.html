@@ -607,28 +607,36 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 <div class="sheet-wrap" id="sheet-grade"><div class="sheet">
   <div class="handle"></div>
   <div class="sh-title"><span id="gr-sheet-title">Add grade</span><button class="x" id="gr-sheet-close" type="button" aria-label="Close">&times;</button></div>
-  <div class="fld"><label>Kid</label>
+  <!-- kid: buttons in add mode, static badge in edit mode -->
+  <div class="fld" id="gr-f-kid-row">
+    <label>Kid</label>
     <input type="hidden" id="gr-f-kid-val" value="AV">
     <div class="kidpick" id="gr-f-kid">
       <button type="button" data-kid="AV">AV</button><button type="button" data-kid="IV">IV</button>
     </div>
+    <div id="gr-f-kid-label" style="display:none"></div>
   </div>
-  <div class="fld"><label>Course name</label><input id="gr-f-course" list="gr-courses" placeholder="e.g. Accelerated Earth Science Gifted"><datalist id="gr-courses"></datalist></div>
-  <div class="fld"><label>Course code (optional)</label><input id="gr-f-code" list="gr-codes" placeholder="e.g. ACCL EARTH SC GF 6"><datalist id="gr-codes"></datalist></div>
-  <div class="fld"><label>Assignment name</label><input id="gr-f-asgn" placeholder="e.g. Minerals Quiz"></div>
+  <!-- course context (sticky per course) -->
+  <div class="fld"><label>Course name</label><input id="gr-f-course" list="gr-courses" placeholder="Accelerated Earth Science Gifted"><datalist id="gr-courses"></datalist></div>
   <div class="fld-2">
-    <div class="fld"><label>Score</label><div id="gr-f-score-wrap"><input id="gr-f-score" placeholder="e.g. 100"><select id="gr-f-score-esnu" style="display:none"><option value="">— pick —</option><option value="E">E — Exceeding</option><option value="S">S — Satisfactory</option><option value="N">N — Needs Improvement</option><option value="U">U — Unsatisfactory</option></select></div></div>
-    <div class="fld"><label>Date</label><input id="gr-f-date" type="date"></div>
+    <div class="fld"><label>Course code</label><input id="gr-f-code" list="gr-codes" placeholder="ACCL EARTH SC GF 6"><datalist id="gr-codes"></datalist></div>
+    <div class="fld"><label>Teacher</label><input id="gr-f-teacher" placeholder="Amanda Goedtel"></div>
   </div>
+  <!-- scale + component (set before score so the right input appears) -->
   <div class="fld-2">
-    <div class="fld"><label>Component</label>
-      <select id="gr-f-comp"><option value="AKS Progress*">AKS Progress*</option><option value="AKS Mastery*">AKS Mastery*</option><option value="MidYr/EOY*">MidYr/EOY*</option></select>
-    </div>
     <div class="fld"><label>Scale</label>
       <select id="gr-f-scale"><option value="numeric-100">Numeric (0–100)</option><option value="ESNU">ESNU</option></select>
     </div>
+    <div class="fld"><label>Component</label>
+      <select id="gr-f-comp"><option value="AKS Progress*">AKS Progress*</option><option value="AKS Mastery*">AKS Mastery*</option><option value="MidYr/EOY*">MidYr/EOY*</option></select>
+    </div>
   </div>
-  <div class="fld"><label>Teacher (optional)</label><input id="gr-f-teacher" placeholder=""></div>
+  <!-- per-assignment fields (change every entry, closest to Save) -->
+  <div class="fld"><label>Assignment name</label><input id="gr-f-asgn" placeholder="Minerals Quiz"></div>
+  <div class="fld-2">
+    <div class="fld"><label>Date</label><input id="gr-f-date" type="date"></div>
+    <div class="fld"><label>Score</label><div id="gr-f-score-wrap"><input id="gr-f-score" placeholder="100"><select id="gr-f-score-esnu" style="display:none"><option value="">— pick —</option><option value="E">E — Exceeding</option><option value="S">S — Satisfactory</option><option value="N">N — Needs Improvement</option><option value="U">U — Unsatisfactory</option></select></div></div>
+  </div>
   <div class="sheet-actions">
     <button class="btn danger" id="gr-delete-btn" type="button" style="display:none;flex:0 0 auto;width:auto;padding:6px 14px">Delete</button>
     <button class="btn" id="gr-sheet-cancel" type="button">Cancel</button>
@@ -2717,27 +2725,26 @@ function openGradeEdit(existing){
     f('gr-f-kid-val').value=existing.kidId||'AV';
     f('gr-f-course').value=existing.course||'';
     f('gr-f-code').value=existing.courseCode||'';
+    f('gr-f-teacher').value=existing.teacher||'';
+    f('gr-f-scale').value=existing.scale||'numeric-100';
+    f('gr-f-comp').value=existing.componentName||'AKS Progress*';
     f('gr-f-asgn').value=existing.assignmentName||'';
     f('gr-f-date').value=existing.date?existing.date.slice(0,10):'';
-    f('gr-f-comp').value=existing.componentName||'AKS Progress*';
-    f('gr-f-scale').value=existing.scale||'numeric-100';
-    f('gr-f-teacher').value=existing.teacher||'';
     $('gr-sheet-title').textContent='Edit grade';
     $('gr-delete-btn').style.display='';
-    // set score AFTER scale toggle so the right field is visible
     syncScoreField();
     setScoreValue(existing.rawScore!=null?String(existing.rawScore):'');
   }else{
     f('gr-f-kid-val').value=GRADE_KID!=='all'?GRADE_KID:'AV';
-    f('gr-f-course').value='';f('gr-f-code').value='';f('gr-f-asgn').value='';
-    f('gr-f-date').value='';f('gr-f-comp').value='AKS Progress*';
-    f('gr-f-scale').value='numeric-100';f('gr-f-teacher').value='';
+    f('gr-f-course').value='';f('gr-f-code').value='';f('gr-f-teacher').value='';
+    f('gr-f-scale').value='numeric-100';f('gr-f-comp').value='AKS Progress*';
+    f('gr-f-asgn').value='';f('gr-f-date').value='';
     $('gr-sheet-title').textContent='Add grade';
     $('gr-delete-btn').style.display='none';
     syncScoreField();
     setScoreValue('');
   }
-  paintGradeKidPick(!existing); // lock kid picker in edit mode
+  paintGradeKidPick(!!existing);
   openSheet('sheet-grade');
 }
 /** Toggle score field between numeric input and ESNU dropdown based on scale */
@@ -2758,15 +2765,25 @@ function setScoreValue(val){
 function getScoreValue(){
   return $('gr-f-scale').value==='ESNU'?$('gr-f-score-esnu').value:$('gr-f-score').value;
 }
-function paintGradeKidPick(editable){
+function paintGradeKidPick(isEdit){
   const val=$('gr-f-kid-val').value;
-  document.querySelectorAll('#gr-f-kid button').forEach(b=>{
-    const k=b.getAttribute('data-kid');
-    b.className=k===val?('sel-'+k.toLowerCase()):'';
-    b.disabled=editable===false; // lock buttons in edit mode
-    if(editable===false)b.style.opacity=k===val?'1':'0.35';
-    else b.style.opacity='';
-  });
+  const picker=$('gr-f-kid');
+  const label=$('gr-f-kid-label');
+  if(isEdit){
+    // edit mode: hide buttons, show static badge
+    picker.style.display='none';
+    label.style.display='';
+    label.innerHTML='<span class="sel-'+val.toLowerCase()+'" style="display:inline-block;padding:6px 16px;border-radius:8px;font-size:13px;font-weight:600">'+val+'</span>';
+  }else{
+    // add mode: show interactive buttons
+    picker.style.display='';
+    label.style.display='none';
+    document.querySelectorAll('#gr-f-kid button').forEach(b=>{
+      const k=b.getAttribute('data-kid');
+      b.className=k===val?('sel-'+k.toLowerCase()):'';
+      b.disabled=false;b.style.opacity='';
+    });
+  }
 }
 async function saveGrade(){
   const btn=$('gr-sheet-save');if(btn)btn.disabled=true;  // prevent double-tap
@@ -3137,7 +3154,7 @@ function wire(){
   on('gr-sheet-cancel',()=>closeSheet('sheet-grade'));
   on('gr-sheet-save',saveGrade);
   on('gr-delete-btn',deleteGrade);
-  document.querySelectorAll('#gr-f-kid button').forEach(b=>b.addEventListener('click',()=>{if(!b.disabled){$('gr-f-kid-val').value=b.getAttribute('data-kid');paintGradeKidPick(true)}}));
+  document.querySelectorAll('#gr-f-kid button').forEach(b=>b.addEventListener('click',()=>{if(!b.disabled){$('gr-f-kid-val').value=b.getAttribute('data-kid');paintGradeKidPick(false)}}));
   $('gr-f-scale').addEventListener('change',()=>{syncScoreField();setScoreValue('')});
   on('sheet-import-close',()=>closeSheet('sheet-import'));
   on('import-cancel',()=>closeSheet('sheet-import'));
