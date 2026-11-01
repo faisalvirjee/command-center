@@ -617,7 +617,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   <div class="fld"><label>Course code (optional)</label><input id="gr-f-code" list="gr-codes" placeholder="e.g. ACCL EARTH SC GF 6"><datalist id="gr-codes"></datalist></div>
   <div class="fld"><label>Assignment name</label><input id="gr-f-asgn" placeholder="e.g. Minerals Quiz"></div>
   <div class="fld-2">
-    <div class="fld"><label>Score</label><input id="gr-f-score" placeholder="e.g. 100 or E/S/N/U"></div>
+    <div class="fld"><label>Score</label><div id="gr-f-score-wrap"><input id="gr-f-score" placeholder="e.g. 100"><select id="gr-f-score-esnu" style="display:none"><option value="">— pick —</option><option value="E">E — Exceeding</option><option value="S">S — Satisfactory</option><option value="N">N — Needs Improvement</option><option value="U">U — Unsatisfactory</option></select></div></div>
     <div class="fld"><label>Date</label><input id="gr-f-date" type="date"></div>
   </div>
   <div class="fld-2">
@@ -2701,6 +2701,9 @@ let GRADE_EDIT_ID=null;
 function openGradeEdit(existing){
   GRADE_EDIT_ID=existing?existing.id:null;
   const s=$('sheet-grade');if(!s)return;
+  // re-enable buttons (may have been disabled by previous save)
+  const saveBtn=$('gr-sheet-save');if(saveBtn)saveBtn.disabled=false;
+  const delBtn=$('gr-delete-btn');if(delBtn)delBtn.disabled=false;
   // populate known courses as datalist options
   const courses=gradeCourses('all');
   const dl=$('gr-courses');if(dl){dl.textContent='';
@@ -2715,28 +2718,54 @@ function openGradeEdit(existing){
     f('gr-f-course').value=existing.course||'';
     f('gr-f-code').value=existing.courseCode||'';
     f('gr-f-asgn').value=existing.assignmentName||'';
-    f('gr-f-score').value=existing.rawScore!=null?String(existing.rawScore):'';
     f('gr-f-date').value=existing.date?existing.date.slice(0,10):'';
     f('gr-f-comp').value=existing.componentName||'AKS Progress*';
     f('gr-f-scale').value=existing.scale||'numeric-100';
     f('gr-f-teacher').value=existing.teacher||'';
     $('gr-sheet-title').textContent='Edit grade';
     $('gr-delete-btn').style.display='';
+    // set score AFTER scale toggle so the right field is visible
+    syncScoreField();
+    setScoreValue(existing.rawScore!=null?String(existing.rawScore):'');
   }else{
     f('gr-f-kid-val').value=GRADE_KID!=='all'?GRADE_KID:'AV';
     f('gr-f-course').value='';f('gr-f-code').value='';f('gr-f-asgn').value='';
-    f('gr-f-score').value='';f('gr-f-date').value='';f('gr-f-comp').value='AKS Progress*';
+    f('gr-f-date').value='';f('gr-f-comp').value='AKS Progress*';
     f('gr-f-scale').value='numeric-100';f('gr-f-teacher').value='';
     $('gr-sheet-title').textContent='Add grade';
     $('gr-delete-btn').style.display='none';
+    syncScoreField();
+    setScoreValue('');
   }
-  paintGradeKidPick();
+  paintGradeKidPick(!existing); // lock kid picker in edit mode
   openSheet('sheet-grade');
 }
-function paintGradeKidPick(){
+/** Toggle score field between numeric input and ESNU dropdown based on scale */
+function syncScoreField(){
+  const isESNU=$('gr-f-scale').value==='ESNU';
+  $('gr-f-score').style.display=isESNU?'none':'';
+  $('gr-f-score-esnu').style.display=isESNU?'':'none';
+}
+function setScoreValue(val){
+  if($('gr-f-scale').value==='ESNU'){
+    $('gr-f-score-esnu').value=val||'';
+    $('gr-f-score').value='';
+  }else{
+    $('gr-f-score').value=val;
+    $('gr-f-score-esnu').value='';
+  }
+}
+function getScoreValue(){
+  return $('gr-f-scale').value==='ESNU'?$('gr-f-score-esnu').value:$('gr-f-score').value;
+}
+function paintGradeKidPick(editable){
   const val=$('gr-f-kid-val').value;
   document.querySelectorAll('#gr-f-kid button').forEach(b=>{
-    const k=b.getAttribute('data-kid');b.className=k===val?('sel-'+k.toLowerCase()):'';
+    const k=b.getAttribute('data-kid');
+    b.className=k===val?('sel-'+k.toLowerCase()):'';
+    b.disabled=editable===false; // lock buttons in edit mode
+    if(editable===false)b.style.opacity=k===val?'1':'0.35';
+    else b.style.opacity='';
   });
 }
 async function saveGrade(){
@@ -2744,7 +2773,7 @@ async function saveGrade(){
   const f=id=>$(id);
   const kid=f('gr-f-kid-val').value;
   const course=f('gr-f-course').value.trim();
-  const score=f('gr-f-score').value.trim();
+  const score=getScoreValue().trim();
   if(!course){toast('Course name is required','error');if(btn)btn.disabled=false;return}
   if(!score){toast('Score is required','error');if(btn)btn.disabled=false;return}
   const obj={
@@ -3108,7 +3137,8 @@ function wire(){
   on('gr-sheet-cancel',()=>closeSheet('sheet-grade'));
   on('gr-sheet-save',saveGrade);
   on('gr-delete-btn',deleteGrade);
-  document.querySelectorAll('#gr-f-kid button').forEach(b=>b.addEventListener('click',()=>{$('gr-f-kid-val').value=b.getAttribute('data-kid');paintGradeKidPick()}));
+  document.querySelectorAll('#gr-f-kid button').forEach(b=>b.addEventListener('click',()=>{if(!b.disabled){$('gr-f-kid-val').value=b.getAttribute('data-kid');paintGradeKidPick(true)}}));
+  $('gr-f-scale').addEventListener('change',()=>{syncScoreField();setScoreValue('')});
   on('sheet-import-close',()=>closeSheet('sheet-import'));
   on('import-cancel',()=>closeSheet('sheet-import'));
   on('import-preview-btn',doPreview);
