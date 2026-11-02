@@ -3820,7 +3820,7 @@ function renderSettings(root){
       if(typeof cur==='object'&&v==='custom')o.selected=true;
       sel.appendChild(o);
     });
-    const kidId=kid.kidId;
+    const kidLabel=kid.initials||kid.id;
     sel.addEventListener('change',()=>{
       if(sel.value==='custom'){
         const inp=prompt('Enter Progress/Mastery weights as two numbers (e.g. 50/50 or 35/65):');
@@ -3830,13 +3830,13 @@ function renderSettings(root){
         const p=parseInt(m[1])/100,ma=parseInt(m[2])/100;
         if(Math.abs(p+ma-1)>0.02){toast('Weights should sum to ~100%','error');return}
         upsert('kids',{id:kid.id,weightProfile:{progress:p,mastery:ma}});
-        toast(kidId+' → '+m[1]+'/'+m[2],'success');renderView();
+        toast(kidLabel+' → '+m[1]+'/'+m[2],'success');renderView();
       }else{
         upsert('kids',{id:kid.id,weightProfile:sel.value});
-        toast(kidId+' → '+sel.value,'success');renderView();
+        toast(kidLabel+' → '+sel.value,'success');renderView();
       }
     });
-    wpLines.push(line(kidId+' weighting',sel));
+    wpLines.push(line(kidLabel+' weighting',sel));
   }
   if(wpLines.length)grp('Grade weights',wpLines);
   // backups
