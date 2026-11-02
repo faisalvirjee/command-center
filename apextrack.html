@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.6.1 | 2026-11-02 -->
+<!-- ApexTrack — Family School Tracker | v0.6.2 | 2026-11-02 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -446,8 +446,24 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 #grade-print-area{display:none}
 @media print{
   body>*:not(#grade-print-area){display:none!important}
-  #grade-print-area{display:block!important;position:static;background:#fff;color:#111;padding:0}
-  #grade-print-area *{color:#111!important}
+  #grade-print-area{display:block!important;position:static;background:#fff;color:#111;padding:16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4}
+  #grade-print-area *{color:#111!important;box-sizing:border-box}
+  #grade-print-area table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}
+  #grade-print-area td{padding:4px 6px;border-bottom:1px solid #ddd;vertical-align:top;overflow:hidden;text-overflow:ellipsis}
+  #grade-print-area tr:first-child td{font-weight:600;border-bottom:2px solid #999}
+  #grade-print-area .gx-hd{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:6px;margin-bottom:12px}
+  #grade-print-area .gx-sec{font-size:13px;font-weight:700;color:#222;text-transform:uppercase;letter-spacing:.03em;margin:14px 0 4px;page-break-after:avoid}
+  #grade-print-area .gx-sub{font-size:11px;color:#555;margin-bottom:6px}
+  #grade-print-area .gx-foot{font-size:9px;color:#999;border-top:1px solid #ccc;padding-top:4px;margin-top:12px}
+  /* summary table columns: course name wide, avg narrow */
+  #grade-print-area .gx-summary td:last-child{text-align:right;width:80px}
+  /* detail table columns: date | assignment | component | score */
+  #grade-print-area .gx-detail td:nth-child(1){width:60px}
+  #grade-print-area .gx-detail td:nth-child(2){width:auto}
+  #grade-print-area .gx-detail td:nth-child(3){width:90px}
+  #grade-print-area .gx-detail td:nth-child(4){width:50px;text-align:right}
+  /* page break: try to keep each course's detail section together */
+  #grade-print-area .gx-course-block{page-break-inside:avoid}
 }
 .gx-preview{background:#fff;color:#111;border-radius:6px;padding:24px;font-family:var(--font);max-height:50vh;overflow:auto}
 .gx-preview table{width:100%;border-collapse:collapse;font-size:12px}
@@ -863,7 +879,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.6.1';
+const APP_VERSION='v0.6.2';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -3061,17 +3077,17 @@ function renderGrades(root){
     const ph=el('div','dash-hd');
     ph.appendChild(el('span','kb '+dk.toLowerCase(),dk));
     if(sum.overallAvg!=null){
-      ph.appendChild(el('span','dash-avg '+gradeColor(sum.overallAvg),'Overall: '+Math.round(sum.overallAvg*10)/10));
+      ph.appendChild(el('span','dash-avg '+gradeColor(sum.overallAvg),'Overall: '+Math.round(sum.overallAvg)));
     }
     panel.appendChild(ph);
     const body=el('div','dash-body');
-    if(sum.strongest){body.appendChild(el('div','dash-row','↑ Strongest: '+sum.strongest.course+' ('+Math.round(sum.strongest.avg*10)/10+')'))}
-    if(sum.weakest&&sum.weakest.course!==sum.strongest?.course){body.appendChild(el('div','dash-row weak','↓ Weakest: '+sum.weakest.course+' ('+Math.round(sum.weakest.avg*10)/10+')'))}
+    if(sum.strongest){body.appendChild(el('div','dash-row','↑ Strongest: '+sum.strongest.course+' ('+Math.round(sum.strongest.avg)+')'))}
+    if(sum.weakest&&sum.weakest.course!==sum.strongest?.course){body.appendChild(el('div','dash-row weak','↓ Weakest: '+sum.weakest.course+' ('+Math.round(sum.weakest.avg)+')'))}
     if(sum.atRisk.length){
-      for(const c of sum.atRisk)body.appendChild(el('div','dash-flag red','⚠ '+c.course+': '+Math.round(c.avg*10)/10));
+      for(const c of sum.atRisk)body.appendChild(el('div','dash-flag red','⚠ '+c.course+': '+Math.round(c.avg)));
     }
     if(sum.amber.length){
-      for(const c of sum.amber)body.appendChild(el('div','dash-flag amber','● '+c.course+': '+Math.round(c.avg*10)/10));
+      for(const c of sum.amber)body.appendChild(el('div','dash-flag amber','● '+c.course+': '+Math.round(c.avg)));
     }
     if(sum.esnuSummary.length){
       const es=el('div','dash-esnu');
@@ -3125,16 +3141,20 @@ function renderGrades(root){
     // average display
     const avgDiv=el('div','gr-avg');
     if(course.scale==='ESNU'){
-      avgDiv.appendChild(el('div','ga-lbl','ESNU'));
+      // show the most recent earned rating (E/S/N/U) instead of the scale name
+      const esnuScores=course.assignments.filter(a=>a.rawScore&&/^[ESNU]$/i.test(String(a.rawScore))).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+      const latestRating=esnuScores.length?String(esnuScores[0].rawScore).toUpperCase():'ESNU';
+      const ratingEl=el('div','ga-num '+esnuColor(latestRating),latestRating);
+      avgDiv.appendChild(ratingEl);
     }else if(calc.avg!=null){
-      const num=el('div','ga-num '+gradeColor(calc.avg),String(Math.round(calc.avg*10)/10));
+      const num=el('div','ga-num '+gradeColor(calc.avg),String(Math.round(calc.avg)));
       avgDiv.appendChild(num);
       // trend vs official
       if(course.officialAvg!=null){
         const diff=calc.avg-course.officialAvg;
         const arrow=diff>0.5?'↑':diff<-0.5?'↓':'→';
         const cls=diff>0.5?'up':diff<-0.5?'down':'flat';
-        const trend=el('span','gr-trend '+cls,arrow+' '+Math.abs(Math.round(diff*10)/10));
+        const trend=el('span','gr-trend '+cls,arrow+' '+Math.abs(Math.round(diff)));
         avgDiv.appendChild(trend);
       }
       if(calc.estimated)avgDiv.appendChild(el('div','ga-lbl','Estimated'));
@@ -3183,7 +3203,7 @@ function renderGrades(root){
         chd.appendChild(el('span','',cn));
         const ckw=courseWeights(course);const wt=ckw[cn]?Math.round(ckw[cn]*100)+'%':'';
         const compCalc=calc.components[cn];
-        const avg=compCalc&&compCalc.avg!=null?Math.round(compCalc.avg*10)/10:'';
+        const avg=compCalc&&compCalc.avg!=null?Math.round(compCalc.avg):'';
         chd.appendChild(el('span','wt',(wt?wt+' · ':'')+byComp[cn].length+' items'+(avg?' · Avg '+avg:'')));
         cg.appendChild(chd);
         const sorted=byComp[cn].sort((x,y)=>(x.date||'').localeCompare(y.date||''));
@@ -3195,7 +3215,7 @@ function renderGrades(root){
           if(isZP){const zBadge=el('span','zp-badge','0 pt');nameEl.appendChild(zBadge)}
           row.appendChild(nameEl);
           const s=parseFloat(a.rawScore);
-          const sc=el('span','asgn-score '+gradeColor(s),isNaN(s)?String(a.rawScore||''):String(s));row.appendChild(sc);
+          const sc=el('span','asgn-score '+gradeColor(s),isNaN(s)?String(a.rawScore||''):String(Math.round(s)));row.appendChild(sc);
           const eb=el('button','asgn-edit');eb.innerHTML='<i class="ti ti-pencil"></i>';eb.addEventListener('click',e=>{e.stopPropagation();openGradeEdit(a)});row.appendChild(eb);
           cg.appendChild(row);
         }
@@ -3235,17 +3255,40 @@ function renderSlopeGraph(slope,courses){
   svg+='<text x="6" y="'+(yRedBot-5).toFixed(1)+'" font-size="10" fill="var(--text3)">below 80</text>';
   svg+='<text x="'+colStart+'" y="14" text-anchor="middle" font-size="11" fill="var(--text3)">start of term</text>';
   svg+='<text x="'+colEnd+'" y="14" text-anchor="middle" font-size="11" fill="var(--text3)">now</text>';
+  // ── collision-offset pass: nudge overlapping labels apart ──
+  const MIN_GAP=14; // min vertical pixels between label baselines
+  function deCollide(items){
+    items.sort((a,b)=>a.rawY-b.rawY);
+    for(let pass=0;pass<10;pass++){
+      let moved=false;
+      for(let i=1;i<items.length;i++){
+        const gap=items[i].y-items[i-1].y;
+        if(gap<MIN_GAP){const nudge=(MIN_GAP-gap)/2+0.5;items[i-1].y-=nudge;items[i].y+=nudge;moved=true}
+      }
+      if(!moved)break;
+    }
+  }
+  const leftLabels=slope.map((s,i)=>({i,rawY:py(s.start),y:py(s.start)}));
+  const rightLabels=slope.map((s,i)=>({i,rawY:py(s.now),y:py(s.now)}));
+  deCollide(leftLabels);deCollide(rightLabels);
   slope.forEach((s,idx)=>{
     const y1=py(s.start),y2=py(s.now);
     const color=s.up?'#199e70':'#d95926';
     const safeId='slope-ln-'+idx;
     const label=multiKid?kidBadgeLabel(s.kidId)+' · '+s.name:s.name;
+    const lbl=leftLabels.find(l=>l.i===idx);
+    const rbl=rightLabels.find(r=>r.i===idx);
+    const ly=lbl?lbl.y:y1;const ry=rbl?rbl.y:y2;
     svg+='<g id="'+safeId+'" class="slope-ln" data-key="'+s.key.replace(/[^a-zA-Z0-9]/g,'')+'" style="cursor:pointer">';
     svg+='<line x1="'+colStart+'" y1="'+y1.toFixed(1)+'" x2="'+colEnd+'" y2="'+y2.toFixed(1)+'" stroke="'+color+'" stroke-width="2"/>';
     svg+='<circle cx="'+colStart+'" cy="'+y1.toFixed(1)+'" r="4" fill="'+color+'"/>';
     svg+='<circle cx="'+colEnd+'" cy="'+y2.toFixed(1)+'" r="4" fill="'+color+'"/>';
-    svg+='<text x="'+(colStart-10)+'" y="'+(y1.toFixed(1)-6)+'" text-anchor="end" font-size="11" fill="var(--text2)">'+label+'</text>';
-    svg+='<text x="'+(colEnd+10)+'" y="'+(parseFloat(y2.toFixed(1))+4)+'" text-anchor="start" font-size="12" font-weight="600" fill="var(--text)">'+s.nowRounded+'</text>';
+    // left label with leader line if nudged
+    if(Math.abs(ly-y1)>2)svg+='<line x1="'+(colStart-8)+'" y1="'+y1.toFixed(1)+'" x2="'+(colStart-12)+'" y2="'+(ly-4).toFixed(1)+'" stroke="var(--text3)" stroke-width="0.5"/>';
+    svg+='<text x="'+(colStart-14)+'" y="'+(ly-2).toFixed(1)+'" text-anchor="end" font-size="11" fill="var(--text2)">'+label+'</text>';
+    // right label with leader line if nudged
+    if(Math.abs(ry-y2)>2)svg+='<line x1="'+(colEnd+8)+'" y1="'+y2.toFixed(1)+'" x2="'+(colEnd+12)+'" y2="'+(ry+2).toFixed(1)+'" stroke="var(--text3)" stroke-width="0.5"/>';
+    svg+='<text x="'+(colEnd+14)+'" y="'+(ry+4).toFixed(1)+'" text-anchor="start" font-size="12" font-weight="600" fill="var(--text)">'+s.nowRounded+'</text>';
     svg+='</g>';
   });
   svg+='</svg>';
@@ -3282,7 +3325,7 @@ function renderCharts(root){
     const hd=el('div','chart-hd');
     const titleEl=el('div','');
     titleEl.appendChild(el('span','chart-title',course.course||course.courseCode));
-    if(calc.avg!=null)titleEl.appendChild(el('span','chart-sub',' · '+Math.round(calc.avg*10)/10));
+    if(calc.avg!=null)titleEl.appendChild(el('span','chart-sub',' · '+Math.round(calc.avg)));
     hd.appendChild(titleEl);
     const kw=courseWeights(course);
     const wStr=Math.round((kw['AKS Progress*']||0.55)*100)+'/'+Math.round((kw['AKS Mastery*']||0.45)*100);
@@ -3348,7 +3391,7 @@ function renderCharts(root){
     svgWrap.querySelectorAll('.chart-hit').forEach(hit=>{
       hit.addEventListener('mouseenter',e=>{
         const idx=parseInt(hit.getAttribute('data-idx'));const p=points[idx];
-        tooltip.textContent=fmtLabel(p.date)+': '+Math.round(p.avg*10)/10;
+        tooltip.textContent=fmtLabel(p.date)+': '+Math.round(p.avg);
         tooltip.style.display='';
         const rect=svgWrap.getBoundingClientRect();
         const cx=parseFloat(hit.getAttribute('cx')),cy=parseFloat(hit.getAttribute('cy'));
@@ -3359,7 +3402,7 @@ function renderCharts(root){
       hit.addEventListener('touchstart',e=>{
         e.preventDefault();
         const idx=parseInt(hit.getAttribute('data-idx'));const p=points[idx];
-        tooltip.textContent=fmtLabel(p.date)+': '+Math.round(p.avg*10)/10;
+        tooltip.textContent=fmtLabel(p.date)+': '+Math.round(p.avg);
         tooltip.style.display='';
         const rect=svgWrap.getBoundingClientRect();
         const cx=parseFloat(hit.getAttribute('cx')),cy=parseFloat(hit.getAttribute('cy'));
@@ -3777,22 +3820,24 @@ function gradeReportHTML(report){
   let h='<div class="gx-hd"><div style="font-size:16px;font-weight:600">'+esc(kidName)+' \u2014 Grade Report</div>'
     +'<div style="font-size:11px;color:#666">'+esc(term)+' \u00b7 generated '+dateStr+'</div></div>';
   h+='<div class="gx-sec">Summary</div>';
-  h+='<table><tr><td style="color:#444">Course</td><td style="text-align:right;color:#444">Current avg</td></tr>';
+  h+='<table class="gx-summary"><tr><td>Course</td><td>Current avg</td></tr>';
   for(const c of report.courses){
     const avgDisp=c.scale==='ESNU'?'ESNU':(c.avgRounded!=null?c.avgRounded:'\u2014');
-    h+='<tr><td>'+esc(c.name)+(c.period?' <span style="color:#999">\u00b7 P'+c.period+'</span>':'')+'</td><td style="text-align:right;font-weight:500">'+avgDisp+'</td></tr>';
+    h+='<tr><td>'+esc(c.name)+(c.period?' <span style="color:#999">\u00b7 P'+c.period+'</span>':'')+'</td><td style="font-weight:500">'+avgDisp+'</td></tr>';
   }
   h+='</table>';
   for(const c of report.courses){
     if(c.scale==='ESNU'||!c.assignments.length)continue;
+    h+='<div class="gx-course-block">';
     h+='<div class="gx-sec">'+esc(c.name)+' \u2014 Detail</div>';
     const subParts=[];if(c.teacher)subParts.push(esc(c.teacher));if(c.period)subParts.push('Period '+c.period);if(c.weightLabel)subParts.push(c.weightLabel);
     h+='<div class="gx-sub">'+subParts.join(' \u00b7 ')+'</div>';
-    h+='<table><tr><td style="color:#444">Date</td><td style="color:#444">Assignment</td><td style="color:#444">Component</td><td style="text-align:right;color:#444">Score</td></tr>';
+    h+='<table class="gx-detail"><tr><td>Date</td><td>Assignment</td><td>Component</td><td>Score</td></tr>';
     for(const a of c.assignments){
-      h+='<tr><td>'+shortDate(a.date)+'</td><td>'+esc(a.name)+'</td><td style="color:#666">'+esc(a.component)+'</td><td style="text-align:right">'+(a.score!=null?a.score:'\u2014')+'</td></tr>';
+      const scoreDisp=a.score!=null?Math.round(parseFloat(a.score))||a.score:'\u2014';
+      h+='<tr><td>'+shortDate(a.date)+'</td><td>'+esc(a.name)+'</td><td>'+esc(a.component)+'</td><td>'+scoreDisp+'</td></tr>';
     }
-    h+='</table>';
+    h+='</table></div>';
   }
   h+='<div class="gx-foot">Generated by ApexTrack \u00b7 for reference only, not an official transcript</div>';
   return h;
