@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.6.0 | 2026-11-02 -->
+<!-- ApexTrack — Family School Tracker | v0.6.1 | 2026-11-02 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -438,6 +438,24 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .chart-sub{font-size:11px;color:var(--text3)}
 .chart-svg{width:100%;display:block}
 .chart-tooltip{position:absolute;background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;font-size:11px;font-family:var(--mono);color:var(--text);pointer-events:none;z-index:50;white-space:nowrap;box-shadow:var(--shadow)}
+.chart-summary{border:1px solid var(--border2);background:var(--card2)}
+.chart-summary .chart-title{font-size:13px;color:var(--text2);font-weight:600}
+.slope-legend{display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--text3)}
+.slope-legend .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+/* ───────── Grade export / print ───────── */
+#grade-print-area{display:none}
+@media print{
+  body>*:not(#grade-print-area){display:none!important}
+  #grade-print-area{display:block!important;position:static;background:#fff;color:#111;padding:0}
+  #grade-print-area *{color:#111!important}
+}
+.gx-preview{background:#fff;color:#111;border-radius:6px;padding:24px;font-family:var(--font);max-height:50vh;overflow:auto}
+.gx-preview table{width:100%;border-collapse:collapse;font-size:12px}
+.gx-preview td{padding:4px 0;border-bottom:1px solid #eee}
+.gx-preview .gx-hd{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px}
+.gx-preview .gx-sec{font-size:12px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:.03em;margin:16px 0 6px}
+.gx-preview .gx-sub{font-size:11px;color:#666;margin-bottom:8px}
+.gx-preview .gx-foot{font-size:10px;color:#999;margin-top:16px;border-top:1px solid #eee;padding-top:6px}
 .gr-esnu{display:inline-block;padding:2px 8px;border-radius:5px;font-size:12px;font-weight:700}
 .gr-esnu.E{background:rgba(52,211,153,.15);color:#34d399}
 .gr-esnu.S{background:rgba(59,130,246,.15);color:#60a5fa}
@@ -770,6 +788,21 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   </div>
 </div></div>
 
+<!-- grade export sheet -->
+<div class="sheet-wrap" id="sheet-grade-export"><div class="sheet" style="max-width:640px">
+  <div class="handle"></div>
+  <div class="sh-title"><span>Export grade report</span><button class="x" id="gx-close" type="button" aria-label="Close">&times;</button></div>
+  <div class="fld-2">
+    <div class="fld"><label>Kid</label><select id="gx-kid"></select></div>
+    <div class="fld"><label>Term</label><select id="gx-term"></select></div>
+  </div>
+  <div id="gx-preview" class="gx-preview"></div>
+  <div class="sheet-actions">
+    <button class="btn" id="gx-cancel" type="button">Cancel</button>
+    <button class="btn primary" id="gx-print" type="button"><i class="ti ti-printer" aria-hidden="true"></i> Print / Save as PDF</button>
+  </div>
+</div></div>
+
 <!-- grade import sheet -->
 <div class="sheet-wrap" id="sheet-grade-import"><div class="sheet">
   <div class="handle"></div>
@@ -830,7 +863,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.6.0';
+const APP_VERSION='v0.6.1';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -2669,7 +2702,12 @@ function gradeCourses(kidFilter){
       // resolve course registry record for cascade
       if(DATA&&DATA.courses){
         const cRec=Object.values(DATA.courses).find(c=>!c.deleted&&c.kidId===g.kidId&&(c.code===g.courseCode||c.name===g.course));
-        if(cRec){courses[key].courseId=cRec.id;if(cRec.weightOverride)courses[key].weightOverride=cRec.weightOverride}
+        if(cRec){
+          courses[key].courseId=cRec.id;if(cRec.weightOverride)courses[key].weightOverride=cRec.weightOverride;
+          if(!courses[key].period&&cRec.period)courses[key].period=cRec.period;
+          if(!courses[key].teacher&&cRec.teacher)courses[key].teacher=cRec.teacher;
+          if(!courses[key].term&&cRec.term)courses[key].term=cRec.term;
+        }
       }
     }
     const c=courses[key];
@@ -2682,6 +2720,57 @@ function gradeCourses(kidFilter){
     if(a.kidId!==b.kidId)return a.kidId<b.kidId?-1:1;
     return (a.period||99)-(b.period||99)||(a.course||'').localeCompare(b.course||'');
   });
+}
+
+/** Slope-graph data prep: start-of-term avg → current avg, per course.
+    Pure function, no DOM — courses must already be from gradeCourses(). */
+function slopeData(courses){
+  const out=[];
+  for(const course of courses){
+    if(course.scale==='ESNU')continue;
+    const pts=courseSparkline(course);
+    if(pts.length<2)continue;
+    const start=pts[0].avg,now=pts[pts.length-1].avg;
+    out.push({key:course.key,kidId:course.kidId,name:course.course||course.courseCode,
+      start,now,nowRounded:Math.round(now),up:now>=start});
+  }
+  return out;
+}
+
+/** Distinct, non-empty term values present in the course registry for a kid
+    (or all kids if kidId is 'all'/falsy). Data-driven — never hardcoded,
+    so Semester 2 / prior-year snapshots appear automatically once they exist. */
+function availableTerms(kidId){
+  if(!DATA||!DATA.courses)return [];
+  const set=new Set();
+  Object.values(DATA.courses).forEach(c=>{
+    if(c.deleted)return;
+    if(kidId&&kidId!=='all'&&c.kidId!==kidId)return;
+    if(c.term)set.add(c.term);
+  });
+  return [...set].sort();
+}
+
+/** Build the data structure behind the printable grade report for one kid/term.
+    Pure function, no DOM. Course order mirrors the portal (ascending period). */
+function buildGradeReport(kidId,term){
+  const all=gradeCourses(kidId).filter(c=>!term||c.term===term||!c.term);
+  const courses=all.map(c=>{
+    const calc=computeCourseAvg(c);
+    const kw=courseWeights(c);
+    const wStr=c.scale==='ESNU'?null:(Math.round((kw['AKS Progress*']||0.55)*100)+'% progress / '+Math.round((kw['AKS Mastery*']||0.45)*100)+'% mastery');
+    return {
+      name:c.course||c.courseCode,teacher:c.teacher||'',period:c.period||null,
+      scale:c.scale,avg:c.scale==='ESNU'?null:(calc.avg!=null?Math.round(calc.avg*10)/10:null),
+      avgRounded:c.scale==='ESNU'?null:(calc.avg!=null?Math.round(calc.avg):null),
+      weightLabel:wStr,
+      assignments:c.assignments.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(a=>({
+        date:a.date||'',name:a.assignmentName||a.name||'',component:(a.componentName||'').replace('*',''),
+        score:a.rawScore!=null?a.rawScore:a.score
+      }))
+    };
+  });
+  return {kidId,term:term||'',courses};
 }
 
 /** Compute running weighted average for a course (numeric-100 scale only).
@@ -2957,6 +3046,9 @@ function renderGrades(root){
   // add grade button
   const addBtn=el('button','gr-add-btn');addBtn.innerHTML='<i class="ti ti-plus" aria-hidden="true"></i> Add grade';
   addBtn.addEventListener('click',()=>openGradeEdit(null));bar.appendChild(addBtn);
+  // export button
+  const expBtn=el('button','gr-add-btn');expBtn.innerHTML='<i class="ti ti-file-export" aria-hidden="true"></i> Export';
+  expBtn.addEventListener('click',()=>openGradeExport());bar.appendChild(expBtn);
   head.appendChild(bar);root.appendChild(head);
   if(GRADE_SUB==='charts'){renderCharts(root);return}
   const scroll=el('div','view-scroll');
@@ -3121,6 +3213,56 @@ function renderGrades(root){
 /* ════════════════════════════════════════════════════
    CHARTS VIEW — interactive trend lines per course
 ════════════════════════════════════════════════════ */
+/** Consolidated slope graph: start-of-term avg → now, one line per course.
+    Framed summary card above the per-course detail charts. Clicking a line
+    scrolls to that course's chart below. */
+function renderSlopeGraph(slope,courses){
+  const multiKid=new Set(slope.map(s=>s.kidId)).size>1;
+  const wrap=el('div','chart-wrap chart-summary');
+  const hd=el('div','chart-hd');
+  hd.appendChild(el('span','chart-title','Trend summary — all courses'));
+  wrap.appendChild(hd);
+  const W=600,H=Math.max(160,40+slope.length*32),PAD_T=20,PAD_B=16;
+  const colStart=140,colEnd=440;
+  const lo=78,hi=101;
+  const py=v=>PAD_T+(H-PAD_T-PAD_B)*(1-(v-lo)/(hi-lo));
+  let svg='<svg viewBox="0 0 '+W+' '+H+'" class="chart-svg" xmlns="http://www.w3.org/2000/svg" style="height:'+H+'px">';
+  const yGreenTop=py(hi),yGreenBot=py(90);
+  svg+='<rect x="0" y="'+yGreenTop.toFixed(1)+'" width="'+W+'" height="'+(yGreenBot-yGreenTop).toFixed(1)+'" fill="#1baf7a" opacity="0.07"/>';
+  const yRedTop=py(80),yRedBot=py(lo);
+  svg+='<rect x="0" y="'+yRedTop.toFixed(1)+'" width="'+W+'" height="'+(yRedBot-yRedTop).toFixed(1)+'" fill="#e34948" opacity="0.07"/>';
+  svg+='<text x="6" y="'+(yGreenTop+13).toFixed(1)+'" font-size="10" fill="var(--text3)">90+</text>';
+  svg+='<text x="6" y="'+(yRedBot-5).toFixed(1)+'" font-size="10" fill="var(--text3)">below 80</text>';
+  svg+='<text x="'+colStart+'" y="14" text-anchor="middle" font-size="11" fill="var(--text3)">start of term</text>';
+  svg+='<text x="'+colEnd+'" y="14" text-anchor="middle" font-size="11" fill="var(--text3)">now</text>';
+  slope.forEach((s,idx)=>{
+    const y1=py(s.start),y2=py(s.now);
+    const color=s.up?'#199e70':'#d95926';
+    const safeId='slope-ln-'+idx;
+    const label=multiKid?kidBadgeLabel(s.kidId)+' · '+s.name:s.name;
+    svg+='<g id="'+safeId+'" class="slope-ln" data-key="'+s.key.replace(/[^a-zA-Z0-9]/g,'')+'" style="cursor:pointer">';
+    svg+='<line x1="'+colStart+'" y1="'+y1.toFixed(1)+'" x2="'+colEnd+'" y2="'+y2.toFixed(1)+'" stroke="'+color+'" stroke-width="2"/>';
+    svg+='<circle cx="'+colStart+'" cy="'+y1.toFixed(1)+'" r="4" fill="'+color+'"/>';
+    svg+='<circle cx="'+colEnd+'" cy="'+y2.toFixed(1)+'" r="4" fill="'+color+'"/>';
+    svg+='<text x="'+(colStart-10)+'" y="'+(y1.toFixed(1)-6)+'" text-anchor="end" font-size="11" fill="var(--text2)">'+label+'</text>';
+    svg+='<text x="'+(colEnd+10)+'" y="'+(parseFloat(y2.toFixed(1))+4)+'" text-anchor="start" font-size="12" font-weight="600" fill="var(--text)">'+s.nowRounded+'</text>';
+    svg+='</g>';
+  });
+  svg+='</svg>';
+  const svgWrap=document.createElement('div');svgWrap.innerHTML=svg;
+  wrap.appendChild(svgWrap);
+  const legend=el('div','slope-legend');
+  legend.innerHTML='<span><span class="sw" style="background:#199e70"></span>Improved</span><span><span class="sw" style="background:#d95926"></span>Declined</span>';
+  wrap.appendChild(legend);
+  svgWrap.querySelectorAll('.slope-ln').forEach(g=>{
+    g.addEventListener('click',()=>{
+      const target=document.getElementById('course-chart-'+g.getAttribute('data-key'));
+      if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  });
+  return wrap;
+}
+
 function renderCharts(root){
   const scroll=el('div','view-scroll');
   const courses=gradeCourses(GRADE_KID).filter(c=>c.scale!=='ESNU');
@@ -3129,11 +3271,14 @@ function renderCharts(root){
     e.appendChild(el('div','et','No chart data'));e.appendChild(el('div','eb','Add numeric grades to see trend charts.'));
     scroll.appendChild(e);root.appendChild(scroll);return;
   }
+  const slope=slopeData(courses);
+  if(slope.length)scroll.appendChild(renderSlopeGraph(slope,courses));
   for(const course of courses){
     const points=courseSparkline(course);
     if(points.length<2)continue;
     const calc=computeCourseAvg(course);
     const wrap=el('div','chart-wrap');
+    wrap.id='course-chart-'+course.key.replace(/[^a-zA-Z0-9]/g,'');
     const hd=el('div','chart-hd');
     const titleEl=el('div','');
     titleEl.appendChild(el('span','chart-title',course.course||course.courseCode));
@@ -3582,6 +3727,83 @@ function openManageCourses(){
     }
   }
   openSheet('sheet-courses-manage');
+}
+
+/* ════════════════════════════════════════════════════
+   GRADE EXPORT (v0.6.1)
+   Printable per-kid report: summary table + per-course
+   assignment detail. Built from buildGradeReport() so the
+   preview and the actual print use identical markup.
+   Browser print-to-PDF — no external library.
+════════════════════════════════════════════════════ */
+let GX_KID=null,GX_TERM=null;
+function openGradeExport(){
+  const kidsWithData=[...new Set(gradeCourses('all').map(c=>c.kidId))];
+  if(!kidsWithData.length){toast('No grade data to export yet.');return}
+  GX_KID=(GRADE_KID!=='all'&&kidsWithData.includes(GRADE_KID))?GRADE_KID:kidsWithData[0];
+  const kidSel=$('gx-kid');kidSel.innerHTML='';
+  kidsWithData.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;kidSel.appendChild(o)});
+  kidSel.value=GX_KID;
+  populateGxTerms();
+  kidSel.onchange=()=>{GX_KID=kidSel.value;populateGxTerms();renderGxPreview()};
+  $('gx-term').onchange=()=>{GX_TERM=$('gx-term').value;renderGxPreview()};
+  renderGxPreview();
+  openSheet('sheet-grade-export');
+}
+function populateGxTerms(){
+  const terms=availableTerms(GX_KID);
+  const termSel=$('gx-term');termSel.innerHTML='';
+  if(!terms.length){
+    const o=document.createElement('option');o.value='';o.textContent='All terms';termSel.appendChild(o);GX_TERM='';
+  }else{
+    terms.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=termLabel(t);termSel.appendChild(o)});
+    GX_TERM=terms[terms.length-1];termSel.value=GX_TERM;
+  }
+}
+function termLabel(t){
+  if(t==='Sem1')return 'Semester 1';if(t==='Sem2')return 'Semester 2';
+  return t||'All terms';
+}
+function renderGxPreview(){
+  const report=buildGradeReport(GX_KID,GX_TERM);
+  $('gx-preview').innerHTML=gradeReportHTML(report);
+}
+/** Shared HTML builder — used for both the in-sheet preview and the printed page. */
+function gradeReportHTML(report){
+  const kidName=report.kidId||'';
+  const term=termLabel(report.term);
+  const today=new Date();
+  const dateStr=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][today.getMonth()]+' '+today.getDate()+', '+today.getFullYear();
+  let h='<div class="gx-hd"><div style="font-size:16px;font-weight:600">'+esc(kidName)+' \u2014 Grade Report</div>'
+    +'<div style="font-size:11px;color:#666">'+esc(term)+' \u00b7 generated '+dateStr+'</div></div>';
+  h+='<div class="gx-sec">Summary</div>';
+  h+='<table><tr><td style="color:#444">Course</td><td style="text-align:right;color:#444">Current avg</td></tr>';
+  for(const c of report.courses){
+    const avgDisp=c.scale==='ESNU'?'ESNU':(c.avgRounded!=null?c.avgRounded:'\u2014');
+    h+='<tr><td>'+esc(c.name)+(c.period?' <span style="color:#999">\u00b7 P'+c.period+'</span>':'')+'</td><td style="text-align:right;font-weight:500">'+avgDisp+'</td></tr>';
+  }
+  h+='</table>';
+  for(const c of report.courses){
+    if(c.scale==='ESNU'||!c.assignments.length)continue;
+    h+='<div class="gx-sec">'+esc(c.name)+' \u2014 Detail</div>';
+    const subParts=[];if(c.teacher)subParts.push(esc(c.teacher));if(c.period)subParts.push('Period '+c.period);if(c.weightLabel)subParts.push(c.weightLabel);
+    h+='<div class="gx-sub">'+subParts.join(' \u00b7 ')+'</div>';
+    h+='<table><tr><td style="color:#444">Date</td><td style="color:#444">Assignment</td><td style="color:#444">Component</td><td style="text-align:right;color:#444">Score</td></tr>';
+    for(const a of c.assignments){
+      h+='<tr><td>'+shortDate(a.date)+'</td><td>'+esc(a.name)+'</td><td style="color:#666">'+esc(a.component)+'</td><td style="text-align:right">'+(a.score!=null?a.score:'\u2014')+'</td></tr>';
+    }
+    h+='</table>';
+  }
+  h+='<div class="gx-foot">Generated by ApexTrack \u00b7 for reference only, not an official transcript</div>';
+  return h;
+}
+function esc(s){return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function doGradePrint(){
+  const report=buildGradeReport(GX_KID,GX_TERM);
+  let area=document.getElementById('grade-print-area');
+  if(!area){area=document.createElement('div');area.id='grade-print-area';document.body.appendChild(area)}
+  area.innerHTML=gradeReportHTML(report);
+  window.print();
 }
 
 /* ════════════════════════════════════════════════════
@@ -4187,6 +4409,10 @@ function wire(){
   // manage courses
   on('courses-manage-close',()=>closeSheet('sheet-courses-manage'));
   on('courses-manage-add',()=>{closeSheet('sheet-courses-manage');openCourseEdit(null,'manage')});
+  // grade export
+  on('gx-close',()=>closeSheet('sheet-grade-export'));
+  on('gx-cancel',()=>closeSheet('sheet-grade-export'));
+  on('gx-print',()=>doGradePrint());
   // grade import
   on('gi-close',()=>closeSheet('sheet-grade-import'));
   on('gi-cancel',()=>closeSheet('sheet-grade-import'));
@@ -4252,9 +4478,10 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   liveCourses,addCourse,updateCourse,removeCourse,
   wipePreview,performWipe,kidSummary,courseSparkline,
   openGradeImport,giParseAndPreview,giCommit,
+  slopeData,availableTerms,buildGradeReport,gradeReportHTML,termLabel,openGradeExport,doGradePrint,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
-  get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER,GRADE_KID,GRADE_SUB}),
-  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS;if('GRADE_KID' in o)GRADE_KID=o.GRADE_KID;if('GRADE_SUB' in o)GRADE_SUB=o.GRADE_SUB},
+  get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER,GRADE_KID,GRADE_SUB,GX_KID,GX_TERM}),
+  set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS;if('GRADE_KID' in o)GRADE_KID=o.GRADE_KID;if('GRADE_SUB' in o)GRADE_SUB=o.GRADE_SUB;if('GX_KID' in o)GX_KID=o.GX_KID;if('GX_TERM' in o)GX_TERM=o.GX_TERM},
   liveBackups,LS,LOGS
 };
 window.addEventListener('load',boot);
