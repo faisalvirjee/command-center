@@ -2630,7 +2630,7 @@ function computeCourseAvg(course){
   for(const a of course.assignments){
     if(a.zeroPoint||a.pctOfGrade===0)continue; // zero-weight: shows in gradebook but doesn't count
     const cn=a.componentName||'AKS Progress*';
-    if(!comps[cn])comps[cn]={scores:[],weight:a.componentWeight||(kw[cn]||null),name:cn};
+    if(!comps[cn])comps[cn]={scores:[],weight:kw[cn]||a.componentWeight||null,name:cn};
     const s=parseFloat(a.rawScore);
     if(!isNaN(s))comps[cn].scores.push(s);
   }
@@ -2818,7 +2818,7 @@ function courseSparkline(course){
   const running={};// componentName → {scores:[], weight}
   for(const a of dated){
     const cn=a.componentName||'AKS Progress*';
-    if(!running[cn])running[cn]={scores:[],weight:a.componentWeight||(kw[cn]||null)};
+    if(!running[cn])running[cn]={scores:[],weight:kw[cn]||a.componentWeight||null};
     running[cn].scores.push(parseFloat(a.rawScore));
     // compute weighted avg at this point
     const comps=Object.keys(running);
