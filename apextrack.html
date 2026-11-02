@@ -2775,11 +2775,17 @@ function buildGradeReport(kidId,term){
     const calc=computeCourseAvg(c);
     const kw=courseWeights(c);
     const wStr=c.scale==='ESNU'?null:(Math.round((kw['AKS Progress*']||0.55)*100)+'% progress / '+Math.round((kw['AKS Mastery*']||0.45)*100)+'% mastery');
+    // resolve most recent ESNU earned rating
+    let esnuRating=null;
+    if(c.scale==='ESNU'){
+      const esnuScores=c.assignments.filter(a=>a.rawScore&&/^[ESNU]$/i.test(String(a.rawScore))).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+      esnuRating=esnuScores.length?String(esnuScores[0].rawScore).toUpperCase():null;
+    }
     return {
       name:c.course||c.courseCode,teacher:c.teacher||'',period:c.period||null,
       scale:c.scale,avg:c.scale==='ESNU'?null:(calc.avg!=null?Math.round(calc.avg*10)/10:null),
       avgRounded:c.scale==='ESNU'?null:(calc.avg!=null?Math.round(calc.avg):null),
-      weightLabel:wStr,
+      esnuRating,weightLabel:wStr,
       assignments:c.assignments.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(a=>({
         date:a.date||'',name:a.assignmentName||a.name||'',component:(a.componentName||'').replace('*',''),
         score:a.rawScore!=null?a.rawScore:a.score
@@ -3822,7 +3828,7 @@ function gradeReportHTML(report){
   h+='<div class="gx-sec">Summary</div>';
   h+='<table class="gx-summary"><tr><td>Course</td><td>Current avg</td></tr>';
   for(const c of report.courses){
-    const avgDisp=c.scale==='ESNU'?'ESNU':(c.avgRounded!=null?c.avgRounded:'\u2014');
+    const avgDisp=c.scale==='ESNU'?(c.esnuRating||'ESNU'):(c.avgRounded!=null?c.avgRounded:'\u2014');
     h+='<tr><td>'+esc(c.name)+(c.period?' <span style="color:#999">\u00b7 P'+c.period+'</span>':'')+'</td><td style="font-weight:500">'+avgDisp+'</td></tr>';
   }
   h+='</table>';
