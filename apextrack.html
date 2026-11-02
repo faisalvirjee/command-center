@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.5.1 | 2026-11-01 -->
+<!-- ApexTrack — Family School Tracker | v0.5.2 | 2026-11-01 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -796,7 +796,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.5.1';
+const APP_VERSION='v0.5.2';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -2566,6 +2566,25 @@ async function runUndo(){
    Spec S10: grades are permanent, never wiped.
 ════════════════════════════════════════════════════ */
 const DEFAULT_WEIGHTS={'AKS Progress*':0.55,'AKS Mastery*':0.45};
+const WEIGHT_PROFILES={
+  elementary:{'AKS Progress*':0.55,'AKS Mastery*':0.45},
+  middle:    {'AKS Progress*':0.40,'AKS Mastery*':0.60}
+};
+/** Get the weight map for a kid. Checks kid record for weightProfile:
+    - "elementary" → 55/45, "middle" → 40/60
+    - {progress:X, mastery:Y} → custom
+    - null/undefined → falls back to DEFAULT_WEIGHTS */
+function kidWeights(kidId){
+  if(!DATA||!DATA.kids)return DEFAULT_WEIGHTS;
+  const kid=DATA.kids[kidId]||(Object.values(DATA.kids).find(k=>!k.deleted&&(k.id===kidId||k.initials===kidId)));
+  if(!kid||!kid.weightProfile)return DEFAULT_WEIGHTS;
+  const wp=kid.weightProfile;
+  if(typeof wp==='string')return WEIGHT_PROFILES[wp]||DEFAULT_WEIGHTS;
+  if(typeof wp==='object'&&wp.progress!=null&&wp.mastery!=null){
+    return {'AKS Progress*':wp.progress,'AKS Mastery*':wp.mastery};
+  }
+  return DEFAULT_WEIGHTS;
+}
 const ESNU_ORDER={E:4,S:3,N:2,U:1};
 const GRADE_THRESHOLDS={green:90,amber:80}; // ≥90 green, ≥80 amber, <80 red
 
@@ -2606,11 +2625,12 @@ function gradeCourses(kidFilter){
     Assignments with zeroPoint:true or pctOfGrade===0 are excluded (portal doesn't count them). */
 function computeCourseAvg(course){
   if(course.scale==='ESNU')return {avg:null,components:{},estimated:false};
+  const kw=kidWeights(course.kidId);
   const comps={}; // componentName → {scores:[], weight}
   for(const a of course.assignments){
     if(a.zeroPoint||a.pctOfGrade===0)continue; // zero-weight: shows in gradebook but doesn't count
     const cn=a.componentName||'AKS Progress*';
-    if(!comps[cn])comps[cn]={scores:[],weight:a.componentWeight||(DEFAULT_WEIGHTS[cn]||null),name:cn};
+    if(!comps[cn])comps[cn]={scores:[],weight:a.componentWeight||(kw[cn]||null),name:cn};
     const s=parseFloat(a.rawScore);
     if(!isNaN(s))comps[cn].scores.push(s);
   }
@@ -2647,9 +2667,10 @@ function whatIfScore(course,targetAvg,componentName,numUpcoming){
   const calc=computeCourseAvg(course);
   if(calc.avg==null)return {needed:null,ceiling:null,message:'No scores entered yet.'};
   const comps=calc.components;
+  const kw=kidWeights(course.kidId);
   const cn=componentName||'AKS Mastery*';
-  const comp=comps[cn]||{scores:[],weight:DEFAULT_WEIGHTS[cn]||null,avg:null};
-  const weight=comp.weight||(DEFAULT_WEIGHTS[cn]||0.5);
+  const comp=comps[cn]||{scores:[],weight:kw[cn]||null,avg:null};
+  const weight=comp.weight||(kw[cn]||0.5);
   if(!weight)return {needed:null,ceiling:null,message:'No weight known for component.'};
   let otherTotal=0,otherWeight=0;
   for(const k of Object.keys(comps)){
@@ -2789,6 +2810,7 @@ function kidSummary(kidId){
 ════════════════════════════════════════════════════ */
 function courseSparkline(course){
   if(course.scale==='ESNU'||!course.assignments.length)return [];
+  const kw=kidWeights(course.kidId);
   const dated=course.assignments.filter(a=>a.date&&!isNaN(parseFloat(a.rawScore))&&!a.zeroPoint&&a.pctOfGrade!==0)
     .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   if(dated.length<2)return [];
@@ -2796,7 +2818,7 @@ function courseSparkline(course){
   const running={};// componentName → {scores:[], weight}
   for(const a of dated){
     const cn=a.componentName||'AKS Progress*';
-    if(!running[cn])running[cn]={scores:[],weight:a.componentWeight||(DEFAULT_WEIGHTS[cn]||null)};
+    if(!running[cn])running[cn]={scores:[],weight:a.componentWeight||(kw[cn]||null)};
     running[cn].scores.push(parseFloat(a.rawScore));
     // compute weighted avg at this point
     const comps=Object.keys(running);
@@ -2995,7 +3017,7 @@ function renderGrades(root){
         const cg=el('div','gr-comp');
         const chd=el('div','gr-comp-hd');
         chd.appendChild(el('span','',cn));
-        const wt=DEFAULT_WEIGHTS[cn]?Math.round(DEFAULT_WEIGHTS[cn]*100)+'%':'';
+        const ckw=kidWeights(course.kidId);const wt=ckw[cn]?Math.round(ckw[cn]*100)+'%':'';
         const compCalc=calc.components[cn];
         const avg=compCalc&&compCalc.avg!=null?Math.round(compCalc.avg*10)/10:'';
         chd.appendChild(el('span','wt',(wt?wt+' · ':'')+byComp[cn].length+' items'+(avg?' · Avg '+avg:'')));
@@ -3172,7 +3194,7 @@ async function saveGrade(){
     rawScore:scale==='ESNU'?score:parseFloat(score),
     date:$('gr-f-date').value||null,
     componentName:comp,
-    componentWeight:DEFAULT_WEIGHTS[comp]||null,
+    componentWeight:kidWeights($('gr-f-kid-val').value)[comp]||null,
     scale,teacher:$('gr-f-teacher').value||'',
     courseId:GRADE_EDIT_ID?undefined:($('gr-f-course-sel').value||undefined),
     type:'assignment',source:'manual'
@@ -3245,7 +3267,7 @@ async function saveCourse(){
     term:$('crs-f-term').value.trim()||'Sem1',
     scale:$('crs-f-scale').value,
     defaultComponent:$('crs-f-comp').value,
-    defaultWeight:DEFAULT_WEIGHTS[$('crs-f-comp').value]||null,
+    defaultWeight:kidWeights($('crs-f-kid').value)[($('crs-f-comp').value)]||null,
     active:true
   };
   if(COURSE_EDIT_ID)obj.id=COURSE_EDIT_ID;
@@ -3785,6 +3807,38 @@ function renderSettings(root){
     line('Last import',el('span',null,DATA.settings.lastImportAt?shortWhen(DATA.settings.lastImportAt):'never')),
     line('Undo last import',mkBtn(lastImp?'Undo':'Nothing to undo',()=>requestUndo()))
   ]);
+  // weight profiles per kid
+  const wpLines=[];
+  const kids=Object.values(DATA.kids||{}).filter(k=>!k.deleted);
+  for(const kid of kids){
+    const cur=kid.weightProfile||'elementary';
+    const label=typeof cur==='string'?cur:(cur.progress!=null?Math.round(cur.progress*100)+'/'+Math.round(cur.mastery*100):'custom');
+    const sel=document.createElement('select');sel.style.fontSize='13px';sel.style.background='var(--card)';sel.style.color='var(--text)';sel.style.border='1px solid var(--border)';sel.style.borderRadius='6px';sel.style.padding='4px 8px';
+    [['elementary','Elementary (55/45)'],['middle','Middle (40/60)'],['custom','Custom…']].forEach(([v,t])=>{
+      const o=document.createElement('option');o.value=v;o.textContent=t;
+      if(typeof cur==='string'&&v===cur)o.selected=true;
+      if(typeof cur==='object'&&v==='custom')o.selected=true;
+      sel.appendChild(o);
+    });
+    const kidId=kid.kidId;
+    sel.addEventListener('change',()=>{
+      if(sel.value==='custom'){
+        const inp=prompt('Enter Progress/Mastery weights as two numbers (e.g. 50/50 or 35/65):');
+        if(!inp)return;
+        const m=inp.match(/(\d+)\D+(\d+)/);
+        if(!m){toast('Format: 55/45','error');return}
+        const p=parseInt(m[1])/100,ma=parseInt(m[2])/100;
+        if(Math.abs(p+ma-1)>0.02){toast('Weights should sum to ~100%','error');return}
+        upsert('kids',{id:kid.id,weightProfile:{progress:p,mastery:ma}});
+        toast(kidId+' → '+m[1]+'/'+m[2],'success');renderView();
+      }else{
+        upsert('kids',{id:kid.id,weightProfile:sel.value});
+        toast(kidId+' → '+sel.value,'success');renderView();
+      }
+    });
+    wpLines.push(line(kidId+' weighting',sel));
+  }
+  if(wpLines.length)grp('Grade weights',wpLines);
   // backups
   grp('Backups',[
     line('Last backup',el('span',null,DATA.settings.lastBackupAt?DATA.settings.lastBackupAt.slice(0,16).replace('T',' ')+' UTC':'never')),
@@ -3929,7 +3983,7 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   toggleExportMode,toggleExportSel,selectAllExportable,doExport,setExportFilter,needsPush,exportableList,
   // Phase 2c grades + course registry + year-end wipe + Phase 3 dashboard
   liveGrades,gradeCourses,computeCourseAvg,whatIfScore,addGrade,updateGrade,removeGrade,setCourseAvg,
-  gradeColor,esnuColor,DEFAULT_WEIGHTS,GRADE_THRESHOLDS,
+  gradeColor,esnuColor,DEFAULT_WEIGHTS,WEIGHT_PROFILES,kidWeights,GRADE_THRESHOLDS,
   liveCourses,addCourse,updateCourse,removeCourse,
   wipePreview,performWipe,kidSummary,courseSparkline,
   openGradeImport,giParseAndPreview,giCommit,
