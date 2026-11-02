@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.4.2 | 2026-11-01 -->
+<!-- ApexTrack — Family School Tracker | v0.5.1 | 2026-11-01 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -337,6 +337,44 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .busy-spin{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--both-txt);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .busy-msg{font-size:14px;color:var(--text2);font-weight:600;text-align:center}
+/* ───────── Phase 3: per-kid summary dashboard ───────── */
+.dash-panel{margin:8px 16px;padding:12px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--card)}
+.dash-panel.dash-av{border-left:3px solid var(--av-bar)}
+.dash-panel.dash-iv{border-left:3px solid var(--iv-bar)}
+.dash-hd{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.dash-avg{font-family:var(--cond);font-size:18px;font-weight:700}
+.dash-avg.green{color:#34d399}.dash-avg.amber{color:#fbbf24}.dash-avg.red{color:#f87171}
+.dash-body{font-size:13px;color:var(--text2);display:flex;flex-direction:column;gap:3px}
+.dash-row{color:var(--text)}
+.dash-row.weak{color:var(--text2)}
+.dash-flag{font-weight:600;font-size:12.5px}
+.dash-flag.red{color:#f87171}.dash-flag.amber{color:#fbbf24}
+.dash-esnu{font-size:12px;color:var(--text3);margin-top:2px}
+/* ───────── wipe preview ───────── */
+.wipe-preview{font-size:13px;color:var(--text2);margin:12px 0}
+.wipe-preview .wp-sect{margin-bottom:8px}
+.wipe-preview .wp-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:700;margin-bottom:3px}
+.wipe-preview .wp-row{padding:2px 0;display:flex;justify-content:space-between}
+.wipe-preview .wp-row .cnt{font-family:var(--mono);font-size:12px}
+.wipe-preview .wp-row.red{color:#fca5a5}
+.wipe-preview .wp-row.green{color:#6ee7b7}
+/* ───────── sparkline ───────── */
+.sparkline-wrap{padding:8px 14px 4px;border-bottom:1px solid var(--border)}
+.sparkline-hd{font-size:11px;color:var(--text3);margin-bottom:4px;display:flex;justify-content:space-between}
+.sparkline-svg{width:100%;height:48px;display:block}
+/* ───────── AKS/ESNU explainer ───────── */
+.explainer{margin:0 16px 8px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.explainer-toggle{display:flex;align-items:center;gap:6px;width:100%;padding:10px 14px;background:var(--card);border:none;color:var(--text2);font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.explainer-toggle i{font-size:16px;color:var(--text3);transition:transform .15s}
+.explainer-toggle.open i.ti-chevron-down{transform:rotate(180deg)}
+.explainer-body{display:none;padding:10px 14px;background:var(--surface);font-size:12.5px;color:var(--text2);line-height:1.6}
+.explainer-body.show{display:block}
+.explainer-body .ex-row{margin-bottom:6px}
+.explainer-body .ex-lbl{font-weight:700;color:var(--text)}
+.explainer-body .ex-pct{font-family:var(--mono);font-size:11px;color:var(--text3)}
+/* ───────── zero-point assignments ───────── */
+.gr-asgn.zero-pt{opacity:.55}
+.zp-badge{display:inline-block;font-size:9px;font-weight:700;color:var(--text3);background:var(--border);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle}
 /* ───────── Phase 2c: grades ───────── */
 .gr-head{padding:6px 16px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .gr-kid-seg{display:flex;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:2px}
@@ -758,7 +796,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.4.2';
+const APP_VERSION='v0.5.1';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -2564,11 +2602,13 @@ function gradeCourses(kidFilter){
   });
 }
 
-/** Compute running weighted average for a course (numeric-100 scale only) */
+/** Compute running weighted average for a course (numeric-100 scale only).
+    Assignments with zeroPoint:true or pctOfGrade===0 are excluded (portal doesn't count them). */
 function computeCourseAvg(course){
   if(course.scale==='ESNU')return {avg:null,components:{},estimated:false};
   const comps={}; // componentName → {scores:[], weight}
   for(const a of course.assignments){
+    if(a.zeroPoint||a.pctOfGrade===0)continue; // zero-weight: shows in gradebook but doesn't count
     const cn=a.componentName||'AKS Progress*';
     if(!comps[cn])comps[cn]={scores:[],weight:a.componentWeight||(DEFAULT_WEIGHTS[cn]||null),name:cn};
     const s=parseFloat(a.rawScore);
@@ -2674,6 +2714,134 @@ function updateCourse(id,changes){return upsert('courses',Object.assign({id},cha
 function removeCourse(id){return removeRecord('courses',id)}
 
 /* ════════════════════════════════════════════════════
+   YEAR-END WIPE (spec §11)
+   Deletes: items, events, tombstones from the school year.
+   Keeps: grades (permanent), courses, kid profiles, settings, backups.
+   Sets lastWipeAt → stale-tab edits silently discarded on merge.
+════════════════════════════════════════════════════ */
+function wipePreview(){
+  if(!DATA)return null;
+  const wipe={items:0,events:0,tombstones:0};
+  const keep={grades:0,courses:0,kids:0,backups:0};
+  for(const id of Object.keys(DATA.items||{})){
+    const r=DATA.items[id];
+    if(r.deleted)wipe.tombstones++;else wipe.items++;
+  }
+  for(const id of Object.keys(DATA.events||{})){
+    const r=DATA.events[id];
+    if(r.deleted)wipe.tombstones++;else wipe.events++;
+  }
+  keep.grades=Object.values(DATA.grades||{}).filter(g=>!g.deleted).length;
+  keep.courses=Object.values(DATA.courses||{}).filter(c=>!c.deleted).length;
+  keep.kids=Object.values(DATA.kids||{}).filter(k=>!k.deleted).length;
+  keep.backups=Object.values(DATA.backups||{}).filter(b=>!b.deleted).length;
+  return {wipe,keep,total:wipe.items+wipe.events+wipe.tombstones};
+}
+async function performWipe(){
+  assertWritable();
+  const t=iso();
+  // wipe items
+  for(const id of Object.keys(DATA.items||{}))delete DATA.items[id];
+  // wipe events
+  for(const id of Object.keys(DATA.events||{}))delete DATA.events[id];
+  // set epoch
+  DATA.settings.lastWipeAt=t;DATA.settings.updatedAt=t;DATA.settings.lastImportJournal=null;DATA.settings.lastImportAt=null;
+  mutationSeq++;
+  return requestSave();
+}
+
+/* ════════════════════════════════════════════════════
+   PER-KID SUMMARY DASHBOARD (Phase 3)
+   At-a-glance: overall weighted avg, strongest/weakest, at-risk, ESNU summary.
+════════════════════════════════════════════════════ */
+function kidSummary(kidId){
+  const courses=gradeCourses(kidId);
+  if(!courses.length)return null;
+  const numeric=[];const esnu=[];
+  for(const c of courses){
+    if(c.scale==='ESNU'){
+      const marks={E:0,S:0,N:0,U:0};
+      for(const a of c.assignments){const m=(a.rawScore||'')[0];if(marks[m]!=null)marks[m]++}
+      esnu.push({course:c.course||c.courseCode,marks});
+    }else{
+      const calc=computeCourseAvg(c);
+      if(calc.avg!=null)numeric.push({course:c.course||c.courseCode,avg:calc.avg,officialAvg:c.officialAvg,period:c.period});
+    }
+  }
+  if(!numeric.length&&!esnu.length)return null;
+  let overallAvg=null;
+  if(numeric.length){
+    overallAvg=Math.round(numeric.reduce((s,c)=>s+c.avg,0)/numeric.length*100)/100;
+  }
+  const sorted=[...numeric].sort((a,b)=>b.avg-a.avg);
+  const strongest=sorted.length?sorted[0]:null;
+  const weakest=sorted.length>1?sorted[sorted.length-1]:null;
+  const atRisk=numeric.filter(c=>c.avg<GRADE_THRESHOLDS.amber);
+  const amber=numeric.filter(c=>c.avg>=GRADE_THRESHOLDS.amber&&c.avg<GRADE_THRESHOLDS.green);
+  const esnuRisk=esnu.filter(c=>c.marks.N>0||c.marks.U>0);
+  return {overallAvg,strongest,weakest,atRisk,amber,esnuRisk,esnuSummary:esnu,numericCount:numeric.length,courses:numeric};
+}
+
+/* ════════════════════════════════════════════════════
+   SPARKLINE — running average over time per course
+   Returns array of {date, runningAvg} points sorted chronologically.
+   Each point is the weighted average of ALL assignments up to that date.
+════════════════════════════════════════════════════ */
+function courseSparkline(course){
+  if(course.scale==='ESNU'||!course.assignments.length)return [];
+  const dated=course.assignments.filter(a=>a.date&&!isNaN(parseFloat(a.rawScore))&&!a.zeroPoint&&a.pctOfGrade!==0)
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  if(dated.length<2)return [];
+  const points=[];
+  const running={};// componentName → {scores:[], weight}
+  for(const a of dated){
+    const cn=a.componentName||'AKS Progress*';
+    if(!running[cn])running[cn]={scores:[],weight:a.componentWeight||(DEFAULT_WEIGHTS[cn]||null)};
+    running[cn].scores.push(parseFloat(a.rawScore));
+    // compute weighted avg at this point
+    const comps=Object.keys(running);
+    const hasWeights=comps.every(c=>running[c].weight!=null);
+    let avg;
+    if(hasWeights){
+      let total=0,tw=0;
+      for(const c of comps){const r=running[c];if(!r.scores.length)continue;const ca=r.scores.reduce((s,v)=>s+v,0)/r.scores.length;total+=ca*r.weight;tw+=r.weight}
+      avg=tw>0?total/tw:null;
+    }else{
+      const all=[];for(const c of comps)all.push(...running[c].scores);
+      avg=all.length?all.reduce((s,v)=>s+v,0)/all.length:null;
+    }
+    if(avg!=null)points.push({date:a.date.slice(0,10),avg:Math.round(avg*100)/100});
+  }
+  return points;
+}
+function renderSparkline(points,width,height){
+  if(points.length<2)return null;
+  const minY=Math.min(...points.map(p=>p.avg));
+  const maxY=Math.max(...points.map(p=>p.avg));
+  const padY=Math.max((maxY-minY)*0.15,2);
+  const lo=minY-padY,hi=maxY+padY;
+  const n=points.length;
+  const px=i=>(i/(n-1))*width;
+  const py=v=>height-((v-lo)/(hi-lo))*height;
+  // path
+  const pathParts=points.map((p,i)=>(i===0?'M':'L')+px(i).toFixed(1)+','+py(p.avg).toFixed(1));
+  // threshold lines
+  const lines=[];
+  const addThresh=(val,cls)=>{if(val>=lo&&val<=hi){const y=py(val).toFixed(1);lines.push('<line x1="0" y1="'+y+'" x2="'+width+'" y2="'+y+'" stroke="var(--'+cls+')" stroke-width="0.5" stroke-dasharray="3,3" opacity="0.4"/>')}};
+  addThresh(GRADE_THRESHOLDS.green,'green');
+  addThresh(GRADE_THRESHOLDS.amber,'amber');
+  // end dot color
+  const endAvg=points[points.length-1].avg;
+  const dotColor=endAvg>=GRADE_THRESHOLDS.green?'var(--green)':endAvg>=GRADE_THRESHOLDS.amber?'var(--amber)':'var(--red)';
+  const svg='<svg viewBox="0 0 '+width+' '+height+'" class="sparkline-svg" xmlns="http://www.w3.org/2000/svg">'
+    +lines.join('')
+    +'<polyline points="'+points.map((p,i)=>px(i).toFixed(1)+','+py(p.avg).toFixed(1)).join(' ')+'" fill="none" stroke="var(--text2)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>'
+    +'<circle cx="'+px(n-1).toFixed(1)+'" cy="'+py(endAvg).toFixed(1)+'" r="3" fill="'+dotColor+'"/>'
+    +'</svg>';
+  return svg;
+}
+
+/* ════════════════════════════════════════════════════
    GRADES VIEW (v0.4.1)
    Course cards with running averages, expandable assignments,
    what-if calculator. Kid filter (AV/IV/Both).
@@ -2699,6 +2867,55 @@ function renderGrades(root){
   addBtn.addEventListener('click',()=>openGradeEdit(null));bar.appendChild(addBtn);
   head.appendChild(bar);root.appendChild(head);
   const scroll=el('div','view-scroll');
+  // ── per-kid summary dashboard ──
+  const dashKids=GRADE_KID==='all'?['AV','IV']:[GRADE_KID];
+  for(const dk of dashKids){
+    const sum=kidSummary(dk);
+    if(!sum)continue;
+    const panel=el('div','dash-panel dash-'+dk.toLowerCase());
+    const ph=el('div','dash-hd');
+    ph.appendChild(el('span','kb '+dk.toLowerCase(),dk));
+    if(sum.overallAvg!=null){
+      ph.appendChild(el('span','dash-avg '+gradeColor(sum.overallAvg),'Overall: '+Math.round(sum.overallAvg*10)/10));
+    }
+    panel.appendChild(ph);
+    const body=el('div','dash-body');
+    if(sum.strongest){body.appendChild(el('div','dash-row','↑ Strongest: '+sum.strongest.course+' ('+Math.round(sum.strongest.avg*10)/10+')'))}
+    if(sum.weakest&&sum.weakest.course!==sum.strongest?.course){body.appendChild(el('div','dash-row weak','↓ Weakest: '+sum.weakest.course+' ('+Math.round(sum.weakest.avg*10)/10+')'))}
+    if(sum.atRisk.length){
+      for(const c of sum.atRisk)body.appendChild(el('div','dash-flag red','⚠ '+c.course+': '+Math.round(c.avg*10)/10));
+    }
+    if(sum.amber.length){
+      for(const c of sum.amber)body.appendChild(el('div','dash-flag amber','● '+c.course+': '+Math.round(c.avg*10)/10));
+    }
+    if(sum.esnuSummary.length){
+      const es=el('div','dash-esnu');
+      for(const c of sum.esnuSummary){
+        const m=c.marks;const parts=[];
+        if(m.E)parts.push(m.E+'E');if(m.S)parts.push(m.S+'S');if(m.N)parts.push(m.N+'N');if(m.U)parts.push(m.U+'U');
+        es.appendChild(el('div','',c.course+': '+parts.join(' ')));
+      }
+      body.appendChild(es);
+    }
+    if(sum.esnuRisk.length){
+      for(const c of sum.esnuRisk)body.appendChild(el('div','dash-flag red','⚠ '+c.course+': N/U marks'));
+    }
+    panel.appendChild(body);scroll.appendChild(panel);
+  }
+  // ── AKS/ESNU explainer card ──
+  const exWrap=el('div','explainer');
+  const exBtn=document.createElement('button');exBtn.className='explainer-toggle';
+  exBtn.innerHTML='<i class="ti ti-info-circle" aria-hidden="true"></i> How grades work (AKS / ESNU) <i class="ti ti-chevron-down" aria-hidden="true"></i>';
+  const exBody=el('div','explainer-body');
+  exBody.innerHTML='<div class="ex-row"><span class="ex-lbl">AKS Progress*</span> <span class="ex-pct">~55%</span> — Classwork, quizzes, homework, labs, formative assessments. Each assignment weighted equally within the component.</div>'
+    +'<div class="ex-row"><span class="ex-lbl">AKS Mastery*</span> <span class="ex-pct">~45%</span> — Tests, unit assessments, writing tasks. Each assignment weighted equally within the component.</div>'
+    +'<div class="ex-row"><span class="ex-lbl">MidYr/EOY*</span> <span class="ex-pct">~5%</span> — Mid-year and end-of-year assessments. Elementary only, not all subjects.</div>'
+    +'<div class="ex-row"><span class="ex-lbl">ESNU</span> — Non-academic subjects (Visual Arts, Health, Computer Science). E\u00a0=\u00a0Exceeding, S\u00a0=\u00a0Satisfactory, N\u00a0=\u00a0Needs Improvement, U\u00a0=\u00a0Unsatisfactory. No numeric average.</div>'
+    +'<div class="ex-row" style="color:var(--text3);font-size:11.5px">Gwinnett County district-wide system. Semester averages are the course-final grade. "Interim" assessments count as AKS Progress*, not a separate component.</div>';
+  exBtn.addEventListener('click',()=>{exBtn.classList.toggle('open');exBody.classList.toggle('show')});
+  exWrap.appendChild(exBtn);exWrap.appendChild(exBody);
+  scroll.appendChild(exWrap);
+
   const courses=gradeCourses(GRADE_KID);
   if(!courses.length){
     const e=el('div','empty');e.innerHTML='<i class="ti ti-school" aria-hidden="true"></i>';
@@ -2760,6 +2977,17 @@ function renderGrades(root){
         body.appendChild(row);
       }
     }else{
+      // sparkline (progress over time)
+      const sparkPts=courseSparkline(course);
+      if(sparkPts.length>=2){
+        const sw=el('div','sparkline-wrap');
+        const shd=el('div','sparkline-hd');
+        shd.appendChild(el('span','',sparkPts[0].date));shd.appendChild(el('span','',sparkPts[sparkPts.length-1].date));
+        sw.appendChild(shd);
+        const svgWrap=document.createElement('div');svgWrap.innerHTML=renderSparkline(sparkPts,200,48);
+        sw.appendChild(svgWrap);
+        body.appendChild(sw);
+      }
       // group by component
       const byComp={};
       for(const a of course.assignments){const cn=a.componentName||'AKS Progress*';(byComp[cn]=byComp[cn]||[]).push(a)}
@@ -2774,9 +3002,12 @@ function renderGrades(root){
         cg.appendChild(chd);
         const sorted=byComp[cn].sort((x,y)=>(x.date||'').localeCompare(y.date||''));
         for(const a of sorted){
-          const row=el('div','gr-asgn');
+          const isZP=!!(a.zeroPoint||a.pctOfGrade===0);
+          const row=el('div','gr-asgn'+(isZP?' zero-pt':''));
           row.appendChild(el('span','asgn-date',a.date?shortDate(a.date):''));
-          row.appendChild(el('span','asgn-name',a.assignmentName||'(untitled)'));
+          const nameEl=el('span','asgn-name',a.assignmentName||'(untitled)');
+          if(isZP){const zBadge=el('span','zp-badge','0 pt');nameEl.appendChild(zBadge)}
+          row.appendChild(nameEl);
           const s=parseFloat(a.rawScore);
           const sc=el('span','asgn-score '+gradeColor(s),isNaN(s)?String(a.rawScore||''):String(s));row.appendChild(sc);
           const eb=el('button','asgn-edit');eb.innerHTML='<i class="ti ti-pencil"></i>';eb.addEventListener('click',e=>{e.stopPropagation();openGradeEdit(a)});row.appendChild(eb);
@@ -3116,7 +3347,8 @@ function giParseAndPreview(){
       const match=existingGrades.find(eg=>eg.kidId===g.kidId&&eg.course===g.course&&eg.assignmentName===g.assignmentName&&eg.date===g.date&&eg.componentName===g.componentName);
       if(match){
         const scoreChanged=String(match.rawScore)!==String(g.rawScore);
-        if(scoreChanged){preview.grades.push({status:'update',rec:g,existingId:match.id});preview.stats.gradesUpdate++}
+        const zpChanged=!!match.zeroPoint!==!!g.zeroPoint||(match.pctOfGrade===0)!==(g.pctOfGrade===0);
+        if(scoreChanged||zpChanged){preview.grades.push({status:'update',rec:g,existingId:match.id});preview.stats.gradesUpdate++}
         else{preview.grades.push({status:'skip',rec:g});preview.stats.gradesSkip++}
       }else{preview.grades.push({status:'new',rec:g});preview.stats.gradesNew++}
     }
@@ -3226,7 +3458,10 @@ async function giCommit(){
       if(g.status==='new'){
         addGrade(Object.assign({type:'assignment',source:'import'},g.rec));
       }else if(g.status==='update'){
-        updateGrade(g.existingId,{rawScore:g.rec.rawScore,source:'import'});
+        const upd={rawScore:g.rec.rawScore,source:'import'};
+        if(g.rec.zeroPoint!=null)upd.zeroPoint=g.rec.zeroPoint;
+        if(g.rec.pctOfGrade!=null)upd.pctOfGrade=g.rec.pctOfGrade;
+        updateGrade(g.existingId,upd);
       }
     }
     // 3. import portal averages
@@ -3492,6 +3727,45 @@ function editWithScope(id,instanceDate){
   });
 }
 /* settings view */
+function openWipePreview(){
+  const p=wipePreview();
+  if(!p)return toast('No data loaded','error');
+  if(p.total===0)return toast('Nothing to wipe — items and events are already empty.','info');
+  // build confirmation dialog content
+  const msg=document.createElement('div');msg.className='wipe-preview';
+  const addSect=(lbl,rows,cls)=>{
+    const s=document.createElement('div');s.className='wp-sect';
+    s.appendChild(el('div','wp-lbl',lbl));
+    for(const [name,count] of rows){
+      const r=document.createElement('div');r.className='wp-row'+(cls?' '+cls:'');
+      r.appendChild(el('span','',name));r.appendChild(el('span','cnt',String(count)));
+      s.appendChild(r);
+    }
+    msg.appendChild(s);
+  };
+  addSect('Will be deleted',[['Items',p.wipe.items],['Events',p.wipe.events],['Tombstones',p.wipe.tombstones]],'red');
+  addSect('Will survive',[['Grades',p.keep.grades],['Courses',p.keep.courses],['Kid profiles',p.keep.kids],['Backups',p.keep.backups]],'green');
+  // use the confirm dialog
+  const title='Year-end wipe';
+  const body='This will permanently delete '+p.total+' items/events and set the wipe epoch. Grades, courses, kids, and backups are kept. A backup will be taken first.';
+  pendingWipeConfirm=true;
+  confirmDialog(title,body,async()=>{
+    pendingWipeConfirm=false;
+    busy('Taking pre-wipe backup…');
+    try{await backupNow('pre-wipe')}catch(e){busyDone();toast('Backup failed — wipe cancelled: '+errMsg(e),'error');return}
+    busy('Wiping items and events…');
+    try{
+      const r=await performWipe();
+      busyDone();
+      if(r.ok)toast('Year-end wipe complete. '+p.total+' records deleted.','success');
+      else toast('Wipe saved locally but sync issue: '+r.message,'warning');
+    }catch(e){busyDone();toast('Wipe failed: '+errMsg(e),'error')}
+    renderView();
+  },'Wipe everything','danger');
+  // inject the preview into the confirm dialog body
+  const cm=$('confirm-msg');if(cm){cm.textContent='';cm.appendChild(document.createTextNode(body));cm.appendChild(msg)}
+}
+let pendingWipeConfirm=false;
 function renderSettings(root){
   const head=el('div','view-head');head.appendChild(el('div','view-title','Settings'));root.appendChild(head);
   const s=el('div','view-scroll');s.style.padding='16px';s.style.paddingBottom='88px';
@@ -3523,6 +3797,10 @@ function renderSettings(root){
     line('Re-pick shared files',mkBtn('Re-pick',()=>show('setup'))),
     line('Grant Backups folder',mkBtn('Grant',()=>doPickBackupsFolder())),
     line('Check access',mkBtn('Check',async()=>{busy('Checking access\u2026');await probeAccess();busyDone();const p=lastProbe;toast(p&&p.lock.ok&&p.backups.ok?'Access looks good':'Access check — see details','info')}))
+  ]);
+  // year-end wipe
+  grp('Year-end wipe',[
+    line('Wipe items + events',mkBtn('Preview wipe…',()=>openWipePreview(),'danger'))
   ]);
   grp('About',[
     line('Version',el('span',null,APP_NAME+' '+APP_VERSION)),
@@ -3649,10 +3927,11 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   fmtTime,kidColorFor,weekItems,
   buildIcsEvent,buildIcsFile,icsUid,icsDateVal,icsRRule,icsExdate,markPushed,flagChangedSincePush,
   toggleExportMode,toggleExportSel,selectAllExportable,doExport,setExportFilter,needsPush,exportableList,
-  // Phase 2c grades + course registry
+  // Phase 2c grades + course registry + year-end wipe + Phase 3 dashboard
   liveGrades,gradeCourses,computeCourseAvg,whatIfScore,addGrade,updateGrade,removeGrade,setCourseAvg,
   gradeColor,esnuColor,DEFAULT_WEIGHTS,GRADE_THRESHOLDS,
   liveCourses,addCourse,updateCourse,removeCourse,
+  wipePreview,performWipe,kidSummary,courseSparkline,
   openGradeImport,giParseAndPreview,giCommit,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
   get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER,GRADE_KID}),
