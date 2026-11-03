@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.6.2 | 2026-11-02 -->
+<!-- ApexTrack — Family School Tracker | v0.7.0 | 2026-11-02 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -254,10 +254,14 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .tabbar button i{font-size:20px}
 .tabbar button.active{color:var(--both-txt)}
 .tabbar button.soon{color:#556677}
-/* detail view */
-.detail-head{display:flex;align-items:center;gap:10px;padding:13px 16px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
-.detail-head .dt-title{font-family:var(--cond);font-size:19px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.detail-scroll{padding:16px;overflow-y:auto;padding-bottom:88px}
+/* item modal (replaces detail pane) */
+.modal-wrap{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55)}
+.modal-wrap.open{display:flex;align-items:flex-end;justify-content:center}
+.item-modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px 16px 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;padding:12px 16px 24px}
+.item-modal .handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:2px auto 14px}
+.modal-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.modal-head .mt-title{font-family:var(--cond);font-size:21px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modal-head .mt-actions{display:flex;gap:4px;align-items:center;flex-shrink:0}
 .det-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
 .det-school{font-size:13px;color:var(--text2)}
 .pb{display:inline-flex;align-items:center;padding:3px 9px;border-radius:5px;font-size:12px;font-weight:600}
@@ -273,6 +277,20 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .det-actions .btn{margin-top:0;flex:1;min-width:120px}
 .det-edit-row{display:flex;gap:9px}
 .det-edit-row .btn{margin-top:0}
+/* data hub modal */
+.data-hub-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);margin-bottom:8px;cursor:pointer}
+.data-hub-row:hover{border-color:var(--border2);background:var(--card2)}
+.data-hub-row:last-child{margin-bottom:0}
+.dh-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.dh-icon.imp{background:rgba(55,138,221,.15);color:var(--iv-txt)}
+.dh-icon.exp{background:rgba(29,158,117,.15);color:var(--both-txt)}
+.dh-label{font-size:14px;font-weight:600;color:var(--text)}
+.dh-sub{font-size:12px;color:var(--text3);margin-top:1px}
+.dh-chev{margin-left:auto;font-size:18px;color:var(--text3);flex-shrink:0}
+/* data button in top bar */
+.data-btn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;white-space:nowrap}
+.data-btn:hover{background:var(--card);border-color:var(--border2)}
+.data-btn i{font-size:16px}
 .msg-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:8px}
 .msg-hd{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:10px;padding-bottom:9px;border-bottom:1px solid var(--border)}
 .msg-hd .s{font-size:13px;font-weight:600;color:var(--text2)}
@@ -515,14 +533,13 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   .week-head{flex-direction:row;align-items:center;justify-content:space-between}
   .seg{display:inline-flex}
   .stale-inline{flex-basis:auto;margin-left:auto;margin-top:0}
-  .main-col{flex-direction:row}
-  .center-col{flex:1;min-width:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-  .detail-col{width:360px;flex-shrink:0;overflow-y:auto}
-  .detail-col .detail-head{display:none}
+  .center-col{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
   .sheet-wrap.open{align-items:center}
   .sheet{border-radius:16px;max-height:86vh}
   .sheet .handle{display:none}
-  .detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px;padding:24px;text-align:center}
+  .modal-wrap.open{align-items:center;justify-content:center}
+  .item-modal{border-radius:16px;max-height:86vh;max-width:520px}
+  .item-modal .handle{display:none}
 }
 @media(min-width:860px) and (max-width:1099px){
   .topnav .nav .nav-l{display:none}
@@ -533,12 +550,8 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   .cal-grid,.wk-grid,.cal-dow-d{display:none}
   .cal-mgrid,.cal-wk-mob{display:grid}
   .cal-dow-m{display:grid}
-                     /* the floating button covers Add on phones */
   .center-col .chips-row{padding-top:0}
-  .detail-col{display:none;position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto}
-  .detail-col.open{display:block}
-  .detail-empty{display:none}
-  .app-body.in-detail .center-col{display:none}
+  .data-btn .db-label{display:none}
 }
 </style>
 </head>
@@ -609,6 +622,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
     <nav class="topnav" id="topnav" aria-label="Main"></nav>
     <div class="top-right">
       <button class="icon-btn accent" id="btn-nav-add" type="button" aria-label="Add item"><i class="ti ti-plus" aria-hidden="true"></i></button>
+      <button class="data-btn" id="btn-data" type="button" aria-label="Data hub"><i class="ti ti-transfer-vertical" aria-hidden="true"></i><span class="db-label">Data</span></button>
       <button class="me" id="btn-me" type="button" aria-label="Account menu" aria-haspopup="menu"><span class="avatar" id="app-avatar"></span><span class="me-name" id="me-name"></span><i class="ti ti-chevron-down me-chev" aria-hidden="true"></i></button>
     </div>
   </div>
@@ -617,11 +631,23 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
       <div class="center-col">
         <div id="view-root"></div>
       </div>
-      <div class="detail-col" id="detail-col"><div class="detail-empty">Select an item to see its details.</div></div>
     </div>
   </div>
   <button class="fab" id="fab-add" type="button" aria-label="Add item"><i class="ti ti-plus" aria-hidden="true"></i></button>
   <div class="tabbar" id="tabbar"></div>
+</div></div>
+
+<!-- item detail modal -->
+<div class="modal-wrap" id="modal-item"><div class="item-modal" id="modal-item-body">
+  <div class="handle"></div>
+  <div id="modal-item-content"></div>
+</div></div>
+
+<!-- data hub modal -->
+<div class="modal-wrap" id="modal-data"><div class="item-modal" id="modal-data-body">
+  <div class="handle"></div>
+  <div class="modal-head"><span class="mt-title">Data</span><button class="icon-btn" id="data-hub-close" type="button" aria-label="Close"><i class="ti ti-x" aria-hidden="true"></i></button></div>
+  <div id="data-hub-rows"></div>
 </div></div>
 
 <!-- quick-add / edit sheet -->
@@ -782,10 +808,15 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
     </select>
   </div>
   <div id="crs-f-wt-custom" style="display:none">
-    <div class="fld-2">
+    <div class="fld-2" style="margin-bottom:8px">
       <div class="fld"><label>Progress %</label><input id="crs-f-wt-prog" type="number" min="0" max="100" value="55"></div>
       <div class="fld"><label>Mastery %</label><input id="crs-f-wt-mast" type="number" min="0" max="100" value="45"></div>
     </div>
+    <div class="fld-2">
+      <div class="fld"><label>MidYr/EOY %</label><input id="crs-f-wt-midyreoy" type="number" min="0" max="100" value="0"></div>
+      <div class="fld"><label style="color:var(--text3)">Total</label><div id="crs-f-wt-total" style="padding:10px 12px;font-size:16px;font-weight:600;color:var(--text)">100%</div></div>
+    </div>
+    <div id="crs-f-wt-err" style="display:none;font-size:12px;color:#fca5a5;margin-top:4px"></div>
   </div>
   <div class="sheet-actions">
     <button class="btn danger" id="crs-delete-btn" type="button" style="display:none;flex:0 0 auto;width:auto;padding:6px 14px">Delete</button>
@@ -812,6 +843,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
     <div class="fld"><label>Kid</label><select id="gx-kid"></select></div>
     <div class="fld"><label>Term</label><select id="gx-term"></select></div>
   </div>
+  <div class="fld" style="display:flex;align-items:center;gap:8px;flex-direction:row;margin-bottom:10px"><input id="gx-charts" type="checkbox" style="width:auto" checked><label for="gx-charts" style="margin:0;font-size:13px">Include progress charts</label></div>
   <div id="gx-preview" class="gx-preview"></div>
   <div class="sheet-actions">
     <button class="btn" id="gx-cancel" type="button">Cancel</button>
@@ -879,7 +911,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.6.2';
+const APP_VERSION='v0.7.0';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -2223,8 +2255,6 @@ function renderMenu(){
   const nm=el('div');nm.appendChild(el('div','mh-name',ME&&ME.name?ME.name:''));nm.appendChild(el('div','mh-sub','Signed in'));
   hd.appendChild(nm);p.appendChild(hd);
   p.appendChild(menuItem('ti-school','Grades',()=>{closeMenu();setView('grades')},'mob-only'));
-  p.appendChild(menuItem('ti-upload','Import',()=>{closeMenu();openImport()}));
-  p.appendChild(menuItem('ti-calendar-down','Export .ics',()=>{closeMenu();if(VIEW!=='thisweek'&&VIEW!=='todo'&&VIEW!=='critical')setView('todo');toggleExportMode()}));
   p.appendChild(menuItem('ti-settings','Settings',()=>{closeMenu();setView('settings')}));
   p.appendChild(menuItem('ti-lock','Lock now',()=>{closeMenu();lockApp('manual')}));
   p.appendChild(menuItem('ti-logout','Sign out',()=>{closeMenu();signOutGoogle()},'danger'));
@@ -2235,7 +2265,7 @@ function initialsOf(name){if(!name)return '?';const p=String(name).trim().split(
 function setView(v){
   if(v==='import'){openImport();return}     // Import is a sheet, not a view — the screen underneath stays put
   if(v==='calendar'&&!CAL_YEAR)calInit();
-  VIEW=v;DETAIL_ID=null;const ab=$('app-body');if(ab)ab.classList.remove('in-detail');const dc=$('detail-col');if(dc)dc.classList.remove('open');
+  VIEW=v;DETAIL_ID=null;closeDetail();
   renderShell();renderView();
 }
 function renderView(){
@@ -2362,59 +2392,93 @@ async function toggleItem(it){
   const open=it.status!=='done';
   try{
     setStatus('items',it.id,open?'done':'open');  // mutates locally (sync) then saves in background — no await
-    renderView();if(DETAIL_ID===it.id)renderDetail();
+    renderView();if(DETAIL_ID===it.id)renderItemModal();
     toast(open?'Marked done':'Reopened','success');
   }catch(e){toast(errMsg(e),'error')}
 }
 
-/* detail view */
+/* item detail modal (replaces detail pane) */
 let _detailEntry=null;
-function openDetail(id,entry){_detailEntry=entry||null;DETAIL_ID=id;const ab=$('app-body');if(ab)ab.classList.add('in-detail');const dc=$('detail-col');if(dc)dc.classList.add('open');renderDetail()}
-function closeDetail(){DETAIL_ID=null;const ab=$('app-body');if(ab)ab.classList.remove('in-detail');const dc=$('detail-col');if(dc)dc.classList.remove('open');}
-function renderDetail(){
-  const dc=$('detail-col');if(!dc)return;dc.textContent='';
+function openDetail(id,entry){
+  _detailEntry=entry||null;DETAIL_ID=id;renderItemModal();
+  const w=$('modal-item');if(w)w.classList.add('open');
+}
+function closeDetail(){DETAIL_ID=null;const w=$('modal-item');if(w)w.classList.remove('open')}
+function renderDetail(){renderItemModal()}
+function renderItemModal(){
+  const c=$('modal-item-content');if(!c)return;c.textContent='';
   const it=DETAIL_ID&&(DATA.items[DETAIL_ID]||DATA.events[DETAIL_ID]);
-  if(!it||it.deleted){dc.innerHTML='<div class="detail-empty">Select an item to see its details.</div>';return}
-  const head=el('div','detail-head');
-  const back=el('button','icon-btn');back.innerHTML='<i class="ti ti-arrow-left" aria-hidden="true"></i>';back.addEventListener('click',closeDetail);
-  head.appendChild(back);head.appendChild(el('div','dt-title',it.title||'(untitled)'));dc.appendChild(head);
-  const s=el('div','detail-scroll');
+  if(!it||it.deleted){closeDetail();return}
+  // header with title + trash + close
+  const head=el('div','modal-head');
+  head.appendChild(el('span','mt-title',it.title||'(untitled)'));
+  const acts=el('div','mt-actions');
+  const trashB=el('button','icon-btn');trashB.innerHTML='<i class="ti ti-trash" aria-hidden="true" style="color:var(--red)"></i>';
+  trashB.setAttribute('aria-label','Delete');
+  trashB.addEventListener('click',()=>deleteItem(it.id,_detailEntry&&_detailEntry.instanceDate));
+  acts.appendChild(trashB);
+  const closeB=el('button','icon-btn');closeB.innerHTML='<i class="ti ti-x" aria-hidden="true"></i>';
+  closeB.setAttribute('aria-label','Close');closeB.addEventListener('click',closeDetail);
+  acts.appendChild(closeB);
+  head.appendChild(acts);c.appendChild(head);
+  // meta row
   const meta=el('div','det-meta');meta.appendChild(kidBadge(it));
   const pb=el('span','pb '+(it.priority==='Critical'?'crit':it.priority==='Action'?'act':'info'),it.priority);meta.appendChild(pb);
-  meta.appendChild(el('span','det-school',kidSchool(it)));s.appendChild(meta);
-  if(hasDate(it)){const dd=el('div','det-date');dd.innerHTML='<i class="ti ti-calendar" aria-hidden="true"></i>';dd.appendChild(document.createTextNode(fmtDate(it)));s.appendChild(dd)}
-  if(it.needsSource){const w=el('div','det-date');w.style.borderColor='var(--crit-tint)';w.innerHTML='<i class="ti ti-link" aria-hidden="true" style="color:var(--crit-txt)"></i>';w.appendChild(document.createTextNode('Needs source: '+(it.needsSourceReason||'source not in the message')));s.appendChild(w)}
+  meta.appendChild(el('span','det-school',kidSchool(it)));c.appendChild(meta);
+  // date
+  if(hasDate(it)){const dd=el('div','det-date');dd.innerHTML='<i class="ti ti-calendar" aria-hidden="true"></i>';dd.appendChild(document.createTextNode(fmtDate(it)));c.appendChild(dd)}
+  // needs-source badge
+  if(it.needsSource){const w=el('div','det-date');w.style.borderColor='var(--crit-tint)';w.innerHTML='<i class="ti ti-link" aria-hidden="true" style="color:var(--crit-txt)"></i>';w.appendChild(document.createTextNode('Needs source: '+(it.needsSourceReason||'source not in the message')));c.appendChild(w)}
+  // push status badge
   if(it.pushedToCalendar){
     const pw=el('div','det-date');pw.style.borderColor=it.changedSincePushed?'var(--act-tint)':'var(--both-tint)';
     pw.innerHTML=it.changedSincePushed?'<i class="ti ti-calendar-bolt" aria-hidden="true" style="color:var(--act-txt)"></i>':'<i class="ti ti-calendar-check" aria-hidden="true" style="color:var(--both-txt)"></i>';
     pw.appendChild(document.createTextNode(it.changedSincePushed?'Changed since last push'+(it.pushedAt?' ('+shortWhen(it.pushedAt)+')':''):'Pushed to calendar'+(it.pushedAt?' · '+shortWhen(it.pushedAt):'')));
-    s.appendChild(pw);
+    c.appendChild(pw);
   }
-  if(it.summary){const sec=el('div','det-sec');sec.appendChild(el('div','lab','Summary'));sec.appendChild(el('div','bod',it.summary));s.appendChild(sec)}
-  if(it.details){const sec=el('div','det-sec');sec.appendChild(el('div','lab','Details'));sec.appendChild(el('div','bod',it.details));s.appendChild(sec)}
-  // actions
-  const acts=el('div','det-actions');
+  // read-only fields
+  if(it.summary){const sec=el('div','det-sec');sec.appendChild(el('div','lab','Summary'));sec.appendChild(el('div','bod',it.summary));c.appendChild(sec)}
+  if(it.details){const sec=el('div','det-sec');sec.appendChild(el('div','lab','Details'));sec.appendChild(el('div','bod',it.details));c.appendChild(sec)}
+  // actions: done/reopen + edit + source-found
+  const dacts=el('div','det-actions');
   const done=it.status==='done';
   const doneBtn=el('button','btn'+(done?'':' '),(done?'Reopen':'Done'));doneBtn.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> '+(done?'Reopen':'Done');
   if(it.needsSource&&!done)doneBtn.disabled=true;
   doneBtn.addEventListener('click',()=>toggleItem(it));
-  acts.appendChild(doneBtn);
-  s.appendChild(acts);
-  const er=el('div','det-edit-row');
-  const editB=el('button','btn');editB.innerHTML='<i class="ti ti-edit" aria-hidden="true"></i> Edit';editB.addEventListener('click',()=>{const entry=_detailEntry;editWithScope(it.id,entry&&entry.instanceDate)});
-  const delB=el('button','btn danger');delB.innerHTML='<i class="ti ti-trash" aria-hidden="true"></i> Delete';delB.addEventListener('click',()=>deleteItem(it.id,_detailEntry&&_detailEntry.instanceDate));
-  if(it.needsSource){const sb=el('button','btn');sb.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Source found';sb.addEventListener('click',async()=>{await upsert('items',{id:it.id,needsSource:false,needsSourceReason:''});toast('Source cleared','success');renderDetail();renderView()});er.appendChild(sb)}
-  er.appendChild(editB);er.appendChild(delB);s.appendChild(er);
+  dacts.appendChild(doneBtn);
+  const editB=el('button','btn');editB.innerHTML='<i class="ti ti-edit" aria-hidden="true"></i> Edit';
+  editB.addEventListener('click',()=>{const entry=_detailEntry;closeDetail();editWithScope(it.id,entry&&entry.instanceDate)});
+  dacts.appendChild(editB);
+  if(it.needsSource){const sb=el('button','btn');sb.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Source found';sb.addEventListener('click',async()=>{await upsert('items',{id:it.id,needsSource:false,needsSourceReason:''});toast('Source cleared','success');renderItemModal();renderView()});dacts.appendChild(sb)}
+  c.appendChild(dacts);
   // original message
   if(it.messageBody){
     const sec=el('div','det-sec');sec.style.marginTop='18px';sec.appendChild(el('div','lab','Original message'));
     const mc=el('div','msg-card');const hd=el('div','msg-hd');
     hd.appendChild(el('span','s',(it.messageSender||'')+(it.messageSchool?' · '+it.messageSchool:'')));
     if(it.messageSentAt)hd.appendChild(el('span','d',shortWhen(it.messageSentAt)));
-    mc.appendChild(hd);mc.appendChild(el('div','msg-bd',it.messageBody));sec.appendChild(mc);s.appendChild(sec);
+    mc.appendChild(hd);mc.appendChild(el('div','msg-bd',it.messageBody));sec.appendChild(mc);c.appendChild(sec);
   }
-  dc.appendChild(s);
 }
+/* data hub modal */
+function openDataHub(){
+  const rows=$('data-hub-rows');if(!rows)return;rows.textContent='';
+  const items=[
+    {icon:'ti-mail-down',cls:'imp',label:'Import digest',sub:'Paste a ParentSquare email',fn:()=>{closeDataHub();openImport()}},
+    {icon:'ti-school',cls:'imp',label:'Import grades',sub:'Paste grade data (JSON)',fn:()=>{closeDataHub();openGradeImport()}},
+    {icon:'ti-printer',cls:'exp',label:'Export grades',sub:'Printable report by kid',fn:()=>{closeDataHub();openGradeExport()}},
+    {icon:'ti-calendar-down',cls:'exp',label:'Export calendar',sub:'Download .ics file',fn:()=>{closeDataHub();if(VIEW!=='thisweek'&&VIEW!=='todo'&&VIEW!=='critical')setView('todo');toggleExportMode()}}
+  ];
+  items.forEach(d=>{
+    const r=el('div','data-hub-row');
+    const ic=el('div','dh-icon '+d.cls);ic.innerHTML='<i class="ti '+d.icon+'" aria-hidden="true"></i>';r.appendChild(ic);
+    const txt=el('div','');txt.appendChild(el('div','dh-label',d.label));txt.appendChild(el('div','dh-sub',d.sub));r.appendChild(txt);
+    r.innerHTML+='<i class="ti ti-chevron-right dh-chev" aria-hidden="true"></i>';
+    r.addEventListener('click',d.fn);rows.appendChild(r);
+  });
+  const w=$('modal-data');if(w)w.classList.add('open');
+}
+function closeDataHub(){const w=$('modal-data');if(w)w.classList.remove('open')}
 async function deleteItem(id,instanceDate){
   deleteWithScope(id,instanceDate);
 }
@@ -2538,7 +2602,7 @@ async function saveEdit(){
   }
   try{upsert(coll,rec);toast(EDIT_ID?'Updated':'Added','success')}  // mutates locally (sync) — save runs in background
   catch(e){toast(errMsg(e),'error');return}
-  closeSheet('sheet-edit');renderView();if(EDIT_ID===DETAIL_ID&&DETAIL_ID)renderDetail();
+  closeSheet('sheet-edit');renderView();
 }
 
 /* import sheet */
@@ -2679,12 +2743,16 @@ function courseWeights(course){
   if(DATA&&DATA.courses&&cid){
     const crec=DATA.courses[cid];
     if(crec&&crec.weightOverride&&crec.weightOverride.progress!=null&&crec.weightOverride.mastery!=null){
-      return {'AKS Progress*':crec.weightOverride.progress,'AKS Mastery*':crec.weightOverride.mastery};
+      const w={'AKS Progress*':crec.weightOverride.progress,'AKS Mastery*':crec.weightOverride.mastery};
+      if(crec.weightOverride.midyreoy)w['MidYr/EOY*']=crec.weightOverride.midyreoy;
+      return w;
     }
   }
   // also check inline weightOverride on the course grouping object (from gradeCourses)
   if(course.weightOverride&&course.weightOverride.progress!=null&&course.weightOverride.mastery!=null){
-    return {'AKS Progress*':course.weightOverride.progress,'AKS Mastery*':course.weightOverride.mastery};
+    const w={'AKS Progress*':course.weightOverride.progress,'AKS Mastery*':course.weightOverride.mastery};
+    if(course.weightOverride.midyreoy)w['MidYr/EOY*']=course.weightOverride.midyreoy;
+    return w;
   }
   // Level 2 & 3: kid profile → default
   return kidWeights(course.kidId);
@@ -2774,7 +2842,8 @@ function buildGradeReport(kidId,term){
   const courses=all.map(c=>{
     const calc=computeCourseAvg(c);
     const kw=courseWeights(c);
-    const wStr=c.scale==='ESNU'?null:(Math.round((kw['AKS Progress*']||0.55)*100)+'% progress / '+Math.round((kw['AKS Mastery*']||0.45)*100)+'% mastery');
+    const midW=kw['MidYr/EOY*']||0;
+    const wStr=c.scale==='ESNU'?null:(Math.round((kw['AKS Progress*']||0.55)*100)+'/'+Math.round((kw['AKS Mastery*']||0.45)*100)+(midW?'/'+Math.round(midW*100):'')+' weights');
     // resolve most recent ESNU earned rating
     let esnuRating=null;
     if(c.scale==='ESNU'){
@@ -3062,15 +3131,9 @@ function renderGrades(root){
   const mgrBtn=el('button','gr-add-btn');mgrBtn.innerHTML='<i class="ti ti-settings" aria-hidden="true"></i> Courses';
   mgrBtn.style.marginLeft='auto';
   mgrBtn.addEventListener('click',()=>openManageCourses());bar.appendChild(mgrBtn);
-  // import grades button
-  const impBtn=el('button','gr-add-btn');impBtn.innerHTML='<i class="ti ti-upload" aria-hidden="true"></i> Import';
-  impBtn.addEventListener('click',()=>openGradeImport());bar.appendChild(impBtn);
   // add grade button
   const addBtn=el('button','gr-add-btn');addBtn.innerHTML='<i class="ti ti-plus" aria-hidden="true"></i> Add grade';
   addBtn.addEventListener('click',()=>openGradeEdit(null));bar.appendChild(addBtn);
-  // export button
-  const expBtn=el('button','gr-add-btn');expBtn.innerHTML='<i class="ti ti-file-export" aria-hidden="true"></i> Export';
-  expBtn.addEventListener('click',()=>openGradeExport());bar.appendChild(expBtn);
   head.appendChild(bar);root.appendChild(head);
   if(GRADE_SUB==='charts'){renderCharts(root);return}
   const scroll=el('div','view-scroll');
@@ -3668,9 +3731,10 @@ function openCourseEdit(existing,returnTo){
       $('crs-f-wt-mode').value='custom';
       $('crs-f-wt-prog').value=Math.round(existing.weightOverride.progress*100);
       $('crs-f-wt-mast').value=Math.round(existing.weightOverride.mastery*100);
+      $('crs-f-wt-midyreoy').value=existing.weightOverride.midyreoy?Math.round(existing.weightOverride.midyreoy*100):0;
       $('crs-f-wt-custom').style.display='';
     }else{
-      $('crs-f-wt-mode').value='kid-default';$('crs-f-wt-prog').value='55';$('crs-f-wt-mast').value='45';
+      $('crs-f-wt-mode').value='kid-default';$('crs-f-wt-prog').value='55';$('crs-f-wt-mast').value='45';$('crs-f-wt-midyreoy').value='0';
       $('crs-f-wt-custom').style.display='none';
     }
     $('crs-sheet-title').textContent='Edit course';
@@ -3681,12 +3745,13 @@ function openCourseEdit(existing,returnTo){
     $('crs-f-name').value='';$('crs-f-code').value='';$('crs-f-teacher').value='';
     $('crs-f-period').value='';$('crs-f-term').value='Sem1';
     $('crs-f-scale').value='numeric-100';$('crs-f-comp').value='AKS Progress*';
-    $('crs-f-wt-mode').value='kid-default';$('crs-f-wt-prog').value='55';$('crs-f-wt-mast').value='45';
+    $('crs-f-wt-mode').value='kid-default';$('crs-f-wt-prog').value='55';$('crs-f-wt-mast').value='45';$('crs-f-wt-midyreoy').value='0';
     $('crs-f-wt-custom').style.display='none';
     $('crs-sheet-title').textContent='Add course';
     $('crs-delete-btn').style.display='none';
     paintCourseKidPick(false);
   }
+  updateWeightTotal();
   openSheet('sheet-course');
 }
 function paintCourseKidPick(isEdit){
@@ -3703,6 +3768,16 @@ function paintCourseKidPick(isEdit){
     });
   }
 }
+function updateWeightTotal(){
+  const prog=parseInt($('crs-f-wt-prog').value)||0;
+  const mast=parseInt($('crs-f-wt-mast').value)||0;
+  const mid=parseInt($('crs-f-wt-midyreoy').value)||0;
+  const total=prog+mast+mid;
+  const td=$('crs-f-wt-total');if(td)td.textContent=total+'%';
+  if(td)td.style.color=total===100?'var(--green)':'var(--red)';
+  const err=$('crs-f-wt-err');
+  if(err){err.style.display=total!==100?'':'none';err.textContent=total!==100?'Weights must add up to 100%.':''}
+}
 async function saveCourse(){
   const btn=$('crs-sheet-save');if(btn)btn.disabled=true;
   const name=$('crs-f-name').value.trim();
@@ -3710,10 +3785,12 @@ async function saveCourse(){
   // weight override
   let weightOverride=null;
   if($('crs-f-wt-mode').value==='custom'){
-    const prog=parseInt($('crs-f-wt-prog').value);const mast=parseInt($('crs-f-wt-mast').value);
-    if(!isNaN(prog)&&!isNaN(mast)&&prog+mast>0){
-      weightOverride={progress:prog/100,mastery:mast/100};
-    }
+    const prog=parseInt($('crs-f-wt-prog').value)||0;
+    const mast=parseInt($('crs-f-wt-mast').value)||0;
+    const mid=parseInt($('crs-f-wt-midyreoy').value)||0;
+    if(prog+mast+mid!==100){toast('Custom weights must add up to 100%','error');if(btn)btn.disabled=false;return}
+    weightOverride={progress:prog/100,mastery:mast/100};
+    if(mid>0)weightOverride.midyreoy=mid/100;
   }
   const obj={
     kidId:$('crs-f-kid-val').value,name,code:$('crs-f-code').value.trim(),
@@ -3796,6 +3873,7 @@ function openGradeExport(){
   populateGxTerms();
   kidSel.onchange=()=>{GX_KID=kidSel.value;populateGxTerms();renderGxPreview()};
   $('gx-term').onchange=()=>{GX_TERM=$('gx-term').value;renderGxPreview()};
+  const gc=$('gx-charts');if(gc)gc.onchange=()=>renderGxPreview();
   renderGxPreview();
   openSheet('sheet-grade-export');
 }
@@ -3815,10 +3893,12 @@ function termLabel(t){
 }
 function renderGxPreview(){
   const report=buildGradeReport(GX_KID,GX_TERM);
-  $('gx-preview').innerHTML=gradeReportHTML(report);
+  const charts=$('gx-charts')&&$('gx-charts').checked;
+  $('gx-preview').innerHTML=gradeReportHTML(report,charts);
 }
-/** Shared HTML builder — used for both the in-sheet preview and the printed page. */
-function gradeReportHTML(report){
+/** Shared HTML builder — used for both the in-sheet preview and the printed page.
+    When showCharts=true, an inline SVG sparkline is appended after each course's detail table. */
+function gradeReportHTML(report,showCharts){
   const kidName=report.kidId||'';
   const term=termLabel(report.term);
   const today=new Date();
@@ -3832,6 +3912,8 @@ function gradeReportHTML(report){
     h+='<tr><td>'+esc(c.name)+(c.period?' <span style="color:#999">\u00b7 P'+c.period+'</span>':'')+'</td><td style="font-weight:500">'+avgDisp+'</td></tr>';
   }
   h+='</table>';
+  // per-course detail + optional sparkline chart
+  const allCourses=showCharts?gradeCourses(report.kidId).filter(c=>!report.term||c.term===report.term||!c.term):null;
   for(const c of report.courses){
     if(c.scale==='ESNU'||!c.assignments.length)continue;
     h+='<div class="gx-course-block">';
@@ -3843,17 +3925,57 @@ function gradeReportHTML(report){
       const scoreDisp=a.score!=null?Math.round(parseFloat(a.score))||a.score:'\u2014';
       h+='<tr><td>'+shortDate(a.date)+'</td><td>'+esc(a.name)+'</td><td>'+esc(a.component)+'</td><td>'+scoreDisp+'</td></tr>';
     }
-    h+='</table></div>';
+    h+='</table>';
+    // inline sparkline chart
+    if(showCharts&&allCourses){
+      const courseData=allCourses.find(gc=>(gc.course||gc.courseCode)===c.name&&gc.kidId===report.kidId);
+      if(courseData){
+        const pts=courseSparkline(courseData);
+        if(pts.length>=2)h+=reportSparklineSVG(pts,c.name);
+      }
+    }
+    h+='</div>';
   }
   h+='<div class="gx-foot">Generated by ApexTrack \u00b7 for reference only, not an official transcript</div>';
   return h;
 }
+/** Render an inline SVG sparkline for the grade export report. */
+function reportSparklineSVG(points,label){
+  const W=420,H=80,PL=36,PR=36,PT=8,PB=18;
+  const iw=W-PL-PR,ih=H-PT-PB;
+  const minY=Math.min(...points.map(p=>p.avg));
+  const maxY=Math.max(...points.map(p=>p.avg));
+  const padY=Math.max((maxY-minY)*0.15,2);
+  const lo=minY-padY,hi=maxY+padY;
+  const n=points.length;
+  const px=i=>PL+(i/(n-1))*iw;
+  const py=v=>PT+ih-((v-lo)/(hi-lo))*ih;
+  const first=points[0],last=points[n-1];
+  const color=last.avg>=first.avg?'#10b981':'#f59e0b';
+  let path='M '+px(0)+' '+py(first.avg);
+  for(let i=1;i<n;i++)path+=' L '+px(i)+' '+py(points[i].avg);
+  let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:'+W+'px;height:auto;margin:8px 0 4px;display:block">';
+  // threshold bands
+  const y90=py(90),y80=py(80);
+  if(hi>=90)svg+='<rect x="'+PL+'" y="'+Math.max(PT,py(Math.min(hi,100)))+'" width="'+iw+'" height="'+Math.max(0,y90-Math.max(PT,py(Math.min(hi,100))))+'" fill="#10b981" opacity="0.06" rx="2"/>';
+  if(lo<80)svg+='<rect x="'+PL+'" y="'+y80+'" width="'+iw+'" height="'+Math.max(0,py(Math.max(lo,50))-y80)+'" fill="#ef4444" opacity="0.06" rx="2"/>';
+  // line
+  svg+='<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round"/>';
+  // start + end dots with labels
+  svg+='<circle cx="'+px(0)+'" cy="'+py(first.avg)+'" r="3" fill="'+color+'"/>';
+  svg+='<circle cx="'+px(n-1)+'" cy="'+py(last.avg)+'" r="3" fill="'+color+'"/>';
+  svg+='<text x="'+(PL-4)+'" y="'+(py(first.avg)+4)+'" text-anchor="end" font-size="10" fill="#666">'+Math.round(first.avg)+'</text>';
+  svg+='<text x="'+(px(n-1)+6)+'" y="'+(py(last.avg)+4)+'" font-size="10" font-weight="600" fill="'+color+'">'+Math.round(last.avg)+'</text>';
+  svg+='</svg>';
+  return svg;
+}
 function esc(s){return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function doGradePrint(){
   const report=buildGradeReport(GX_KID,GX_TERM);
+  const charts=$('gx-charts')&&$('gx-charts').checked;
   let area=document.getElementById('grade-print-area');
   if(!area){area=document.createElement('div');area.id='grade-print-area';document.body.appendChild(area)}
-  area.innerHTML=gradeReportHTML(report);
+  area.innerHTML=gradeReportHTML(report,charts);
   window.print();
 }
 
@@ -4427,7 +4549,11 @@ function wire(){
   on('btn-nav-add',()=>openEdit(null));
   on('btn-me',openMenu);
   const mw=$('menu-wrap');if(mw)mw.addEventListener('click',e=>{if(e.target===mw)closeMenu()});
-  document.addEventListener('keydown',e=>{if(e&&e.key==='Escape'){closeMenu();closeSheet('sheet-undo');closeScope();closeConfirm()}});
+  on('btn-data',openDataHub);
+  on('data-hub-close',closeDataHub);
+  const mdw=$('modal-data');if(mdw)mdw.addEventListener('click',e=>{if(e.target===mdw)closeDataHub()});
+  const miw=$('modal-item');if(miw)miw.addEventListener('click',e=>{if(e.target===miw)closeDetail()});
+  document.addEventListener('keydown',e=>{if(e&&e.key==='Escape'){closeMenu();closeDetail();closeDataHub();closeSheet('sheet-undo');closeScope();closeConfirm()}});
   on('undo-close',()=>closeSheet('sheet-undo'));on('undo-cancel',()=>closeSheet('sheet-undo'));on('undo-confirm',runUndo);
   on('sheet-edit-close',()=>closeSheet('sheet-edit'));
   on('sheet-edit-cancel',()=>closeSheet('sheet-edit'));
@@ -4455,8 +4581,9 @@ function wire(){
   on('crs-delete-btn',deleteCourse);
   document.querySelectorAll('#crs-f-kid button').forEach(b=>b.addEventListener('click',()=>{
     if(!b.disabled){$('crs-f-kid-val').value=b.getAttribute('data-kid');paintCourseKidPick(false)}}));
-  // weight override toggle
-  $('crs-f-wt-mode').addEventListener('change',()=>{$('crs-f-wt-custom').style.display=$('crs-f-wt-mode').value==='custom'?'':'none'});
+  // weight override toggle + live total
+  $('crs-f-wt-mode').addEventListener('change',()=>{$('crs-f-wt-custom').style.display=$('crs-f-wt-mode').value==='custom'?'':'none';updateWeightTotal()});
+  ['crs-f-wt-prog','crs-f-wt-mast','crs-f-wt-midyreoy'].forEach(id=>{const inp=$(id);if(inp)inp.addEventListener('input',updateWeightTotal)});
   // manage courses
   on('courses-manage-close',()=>closeSheet('sheet-courses-manage'));
   on('courses-manage-add',()=>{closeSheet('sheet-courses-manage');openCourseEdit(null,'manage')});
@@ -4529,8 +4656,8 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   liveCourses,addCourse,updateCourse,removeCourse,
   wipePreview,performWipe,kidSummary,courseSparkline,
   openGradeImport,giParseAndPreview,giCommit,
-  slopeData,availableTerms,buildGradeReport,gradeReportHTML,termLabel,openGradeExport,doGradePrint,
-  setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,
+  slopeData,availableTerms,buildGradeReport,gradeReportHTML,reportSparklineSVG,termLabel,openGradeExport,doGradePrint,
+  setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,openDataHub,closeDataHub,renderItemModal,updateWeightTotal,
   get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER,GRADE_KID,GRADE_SUB,GX_KID,GX_TERM}),
   set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS;if('GRADE_KID' in o)GRADE_KID=o.GRADE_KID;if('GRADE_SUB' in o)GRADE_SUB=o.GRADE_SUB;if('GX_KID' in o)GX_KID=o.GX_KID;if('GX_TERM' in o)GX_TERM=o.GX_TERM},
   liveBackups,LS,LOGS
