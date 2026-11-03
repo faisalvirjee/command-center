@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.7.2 | 2026-11-03 -->
+<!-- ApexTrack — Family School Tracker | v0.7.3 | 2026-11-03 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -925,7 +925,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.7.2';
+const APP_VERSION='v0.7.3';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -2113,7 +2113,18 @@ function normalizeImportItem(raw){
   if(endTime&&startDate){const base=startDate.slice(0,10);endDate=base+'T'+endTime}
   const allDay=/^(yes|true|1)$/i.test(r.allday||'')? true : (/^(no|false|0)$/i.test(r.allday||'')?false:!startTime&&!/T\d\d:/.test(startDate||dueDate||''));
   const seq=(r.id||'').trim();
-  const stableId=seq||('imp-'+(src||'x')+'-'+(kid||'x'));
+  // Fallback ID when the import block gives no explicit id: previously just
+  // 'imp-<source>-<kid>'. A single ParentSquare message commonly covers several
+  // distinct items for the same kid (a test date, a study guide, a missing-work
+  // note, all from one teacher post) — those all shared one source, so they
+  // collided onto the same id and silently overwrote each other on commit, with
+  // only the last one in the batch surviving. Folding a slug of the title into
+  // the id fixes the collision while preserving the original intent (the id stays
+  // the same across a re-import with a changed date, so a reschedule still
+  // updates the existing item instead of creating a duplicate — it only changes
+  // if the title itself changes, which is the much rarer case).
+  const titleSlug=title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
+  const stableId=seq||('imp-'+(src||'x')+'-'+(kid||'x')+(titleSlug?'-'+titleSlug:''));
   const needsReview=/^(yes|true|1)$/i.test(r.review||'');
   const needsSource=/^(yes|true|1)$/i.test(r.needssource||'');
   const rec={
