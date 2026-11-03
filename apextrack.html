@@ -450,12 +450,12 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .wi-adv-toggle{background:none;border:none;color:var(--text3);font-size:12px;padding:6px 0;text-decoration:underline;cursor:pointer}
 .wi-adv{padding-top:6px;border-top:1px solid var(--border);margin-top:6px}
 /* ───────── Charts tab ───────── */
-.chart-wrap{padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin:10px 0}
+.chart-wrap{padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin:10px 0;overflow:visible}
 .chart-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .chart-title{font-weight:600;font-size:14px}
 .chart-sub{font-size:11px;color:var(--text3)}
 .chart-svg{width:100%;display:block}
-.chart-tooltip{position:absolute;background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;font-size:11px;font-family:var(--mono);color:var(--text);pointer-events:none;z-index:50;white-space:nowrap;box-shadow:var(--shadow)}
+.chart-tooltip{position:absolute;background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;font-size:11px;font-family:var(--mono);color:var(--text);pointer-events:none;z-index:200;white-space:nowrap;box-shadow:var(--shadow)}
 .chart-summary{border:1px solid var(--border2);background:var(--card2)}
 .chart-summary .chart-title{font-size:13px;color:var(--text2);font-weight:600}
 .slope-legend{display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--text3)}
@@ -474,15 +474,17 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   #grade-print-area .gx-course-hdr{display:flex;align-items:baseline;gap:14px;margin:0 0 2px;page-break-after:avoid}
   #grade-print-area .gx-course-name{font-size:17px;font-weight:700;color:#111;text-transform:uppercase;letter-spacing:.03em}
   #grade-print-area .gx-course-avg{font-size:26px;font-weight:700;color:#222}
-  #grade-print-area .gx-sub{font-size:11px;color:#555;margin-bottom:6px}
+  #grade-print-area .gx-sub{font-size:11px;color:#555;margin-bottom:8px}
+  #grade-print-area .gx-comp-label{font-size:12px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.03em;margin:12px 0 3px;padding:3px 0;border-bottom:1px solid #ddd}
+  #grade-print-area .gx-comp-avg{font-weight:400;color:#666;font-size:11px;text-transform:none;letter-spacing:0;margin-left:6px}
+  /* detail table: 3 columns now (no Component column) */
+  #grade-print-area .gx-detail td:nth-child(1){width:60px}
+  #grade-print-area .gx-detail td:nth-child(2){width:auto}
+  #grade-print-area .gx-detail td:nth-child(3){width:50px;text-align:right}
   #grade-print-area .gx-foot{font-size:9px;color:#999;border-top:1px solid #ccc;padding-top:4px;margin-top:12px}
   /* summary table columns: course name wide, avg narrow */
   #grade-print-area .gx-summary td:last-child{text-align:right;width:80px}
-  /* detail table columns: date | assignment | component | score */
-  #grade-print-area .gx-detail td:nth-child(1){width:60px}
-  #grade-print-area .gx-detail td:nth-child(2){width:auto}
-  #grade-print-area .gx-detail td:nth-child(3){width:90px}
-  #grade-print-area .gx-detail td:nth-child(4){width:50px;text-align:right}
+  /* detail table column widths are now in the .gx-comp-label block above (3-col: date | assignment | score) */
   /* one subject per page for clean print layout */
   #grade-print-area .gx-course-block{break-before:page;page-break-before:always;page-break-inside:avoid}
   #grade-print-area .gx-course-block:first-of-type{break-before:auto;page-break-before:auto}
@@ -497,6 +499,8 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .gx-preview .gx-course-name{font-size:16px;font-weight:700;color:#111;text-transform:uppercase;letter-spacing:.02em}
 .gx-preview .gx-course-avg{font-size:22px;font-weight:700;color:#333}
 .gx-preview .gx-sub{font-size:11px;color:#666;margin-bottom:8px}
+.gx-preview .gx-comp-label{font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.03em;margin:10px 0 2px;padding:2px 0;border-bottom:1px solid #eee}
+.gx-preview .gx-comp-avg{font-weight:400;color:#888;font-size:10px;text-transform:none;letter-spacing:0;margin-left:6px}
 .gx-preview .gx-foot{font-size:10px;color:#999;margin-top:16px;border-top:1px solid #eee;padding-top:6px}
 .gx-preview svg{display:block!important;margin:12px auto!important}
 .gr-esnu{display:inline-block;padding:2px 8px;border-radius:5px;font-size:12px;font-weight:700}
@@ -3320,7 +3324,7 @@ function renderSlopeGraph(slope,courses){
   const hd=el('div','chart-hd');
   hd.appendChild(el('span','chart-title','Trend summary — all courses'));
   wrap.appendChild(hd);
-  const W=600,H=Math.max(160,40+slope.length*32),PAD_T=20,PAD_B=16;
+  const W=600,H=Math.max(180,50+slope.length*36),PAD_T=24,PAD_B=24;
   const colStart=140,colEnd=440;
   const lo=78,hi=101;
   const py=v=>PAD_T+(H-PAD_T-PAD_B)*(1-(v-lo)/(hi-lo));
@@ -3934,12 +3938,37 @@ function gradeReportHTML(report,showCharts){
     h+='</div>';
     const subParts=[];if(c.teacher)subParts.push(esc(c.teacher));if(c.period)subParts.push('Period '+c.period);if(c.weightLabel)subParts.push(c.weightLabel);
     h+='<div class="gx-sub">'+subParts.join(' \u00b7 ')+'</div>';
-    h+='<table class="gx-detail"><tr><td>Date</td><td>Assignment</td><td>Component</td><td>Score</td></tr>';
+    // group assignments by component (Progress, Mastery, MidYr/EOY) in date order within each
+    const compOrder=['AKS Progress*','AKS Mastery*','MidYr/EOY*'];
+    const compLabels={'AKS Progress*':'Progress','AKS Mastery*':'Mastery','MidYr/EOY*':'MidYr / EOY'};
+    const groups={};
     for(const a of c.assignments){
-      const scoreDisp=a.score!=null?Math.round(parseFloat(a.score))||a.score:'\u2014';
-      h+='<tr><td>'+shortDate(a.date)+'</td><td>'+esc(a.name)+'</td><td>'+esc(a.component)+'</td><td>'+scoreDisp+'</td></tr>';
+      const cn=a.component||'AKS Progress*';
+      if(!groups[cn])groups[cn]=[];
+      groups[cn].push(a);
     }
-    h+='</table>';
+    for(const cn of compOrder){
+      const items=groups[cn];if(!items||!items.length)continue;
+      const avg=Math.round(items.reduce((s,a)=>s+(parseFloat(a.score)||0),0)/items.length);
+      h+='<div class="gx-comp-label">'+esc(compLabels[cn]||cn)+' <span class="gx-comp-avg">avg '+avg+'</span></div>';
+      h+='<table class="gx-detail"><tr><td>Date</td><td>Assignment</td><td>Score</td></tr>';
+      for(const a of items){
+        const scoreDisp=a.score!=null?Math.round(parseFloat(a.score))||a.score:'\u2014';
+        h+='<tr><td>'+shortDate(a.date)+'</td><td>'+esc(a.name)+'</td><td>'+scoreDisp+'</td></tr>';
+      }
+      h+='</table>';
+    }
+    // handle any unknown components
+    for(const cn of Object.keys(groups)){
+      if(!compOrder.includes(cn)){
+        h+='<table class="gx-detail"><tr><td>Date</td><td>Assignment</td><td>Score</td></tr>';
+        for(const a of groups[cn]){
+          const scoreDisp=a.score!=null?Math.round(parseFloat(a.score))||a.score:'\u2014';
+          h+='<tr><td>'+shortDate(a.date)+'</td><td>'+esc(a.name)+'</td><td>'+scoreDisp+'</td></tr>';
+        }
+        h+='</table>';
+      }
+    }
     // inline sparkline chart
     if(showCharts&&allCourses){
       const courseData=allCourses.find(gc=>(gc.course||gc.courseCode)===c.name&&gc.kidId===report.kidId);
