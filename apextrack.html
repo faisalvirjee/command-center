@@ -2788,23 +2788,34 @@ function liveGrades(kidFilter){
 /** Group grades into courses, each with components and assignments */
 function gradeCourses(kidFilter){
   const grades=liveGrades(kidFilter);
-  const courses={};  // keyed by kidId+courseCode
+  const courses={};  // keyed by kidId+courseCode+term — each semester/term is its own bucket,
+                      // so Sem2 assignments never silently blend into a Sem1 average
   for(const g of grades){
     if(g.type==='diagnostic'||g.type==='conference')continue; // separate display later
-    const key=g.kidId+'|'+(g.courseCode||g.course||'Unknown');
+    // Resolve the matching course registry record up front so we can key by its term too.
+    // If two registry records share the same code (e.g. a Sem1 and a Sem2 version of the
+    // same course), prefer the one whose term matches this grade's own term; otherwise
+    // fall back to the first match — which preserves today's one-record-per-course behavior.
+    let cRec=null;
+    if(DATA&&DATA.courses){
+      const candidates=Object.values(DATA.courses).filter(c=>!c.deleted&&c.kidId===g.kidId&&(c.code===g.courseCode||c.name===g.course));
+      // Only use the grade's own term to disambiguate when there's actually more than one
+      // registry record sharing this code (e.g. a Sem1 and a Sem2 version of the same
+      // course). With zero or one match, the registry's term is the single source of truth
+      // — a grade's own term never overrides it, so a course-final with term set doesn't
+      // get split away from sibling assignments that have none.
+      cRec=candidates.length>1?((g.term&&candidates.find(c=>c.term===g.term))||candidates[0]):(candidates[0]||null);
+    }
+    const resolvedTerm=(cRec&&cRec.term)||'';
+    const key=g.kidId+'|'+(g.courseCode||g.course||'Unknown')+'|'+resolvedTerm;
     if(!courses[key]){
       courses[key]={key,kidId:g.kidId,course:g.course||'',courseCode:g.courseCode||'',teacher:g.teacher||'',
-        term:g.term||'',period:g.period||'',scale:g.scale||'numeric-100',officialAvg:null,missingAssignments:0,assignments:[],
+        term:resolvedTerm,period:g.period||'',scale:g.scale||'numeric-100',officialAvg:null,missingAssignments:0,assignments:[],
         courseId:null,weightOverride:null};
-      // resolve course registry record for cascade
-      if(DATA&&DATA.courses){
-        const cRec=Object.values(DATA.courses).find(c=>!c.deleted&&c.kidId===g.kidId&&(c.code===g.courseCode||c.name===g.course));
-        if(cRec){
-          courses[key].courseId=cRec.id;if(cRec.weightOverride)courses[key].weightOverride=cRec.weightOverride;
-          if(!courses[key].period&&cRec.period)courses[key].period=cRec.period;
-          if(!courses[key].teacher&&cRec.teacher)courses[key].teacher=cRec.teacher;
-          if(!courses[key].term&&cRec.term)courses[key].term=cRec.term;
-        }
+      if(cRec){
+        courses[key].courseId=cRec.id;if(cRec.weightOverride)courses[key].weightOverride=cRec.weightOverride;
+        if(!courses[key].period&&cRec.period)courses[key].period=cRec.period;
+        if(!courses[key].teacher&&cRec.teacher)courses[key].teacher=cRec.teacher;
       }
     }
     const c=courses[key];
