@@ -3939,8 +3939,9 @@ function gradeReportHTML(report,showCharts){
     const subParts=[];if(c.teacher)subParts.push(esc(c.teacher));if(c.period)subParts.push('Period '+c.period);if(c.weightLabel)subParts.push(c.weightLabel);
     h+='<div class="gx-sub">'+subParts.join(' \u00b7 ')+'</div>';
     // group assignments by component (Progress, Mastery, MidYr/EOY) in date order within each
-    const compOrder=['AKS Progress*','AKS Mastery*','MidYr/EOY*'];
-    const compLabels={'AKS Progress*':'Progress','AKS Mastery*':'Mastery','MidYr/EOY*':'MidYr / EOY'};
+    // note: buildGradeReport strips trailing * from componentName
+    const compOrder=['AKS Progress','AKS Mastery','MidYr/EOY'];
+    const compLabels={'AKS Progress':'Progress','AKS Mastery':'Mastery','MidYr/EOY':'MidYr / EOY'};
     const groups={};
     for(const a of c.assignments){
       const cn=a.component||'AKS Progress*';
