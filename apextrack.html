@@ -480,8 +480,10 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   #grade-print-area .gx-detail td:nth-child(2){width:auto}
   #grade-print-area .gx-detail td:nth-child(3){width:90px}
   #grade-print-area .gx-detail td:nth-child(4){width:50px;text-align:right}
-  /* page break: try to keep each course's detail section together */
-  #grade-print-area .gx-course-block{page-break-inside:avoid}
+  /* one subject per page for clean print layout */
+  #grade-print-area .gx-course-block{page-break-before:always;page-break-inside:avoid}
+  #grade-print-area .gx-course-block:first-of-type{page-break-before:auto}
+  #grade-print-area svg{display:block;margin:8px auto}
 }
 .gx-preview{background:#fff;color:#111;border-radius:6px;padding:24px;font-family:var(--font);max-height:50vh;overflow:auto}
 .gx-preview table{width:100%;border-collapse:collapse;font-size:12px}
@@ -490,6 +492,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .gx-preview .gx-sec{font-size:12px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:.03em;margin:16px 0 6px}
 .gx-preview .gx-sub{font-size:11px;color:#666;margin-bottom:8px}
 .gx-preview .gx-foot{font-size:10px;color:#999;margin-top:16px;border-top:1px solid #eee;padding-top:6px}
+.gx-preview svg{display:block;margin:8px auto}
 .gr-esnu{display:inline-block;padding:2px 8px;border-radius:5px;font-size:12px;font-weight:700}
 .gr-esnu.E{background:rgba(52,211,153,.15);color:#34d399}
 .gr-esnu.S{background:rgba(59,130,246,.15);color:#60a5fa}
@@ -3204,7 +3207,7 @@ function renderGrades(root){
     const subParts=[kidBadgeLabel(course.kidId)];
     if(course.teacher)subParts.push(course.teacher);
     if(course.period)subParts.push('P'+course.period);
-    if(course.weightOverride)subParts.push(Math.round(course.weightOverride.progress*100)+'/'+Math.round(course.weightOverride.mastery*100)+' override');
+    if(course.weightOverride){const wo=course.weightOverride;subParts.push(Math.round(wo.progress*100)+'/'+Math.round(wo.mastery*100)+(wo.midyreoy?'/'+Math.round(wo.midyreoy*100):'')+' override')}
     cDiv.appendChild(el('div','gc-sub',subParts.join(' · ')));
     hd.appendChild(cDiv);
     // average display
@@ -3397,7 +3400,8 @@ function renderCharts(root){
     if(calc.avg!=null)titleEl.appendChild(el('span','chart-sub',' · '+Math.round(calc.avg)));
     hd.appendChild(titleEl);
     const kw=courseWeights(course);
-    const wStr=Math.round((kw['AKS Progress*']||0.55)*100)+'/'+Math.round((kw['AKS Mastery*']||0.45)*100);
+    const midW=kw['MidYr/EOY*']||0;
+    const wStr=Math.round((kw['AKS Progress*']||0.55)*100)+'/'+Math.round((kw['AKS Mastery*']||0.45)*100)+(midW?'/'+Math.round(midW*100):'');
     hd.appendChild(el('span','chart-sub',kidBadgeLabel(course.kidId)+' · '+wStr+(course.weightOverride?' ✦':'')));
     wrap.appendChild(hd);
     // render interactive chart SVG
@@ -3841,7 +3845,7 @@ function openManageCourses(){
       if(c.teacher)subParts.push(c.teacher);
       if(c.period)subParts.push('P'+c.period);
       if(c.scale==='ESNU')subParts.push('ESNU');
-      if(c.weightOverride)subParts.push(Math.round(c.weightOverride.progress*100)+'/'+Math.round(c.weightOverride.mastery*100));
+      if(c.weightOverride){const wo=c.weightOverride;subParts.push(Math.round(wo.progress*100)+'/'+Math.round(wo.mastery*100)+(wo.midyreoy?'/'+Math.round(wo.midyreoy*100):''))}
       info.appendChild(el('div','crs-sub',subParts.join(' · ')||c.code||''));
       item.appendChild(info);
       const actions=el('div','crs-actions');
@@ -3917,7 +3921,8 @@ function gradeReportHTML(report,showCharts){
   for(const c of report.courses){
     if(c.scale==='ESNU'||!c.assignments.length)continue;
     h+='<div class="gx-course-block">';
-    h+='<div class="gx-sec">'+esc(c.name)+' \u2014 Detail</div>';
+    const detAvg=c.avgRounded!=null?' \u2014 '+c.avgRounded:'';
+    h+='<div class="gx-sec">'+esc(c.name)+detAvg+' \u2014 Detail</div>';
     const subParts=[];if(c.teacher)subParts.push(esc(c.teacher));if(c.period)subParts.push('Period '+c.period);if(c.weightLabel)subParts.push(c.weightLabel);
     h+='<div class="gx-sub">'+subParts.join(' \u00b7 ')+'</div>';
     h+='<table class="gx-detail"><tr><td>Date</td><td>Assignment</td><td>Component</td><td>Score</td></tr>';
@@ -3976,7 +3981,12 @@ function doGradePrint(){
   let area=document.getElementById('grade-print-area');
   if(!area){area=document.createElement('div');area.id='grade-print-area';document.body.appendChild(area)}
   area.innerHTML=gradeReportHTML(report,charts);
+  // set document title for PDF filename: YYYY-MM-DD-KID-TrackerGrades[-and-Graphs]
+  const origTitle=document.title;
+  const d=new Date();const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  document.title=ds+'-'+(GX_KID||'All')+'-TrackerGrades'+(charts?'-and-Graphs':'');
   window.print();
+  document.title=origTitle;
 }
 
 /* ════════════════════════════════════════════════════
