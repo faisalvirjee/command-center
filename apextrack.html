@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.7.1 | 2026-11-03 -->
+<!-- ApexTrack — Family School Tracker | v0.7.2 | 2026-11-03 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -223,6 +223,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .kb.both{background:var(--both-tint);color:var(--both-txt)}
 .tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;line-height:1.3}
 .tag.review{background:var(--act-tint);color:var(--act-txt)}
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--crit-txt);color:#fff;font-size:10px;font-weight:700;margin-left:4px;line-height:16px}
 .tag.needssrc{background:var(--crit-tint);color:var(--crit-txt)}
 .tag.pushed{background:var(--both-tint);color:var(--both-txt)}
 .tag.changed{background:var(--act-tint);color:var(--act-txt)}
@@ -924,7 +925,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.7.1';
+const APP_VERSION='v0.7.2';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -1532,7 +1533,15 @@ async function rotateBackups(){
       if(e.code==='NOT_FOUND'||e.code==='FORBIDDEN'){
         if(b.createdBy===ME.email)gone=true;                       // our own file and not found → already gone
         else if(!b.pendingPrune){const t=stampNow(b);DATA.backups[b.id]=Object.assign({},b,{pendingPrune:true,updatedAt:t,updatedBy:ME.email});mutationSeq++;changed=true}
-      }else{log('prune failed:',errMsg(e))}
+      }else if(!b.pendingPrune||b.pendingPruneReason!==e.code){
+        // Any OTHER failure (rate limit, transient API error, offline, etc.) previously
+        // hit a silent log-and-continue with no state change — an un-deletable backup
+        // would count toward the live total forever with zero record of why. Now it gets
+        // the same pendingPrune tracking as the NOT_FOUND/FORBIDDEN case above, so it
+        // stays visible in Settings and keeps retrying on every future backup.
+        const t=stampNow(b);DATA.backups[b.id]=Object.assign({},b,{pendingPrune:true,pendingPruneReason:e.code||'error',updatedAt:t,updatedBy:ME.email});mutationSeq++;changed=true;
+        log('prune failed, flagged pendingPrune:',errMsg(e));
+      }
     }
     if(gone){const t=stampNow(b);DATA.backups[b.id]={id:b.id,deleted:true,deletedAt:t,deletedBy:ME.email,updatedAt:t,updatedBy:ME.email};mutationSeq++;changed=true}
   }
@@ -1851,6 +1860,12 @@ function criticalItems(filter='all',opts={}){
 function todoItems(filter='all',opts={}){
   return liveItems().filter(it=>matchKid(it,filter)&&(it.priority==='Critical'||it.priority==='Action')&&(opts.showDone||(it.status!=='done'&&it.status!=='cancelled'))).sort(itemSort);
 }
+// cross-cutting: everything flagged needsReview or needsSource during import, regardless
+// of priority or type — the one place to audit what an import left ambiguous.
+function reviewItems(filter='all',opts={}){
+  return liveItems().filter(it=>matchKid(it,filter)&&(it.needsReview||it.needsSource)&&(opts.showDone||(it.status!=='done'&&it.status!=='cancelled'))).sort(itemSort);
+}
+function reviewCount(){return liveItems().filter(it=>(it.needsReview||it.needsSource)&&it.status!=='done'&&it.status!=='cancelled').length}
 function itemSort(a,b){
   const pa=PRANK[a.priority]??3,pb=PRANK[b.priority]??3;if(pa!==pb)return pa-pb;
   const da=hasDate(a),db=hasDate(b);if(da!==db)return da?-1:1;        // undated last
@@ -2218,7 +2233,8 @@ const NAVS=[
   {id:'calendar',label:'Calendar',icon:'ti-calendar',tab:true},
   {id:'todo',label:'To-do',icon:'ti-list-check',tab:true},
   {id:'critical',label:'Critical',icon:'ti-alert-triangle',tab:true},
-  {id:'grades',label:'Grades',icon:'ti-school'}
+  {id:'grades',label:'Grades',icon:'ti-school'},
+  {id:'review',label:'Review',icon:'ti-alert-circle',badge:reviewCount}
 ];
 const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
 function kidBadge(it){const k=kidKey(it);const b=el('span','kb '+(k==='both'?'both':k==='AV'?'av':'iv'),kidBadgeLabel(k));return b}
@@ -2241,6 +2257,7 @@ function renderShell(){
   const tn=$('topnav');if(tn){tn.textContent='';
     NAVS.forEach(n=>{const b=el('button','nav'+(n.id===VIEW?' active':'')+(n.soon?' soon':''));
       b.innerHTML='<i class="ti '+n.icon+'" aria-hidden="true"></i>';b.appendChild(el('span','nav-l',n.label));
+      const bc=n.badge?n.badge():0;if(bc)b.appendChild(el('span','nav-badge',String(bc)));
       b.setAttribute('aria-label',n.label);b.title=n.label;
       b.addEventListener('click',()=>{if(n.soon)toast(n.soon,'info');else setView(n.id)});
       tn.appendChild(b)});
@@ -2248,7 +2265,7 @@ function renderShell(){
   // tab bar (mobile)
   const tb=$('tabbar');if(tb){tb.textContent='';
     [...NAVS.filter(n=>n.tab),{id:'more',label:'More',icon:'ti-dots'}].forEach(n=>{
-      const act=n.id===VIEW||(n.id==='more'&&(VIEW==='grades'||VIEW==='settings'));
+      const act=n.id===VIEW||(n.id==='more'&&(VIEW==='grades'||VIEW==='settings'||VIEW==='review'));
       const b=el('button',(act?'active':'')+(n.soon?' soon':''));
       b.innerHTML='<i class="ti '+n.icon+'" aria-hidden="true"></i>'+n.label;
       b.addEventListener('click',()=>{if(n.id==='more')openMenu();else if(n.soon)toast(n.soon,'info');else setView(n.id)});
@@ -2268,6 +2285,8 @@ function renderMenu(){
   const nm=el('div');nm.appendChild(el('div','mh-name',ME&&ME.name?ME.name:''));nm.appendChild(el('div','mh-sub','Signed in'));
   hd.appendChild(nm);p.appendChild(hd);
   p.appendChild(menuItem('ti-school','Grades',()=>{closeMenu();setView('grades')},'mob-only'));
+  const rc=reviewCount();
+  p.appendChild(menuItem('ti-alert-circle','Review'+(rc?' ('+rc+')':''),()=>{closeMenu();setView('review')},'mob-only'));
   p.appendChild(menuItem('ti-settings','Settings',()=>{closeMenu();setView('settings')}));
   p.appendChild(menuItem('ti-lock','Lock now',()=>{closeMenu();lockApp('manual')}));
   p.appendChild(menuItem('ti-logout','Sign out',()=>{closeMenu();signOutGoogle()},'danger'));
@@ -2289,6 +2308,7 @@ function renderView(){
     return renderList(root,'To-do',todoItems(KFILTER,{showDone:SHOWDONE}),false);
   }
   if(VIEW==='critical')return renderList(root,'Critical',criticalItems(KFILTER,{showDone:SHOWDONE}),false);
+  if(VIEW==='review')return renderList(root,'Review',reviewItems(KFILTER,{showDone:SHOWDONE}),false);
   if(VIEW==='calendar')return renderCalendar(root);
   if(VIEW==='grades')return renderGrades(root);
   if(VIEW==='settings')return renderSettings(root);
@@ -2396,7 +2416,7 @@ function itemRow(it){
 }
 function tagEl(cls,label,icon){const t=el('span','tag '+cls);if(icon)t.innerHTML='<i class="ti '+icon+'" style="font-size:12px" aria-hidden="true"></i>';t.appendChild(document.createTextNode(label));return t}
 function shortWhen(iso_){const d=new Date(iso_);const t0=startOfToday();return (d.getTime()>=t0?'Today':d.toLocaleDateString(undefined,{month:'short',day:'numeric'}))+', '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
-function emptyState(title){const e=el('div','empty');e.innerHTML='<i class="ti ti-checkbox" aria-hidden="true"></i>';e.appendChild(el('div','et','Nothing here'));e.appendChild(el('div','eb',title==='Critical'?'No critical items right now.':title==='Next week'?'Nothing due next week.':'Nothing due. Import a digest or add an item.'));return e}
+function emptyState(title){const e=el('div','empty');e.innerHTML='<i class="ti ti-checkbox" aria-hidden="true"></i>';e.appendChild(el('div','et','Nothing here'));e.appendChild(el('div','eb',title==='Critical'?'No critical items right now.':title==='Review'?'Nothing needs review right now.':title==='Next week'?'Nothing due next week.':'Nothing due. Import a digest or add an item.'));return e}
 function renderPlaceholder(root,title,icon,msg){
   const head=el('div','view-head');head.appendChild(el('div','view-title',title));root.appendChild(head);
   const e=el('div','empty');e.innerHTML='<i class="ti '+icon+'" aria-hidden="true"></i>';e.appendChild(el('div','et',title));e.appendChild(el('div','eb',msg));root.appendChild(e);
@@ -2463,6 +2483,7 @@ function renderItemModal(){
   editB.addEventListener('click',()=>{const entry=_detailEntry;closeDetail();editWithScope(it.id,entry&&entry.instanceDate)});
   dacts.appendChild(editB);
   if(it.needsSource){const sb=el('button','btn');sb.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Source found';sb.addEventListener('click',async()=>{await upsert('items',{id:it.id,needsSource:false,needsSourceReason:''});toast('Source cleared','success');renderItemModal();renderView()});dacts.appendChild(sb)}
+  if(it.needsReview){const rb=el('button','btn');rb.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Reviewed';rb.addEventListener('click',async()=>{await upsert('items',{id:it.id,needsReview:false,needsReviewReason:''});toast('Marked reviewed','success');renderItemModal();renderView()});dacts.appendChild(rb)}
   c.appendChild(dacts);
   // original message
   if(it.messageBody){
@@ -2480,7 +2501,8 @@ function openDataHub(){
     {icon:'ti-mail-down',cls:'imp',label:'Import digest',sub:'Paste a ParentSquare email',fn:()=>{closeDataHub();openImport()}},
     {icon:'ti-school',cls:'imp',label:'Import grades',sub:'Paste grade data (JSON)',fn:()=>{closeDataHub();openGradeImport()}},
     {icon:'ti-printer',cls:'exp',label:'Export grades',sub:'Printable report by kid',fn:()=>{closeDataHub();openGradeExport()}},
-    {icon:'ti-calendar-down',cls:'exp',label:'Export calendar',sub:'Download .ics file',fn:()=>{closeDataHub();if(VIEW!=='thisweek'&&VIEW!=='todo'&&VIEW!=='critical')setView('todo');toggleExportMode()}}
+    {icon:'ti-calendar-down',cls:'exp',label:'Export calendar',sub:'Download .ics file',fn:()=>{closeDataHub();if(VIEW!=='thisweek'&&VIEW!=='todo'&&VIEW!=='critical')setView('todo');toggleExportMode()}},
+    {icon:'ti-code',cls:'exp',label:'Export data (JSON)',sub:'Full snapshot — for backup or review',fn:()=>{closeDataHub();doExportDataJson()}}
   ];
   items.forEach(d=>{
     const r=el('div','data-hub-row');
@@ -4381,6 +4403,34 @@ function selectAllExportable(){
   exportableList(KFILTER).forEach(r=>{if(!EXPORT_SEL.has(r.id))EXPORT_SEL.add(r.id)});
   renderView();
 }
+/** Pure data-shaping for the JSON export — kept separate from the browser download
+    trigger below so the actual content (what's included/excluded) is unit-testable.
+    Excludes settings/backups manifest (internal Drive IDs, not useful outside the app). */
+function buildDataExportPayload(){
+  const items=liveItems();
+  const events=Object.values((DATA&&DATA.events)||{}).filter(e=>!e.deleted);
+  const courses=Object.values((DATA&&DATA.courses)||{}).filter(c=>!c.deleted);
+  const grades=Object.values((DATA&&DATA.grades)||{}).filter(g=>!g.deleted);
+  const kids=Object.values((DATA&&DATA.kids)||{});
+  return {
+    exportedAt:iso(),
+    counts:{items:items.length,events:events.length,courses:courses.length,grades:grades.length,kids:kids.length},
+    kids,items,events,courses,grades
+  };
+}
+/** Export a clean JSON snapshot of the live data — for handing to Claude for review,
+    or as a quick manual backup, without having to go pull the encrypted file from Drive. */
+function doExportDataJson(){
+  if(!DATA){toast('Nothing to export','info');return}
+  const payload=buildDataExportPayload();
+  const json=JSON.stringify(payload,null,2);
+  const blob=new Blob([json],{type:'application/json;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const d=new Date();const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const a=document.createElement('a');a.href=url;a.download=ds+'-apextrack-data.json';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  toast('Exported '+payload.counts.items+' items, '+payload.counts.grades+' grades','success');
+}
 function doExport(){
   const recs=[];
   EXPORT_SEL.forEach(id=>{
@@ -4558,11 +4608,16 @@ function renderSettings(root){
   }
   if(wpLines.length)grp('Grade weights',wpLines);
   // backups
-  grp('Backups',[
-    line('Last backup',el('span',null,DATA.settings.lastBackupAt?DATA.settings.lastBackupAt.slice(0,16).replace('T',' ')+' UTC':'never')),
-    line('Backup now',mkBtn('Backup',async()=>{busy('Creating backup\u2026');try{const r=await backupNow('manual');busyDone();toast(r.ok?'Backup saved':r.message,r.ok?'success':'warning')}catch(e){busyDone();toast(errMsg(e),'error')}renderView()})),
-    line('Backups kept',el('span',null,String(liveBackups().length)+' of '+KEEP_BACKUPS))
-  ]);
+  {
+    const bks=liveBackups(),pending=bks.filter(b=>b.pendingPrune).length;
+    const kept=el('span',null,String(bks.length)+' of '+KEEP_BACKUPS+(pending?' ('+pending+' pending cleanup)':''));
+    if(pending)kept.title='One or more old backups could not be deleted from Drive yet (permissions or a transient error) and will be retried automatically on the next backup.';
+    grp('Backups',[
+      line('Last backup',el('span',null,DATA.settings.lastBackupAt?DATA.settings.lastBackupAt.slice(0,16).replace('T',' ')+' UTC':'never')),
+      line('Backup now',mkBtn('Backup',async()=>{busy('Creating backup\u2026');try{const r=await backupNow('manual');busyDone();toast(r.ok?'Backup saved':r.message,r.ok?'success':'warning')}catch(e){busyDone();toast(errMsg(e),'error')}renderView()})),
+      line('Backups kept',kept)
+    ]);
+  }
   // files / access
   grp('Files',[
     line('Data file',el('span',null,fileId?fileId.slice(0,10)+'…':'—')),
@@ -4718,6 +4773,7 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   openGradeImport,giParseAndPreview,giCommit,
   slopeData,availableTerms,buildGradeReport,gradeReportHTML,reportSparklineSVG,termLabel,openGradeExport,doGradePrint,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,openDataHub,closeDataHub,renderItemModal,updateWeightTotal,
+  reviewItems,reviewCount,doExportDataJson,buildDataExportPayload,
   get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER,GRADE_KID,GRADE_SUB,GX_KID,GX_TERM}),
   set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS;if('GRADE_KID' in o)GRADE_KID=o.GRADE_KID;if('GRADE_SUB' in o)GRADE_SUB=o.GRADE_SUB;if('GX_KID' in o)GX_KID=o.GX_KID;if('GX_TERM' in o)GX_TERM=o.GX_TERM},
   liveBackups,LS,LOGS
