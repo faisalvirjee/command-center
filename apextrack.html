@@ -471,6 +471,9 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   #grade-print-area tr:first-child td{font-weight:600;border-bottom:2px solid #999}
   #grade-print-area .gx-hd{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:6px;margin-bottom:12px}
   #grade-print-area .gx-sec{font-size:13px;font-weight:700;color:#222;text-transform:uppercase;letter-spacing:.03em;margin:14px 0 4px;page-break-after:avoid}
+  #grade-print-area .gx-course-hdr{display:flex;align-items:baseline;gap:14px;margin:0 0 2px;page-break-after:avoid}
+  #grade-print-area .gx-course-name{font-size:17px;font-weight:700;color:#111;text-transform:uppercase;letter-spacing:.03em}
+  #grade-print-area .gx-course-avg{font-size:26px;font-weight:700;color:#222}
   #grade-print-area .gx-sub{font-size:11px;color:#555;margin-bottom:6px}
   #grade-print-area .gx-foot{font-size:9px;color:#999;border-top:1px solid #ccc;padding-top:4px;margin-top:12px}
   /* summary table columns: course name wide, avg narrow */
@@ -481,18 +484,21 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   #grade-print-area .gx-detail td:nth-child(3){width:90px}
   #grade-print-area .gx-detail td:nth-child(4){width:50px;text-align:right}
   /* one subject per page for clean print layout */
-  #grade-print-area .gx-course-block{page-break-before:always;page-break-inside:avoid}
-  #grade-print-area .gx-course-block:first-of-type{page-break-before:auto}
-  #grade-print-area svg{display:block;margin:8px auto}
+  #grade-print-area .gx-course-block{break-before:page;page-break-before:always;page-break-inside:avoid}
+  #grade-print-area .gx-course-block:first-of-type{break-before:auto;page-break-before:auto}
+  #grade-print-area svg{display:block!important;margin:12px auto!important}
 }
 .gx-preview{background:#fff;color:#111;border-radius:6px;padding:24px;font-family:var(--font);max-height:50vh;overflow:auto}
 .gx-preview table{width:100%;border-collapse:collapse;font-size:12px}
 .gx-preview td{padding:4px 0;border-bottom:1px solid #eee}
 .gx-preview .gx-hd{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px}
 .gx-preview .gx-sec{font-size:12px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:.03em;margin:16px 0 6px}
+.gx-preview .gx-course-hdr{display:flex;align-items:baseline;gap:12px;margin:16px 0 2px}
+.gx-preview .gx-course-name{font-size:16px;font-weight:700;color:#111;text-transform:uppercase;letter-spacing:.02em}
+.gx-preview .gx-course-avg{font-size:22px;font-weight:700;color:#333}
 .gx-preview .gx-sub{font-size:11px;color:#666;margin-bottom:8px}
 .gx-preview .gx-foot{font-size:10px;color:#999;margin-top:16px;border-top:1px solid #eee;padding-top:6px}
-.gx-preview svg{display:block;margin:8px auto}
+.gx-preview svg{display:block!important;margin:12px auto!important}
 .gr-esnu{display:inline-block;padding:2px 8px;border-radius:5px;font-size:12px;font-weight:700}
 .gr-esnu.E{background:rgba(52,211,153,.15);color:#34d399}
 .gr-esnu.S{background:rgba(59,130,246,.15);color:#60a5fa}
@@ -3921,8 +3927,11 @@ function gradeReportHTML(report,showCharts){
   for(const c of report.courses){
     if(c.scale==='ESNU'||!c.assignments.length)continue;
     h+='<div class="gx-course-block">';
-    const detAvg=c.avgRounded!=null?' \u2014 '+c.avgRounded:'';
-    h+='<div class="gx-sec">'+esc(c.name)+detAvg+' \u2014 Detail</div>';
+    const detAvg=c.avgRounded!=null?c.avgRounded:'';
+    h+='<div class="gx-course-hdr">';
+    h+='<div class="gx-course-name">'+esc(c.name)+'</div>';
+    if(detAvg)h+='<div class="gx-course-avg">'+detAvg+'</div>';
+    h+='</div>';
     const subParts=[];if(c.teacher)subParts.push(esc(c.teacher));if(c.period)subParts.push('Period '+c.period);if(c.weightLabel)subParts.push(c.weightLabel);
     h+='<div class="gx-sub">'+subParts.join(' \u00b7 ')+'</div>';
     h+='<table class="gx-detail"><tr><td>Date</td><td>Assignment</td><td>Component</td><td>Score</td></tr>';
@@ -3959,7 +3968,7 @@ function reportSparklineSVG(points,label){
   const color=last.avg>=first.avg?'#10b981':'#f59e0b';
   let path='M '+px(0)+' '+py(first.avg);
   for(let i=1;i<n;i++)path+=' L '+px(i)+' '+py(points[i].avg);
-  let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:'+W+'px;height:auto;margin:8px 0 4px;display:block">';
+  let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:'+W+'px;height:auto;display:block;margin:12px auto">';
   // threshold bands
   const y90=py(90),y80=py(80);
   if(hi>=90)svg+='<rect x="'+PL+'" y="'+Math.max(PT,py(Math.min(hi,100)))+'" width="'+iw+'" height="'+Math.max(0,y90-Math.max(PT,py(Math.min(hi,100))))+'" fill="#10b981" opacity="0.06" rx="2"/>';
