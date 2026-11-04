@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.7.3 | 2026-11-03 -->
+<!-- ApexTrack — Family School Tracker | v0.7.5 | 2026-11-03 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -350,6 +350,8 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .settings-grp{margin-bottom:22px}
 .settings-grp .gl{font-family:var(--cond);font-size:13px;letter-spacing:.7px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px}
 .set-line{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;padding:7px 0;color:var(--text2)}
+.settings-note{margin:-10px 0 22px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:9px;font-size:12px;color:var(--text2)}
+.settings-note-line{padding:3px 0 3px 4px;color:var(--text3)}
 /* busy overlay */
 .busy-wrap{display:none;position:fixed;inset:0;z-index:999;background:rgba(6,11,24,.7);align-items:center;justify-content:center;flex-direction:column;gap:14px}
 .busy-wrap.on{display:flex}
@@ -925,7 +927,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.7.3';
+const APP_VERSION='v0.7.5';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -4314,7 +4316,12 @@ function buildIcsEvent(rec){
   const startRaw=rec.startDate||rec.dueDate||rec.date||'';
   const endRaw=rec.endDate||'';
   const dtStart=icsDateVal(startRaw);
-  if(!dtStart){lines.push('END:VEVENT');return lines.join('\r\n')}
+  // DTSTART is required by RFC 5545 — a VEVENT without one is malformed. Calendar apps
+  // commonly drop such events silently on import rather than rejecting the whole file,
+  // which looked like "fewer events imported than exported" with no indication why.
+  // Returning null here lets the caller skip it explicitly and tell the user, instead of
+  // shipping a technically-valid-looking but incomplete VEVENT block.
+  if(!dtStart)return null;
 
   if(dtStart.type==='datetime'){
     lines.push('DTSTART;TZID='+dtStart.tz+':'+dtStart.val);
@@ -4351,6 +4358,10 @@ function buildIcsEvent(rec){
   lines.push('END:VEVENT');
   return lines.join('\r\n');
 }
+/** Returns {ics, includedIds, skipped} — skipped is the list of records with no
+    resolvable date, which never get a VEVENT block written at all (see buildIcsEvent).
+    Keeping this separate from includedIds lets the caller mark only what actually made
+    it into the file as pushed, rather than the whole original selection. */
 function buildIcsFile(records){
   const lines=[
     'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ApexTrack//EN',
@@ -4358,9 +4369,14 @@ function buildIcsFile(records){
     'X-WR-CALNAME:ApexTrack','X-WR-TIMEZONE:'+ICS_TZ,
     VTIMEZONE
   ];
-  records.forEach(r=>lines.push(buildIcsEvent(r)));
+  const includedIds=[],skipped=[];
+  records.forEach(r=>{
+    const ev=buildIcsEvent(r);
+    if(ev===null){skipped.push(r);return}
+    lines.push(ev);includedIds.push(r.id);
+  });
   lines.push('END:VCALENDAR');
-  return lines.join('\r\n')+'\r\n';
+  return {ics:lines.join('\r\n')+'\r\n',includedIds,skipped};
 }
 
 // Mark items as pushed; bump SEQUENCE if re-exported after edits
@@ -4450,14 +4466,43 @@ function doExport(){
     recs.push(it);
   });
   if(!recs.length){toast('Nothing to export','info');return}
-  const ics=buildIcsFile(recs);
+  const {ics,includedIds,skipped}=buildIcsFile(recs);
+  if(!includedIds.length){
+    // every selected record lacked a usable date — nothing was actually written
+    skipped.forEach(r=>flagNeedsReview(r.id,'No date set — skipped from calendar export'));
+    requestSave();
+    toast('Nothing exported — '+skipped.length+' item'+(skipped.length===1?'':'s')+' with no date (see Review)','warning');
+    EXPORT_MODE=false;EXPORT_SEL.clear();renderView();return;
+  }
   const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='apextrack-export.ics';
   document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-  markPushed([...EXPORT_SEL]);
-  toast('Exported '+recs.length+' item'+(recs.length===1?'':'s'),'success');
+  // Flag skipped items BEFORE calling markPushed — markPushed triggers its own save
+  // internally, which can serialize a snapshot and merge it back asynchronously. Mutating
+  // DATA again afterward risked that in-flight merge reverting the needsReview flag. All
+  // mutations for this one export now land before any save is kicked off, so a single
+  // save cycle captures everything together.
+  if(skipped.length)skipped.forEach(r=>flagNeedsReview(r.id,'No date set — skipped from calendar export'));
+  markPushed(includedIds);   // only what actually made it into the file — never the whole original selection
+  if(skipped.length){
+    toast('Exported '+includedIds.length+' item'+(includedIds.length===1?'':'s')+', skipped '+skipped.length+' with no date (see Review)','warning');
+  }else{
+    toast('Exported '+includedIds.length+' item'+(includedIds.length===1?'':'s'),'success');
+  }
   EXPORT_MODE=false;EXPORT_SEL.clear();renderView();
+}
+/** Flag a record needsReview (e.g. for the "no date, skipped from export" case) without
+    clobbering an existing review reason it might already have. Must bump updatedAt like
+    any other mutation (upsert, markPushed) does — mergeRecord()'s conflict resolution is
+    whole-record and timestamp-based, so a change that doesn't advance updatedAt is
+    invisible to it and can be silently discarded on the next save/merge cycle. */
+function flagNeedsReview(id,reasonIfNone){
+  const it=DATA.items[id]||DATA.events[id];if(!it||it.deleted||it.needsReview)return;
+  const coll=DATA.items[id]?'items':'events';
+  const t=stampNow(it);
+  DATA[coll][id]=Object.assign({},it,{needsReview:true,needsReviewReason:it.needsReviewReason||reasonIfNone,updatedAt:t,updatedBy:ME.email});
+  mutationSeq++;
 }
 
 /* ════════════════════════════════════════════════════
@@ -4620,14 +4665,27 @@ function renderSettings(root){
   if(wpLines.length)grp('Grade weights',wpLines);
   // backups
   {
-    const bks=liveBackups(),pending=bks.filter(b=>b.pendingPrune).length;
-    const kept=el('span',null,String(bks.length)+' of '+KEEP_BACKUPS+(pending?' ('+pending+' pending cleanup)':''));
-    if(pending)kept.title='One or more old backups could not be deleted from Drive yet (permissions or a transient error) and will be retried automatically on the next backup.';
+    const bks=liveBackups(),pendingList=bks.filter(b=>b.pendingPrune);
+    const kept=el('span',null,String(bks.length)+' of '+KEEP_BACKUPS+(pendingList.length?' ('+pendingList.length+' pending cleanup)':''));
     grp('Backups',[
       line('Last backup',el('span',null,DATA.settings.lastBackupAt?DATA.settings.lastBackupAt.slice(0,16).replace('T',' ')+' UTC':'never')),
       line('Backup now',mkBtn('Backup',async()=>{busy('Creating backup\u2026');try{const r=await backupNow('manual');busyDone();toast(r.ok?'Backup saved':r.message,r.ok?'success':'warning')}catch(e){busyDone();toast(errMsg(e),'error')}renderView()})),
       line('Backups kept',kept)
     ]);
+    // show exactly who and why for each stuck backup, instead of leaving it as a mystery —
+    // different accounts can't delete each other's backup files (by Drive's own security
+    // model), so this is diagnostic, not just cosmetic: if every pending entry belongs to
+    // someone other than the signed-in account, it will only clear when THEY back up.
+    if(pendingList.length){
+      const det=el('div','settings-note');
+      det.appendChild(el('div',null,'Pending cleanup:'));
+      pendingList.forEach(b=>{
+        const mine=b.createdBy===ME.email;
+        const reason=mine?(b.pendingPruneReason||'unknown error'):'created by a different account — only that account\u2019s own device can delete it';
+        det.appendChild(el('div','settings-note-line','\u2022 '+(b.createdByName||b.createdBy||'unknown')+(mine?' (you)':'')+' \u2014 '+reason));
+      });
+      s.appendChild(det);
+    }
   }
   // files / access
   grp('Files',[
