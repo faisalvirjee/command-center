@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.7.6 | 2026-11-04 -->
+<!-- ApexTrack — Family School Tracker | v0.7.7 | 2026-11-04 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -930,7 +930,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.7.6';
+const APP_VERSION='v0.7.7';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -1780,6 +1780,23 @@ function expandRecurrence(ev,startStr,endStr){
 }
 const liveItems=()=>DATA?Object.values(DATA.items).filter(i=>!i.deleted):[];
 const liveEvents=()=>DATA?Object.values(DATA.events).filter(e=>!e.deleted):[];
+/** Find a record by id across both the items and events tables, returning whichever is
+    actually live — never the fragile `DATA.items[id]||DATA.events[id]` pattern, which
+    always resolves to a leftover {deleted:true} stub if one exists there, regardless of
+    whether the record has since moved to the other table (saveEdit does exactly this
+    whenever a digest-imported type:'event' item gets edited — it moves to the events
+    table and leaves a soft-deleted stub behind in items). `||` only checks truthiness,
+    not `.deleted`, so a stub is indistinguishable from a real record to that pattern.
+    Falls back to a deleted-only match only if nothing live exists anywhere, so callers
+    that need to detect "this was deleted" still can. */
+function liveRecordColl(id){
+  const a=DATA.items[id],b=DATA.events[id];
+  if(a&&!a.deleted)return {it:a,coll:'items'};
+  if(b&&!b.deleted)return {it:b,coll:'events'};
+  if(a)return {it:a,coll:'items'};
+  if(b)return {it:b,coll:'events'};
+  return {it:null,coll:null};
+}
 // All calendar-visible entries: items with a date + events. Returned as [{kind:'item'|'event',rec,dateMs,timeStr}].
 function calEntries(filter,dateStr){
   const out=[];
@@ -2469,7 +2486,7 @@ function closeDetail(){DETAIL_ID=null;const w=$('modal-item');if(w)w.classList.r
 function renderDetail(){renderItemModal()}
 function renderItemModal(){
   const c=$('modal-item-content');if(!c)return;c.textContent='';
-  const it=DETAIL_ID&&(DATA.items[DETAIL_ID]||DATA.events[DETAIL_ID]);
+  const it=DETAIL_ID&&liveRecordColl(DETAIL_ID).it;
   if(!it||it.deleted){closeDetail();return}
   // header with title + trash + close
   const head=el('div','modal-head');
@@ -2562,7 +2579,7 @@ function openEdit(id,opts){
   opts=opts||{};
   EDIT_ID=id||null;
   // resolve source: could be an item or an event
-  const it=id?(DATA.items[id]||DATA.events[id]):null;
+  const it=id?liveRecordColl(id).it:null;
   const isEvent=opts.isEvent||(it&&!it.dueDate&&!it.type)||(VIEW==='calendar');
   $('sheet-edit-title').textContent=id?'Edit '+(isEvent?'event':'item'):(isEvent?'Add event':'Add item');
   $('f-title').value=it?it.title||'':'';
@@ -4400,9 +4417,8 @@ function markPushed(recIds){
   if(!DATA||!CRYPTO)return;
   const t=iso();
   recIds.forEach(id=>{
-    const it=DATA.items[id]||DATA.events[id];
+    const {it,coll}=liveRecordColl(id);
     if(!it||it.deleted)return;
-    const coll=DATA.items[id]?'items':'events';
     const seq=(it._icsSequence||0)+(it.changedSincePushed?1:0);
     DATA[coll][id]=Object.assign({},it,{
       pushedToCalendar:true,
@@ -4418,9 +4434,8 @@ function markPushed(recIds){
 }
 // Call after any content edit to flag pushed items as changed
 function flagChangedSincePush(id){
-  const it=DATA.items[id]||DATA.events[id];
+  const {it,coll}=liveRecordColl(id);
   if(!it||!it.pushedToCalendar)return;
-  const coll=DATA.items[id]?'items':'events';
   DATA[coll][id]=Object.assign({},it,{changedSincePushed:true});
   // no mutationSeq++ here — the caller already incremented for the edit itself
 }
@@ -4477,7 +4492,7 @@ function doExportDataJson(){
 function doExport(){
   const recs=[];
   EXPORT_SEL.forEach(id=>{
-    const it=DATA.items[id]||DATA.events[id];
+    const it=liveRecordColl(id).it;
     if(!it||it.deleted||it.priority==='Info')return;
     recs.push(it);
   });
@@ -4514,8 +4529,7 @@ function doExport(){
     whole-record and timestamp-based, so a change that doesn't advance updatedAt is
     invisible to it and can be silently discarded on the next save/merge cycle. */
 function flagNeedsReview(id,reasonIfNone){
-  const it=DATA.items[id]||DATA.events[id];if(!it||it.deleted||it.needsReview)return;
-  const coll=DATA.items[id]?'items':'events';
+  const {it,coll}=liveRecordColl(id);if(!it||it.deleted||it.needsReview)return;
   const t=stampNow(it);
   DATA[coll][id]=Object.assign({},it,{needsReview:true,needsReviewReason:it.needsReviewReason||reasonIfNone,updatedAt:t,updatedBy:ME.email});
   mutationSeq++;
@@ -4554,11 +4568,10 @@ function fmtDateStr(ds){return new Date(ds+'T00:00:00').toLocaleDateString(undef
 function deleteWithScope(id,instanceDate){
   const ev=DATA.events[id];
   if(!ev||!ev.recurrenceRule||!ev.recurrenceRule.frequency){
-    const it=DATA.items[id]||DATA.events[id];
+    const {it,coll}=liveRecordColl(id);
     const title=it?it.title||'(untitled)':'this item';
     confirmDialog('Delete \u201C'+title+'\u201D?','This removes it for both of you.',()=>{
-      const coll=DATA.events[id]?'events':'items';
-      removeRecord(coll,id);toast('Deleted','success');closeDetail();renderView();
+      removeRecord(coll||(DATA.events[id]?'events':'items'),id);toast('Deleted','success');closeDetail();renderView();
     },'Delete','danger');
     return;
   }
@@ -4872,7 +4885,7 @@ window.AT={           // test hooks (headless harness) — not used by the UI
   openGradeImport,giParseAndPreview,giCommit,
   slopeData,availableTerms,buildGradeReport,gradeReportHTML,reportSparklineSVG,termLabel,openGradeExport,doGradePrint,
   setView,openEdit,saveEdit,openImport,doPreview,doCommitImport,openDetail,closeDetail,toggleItem,deleteItem,openDataHub,closeDataHub,renderItemModal,updateWeightTotal,
-  reviewItems,reviewCount,doExportDataJson,buildDataExportPayload,dismissPendingBackup,
+  reviewItems,reviewCount,doExportDataJson,buildDataExportPayload,dismissPendingBackup,liveRecordColl,
   get:()=>({ME,DATA,CRYPTO,_scopeChoice,fileId,lockId,dirty,driveDataLoaded,accessToken,saving,VIEW,KFILTER,SHOWDONE,DETAIL_ID,EDIT_KID,IMPORT_ROWS,WEEKSEL,MENU_OPEN,CAL_SUB,CAL_YEAR,CAL_MONTH,CAL_SEL_DATE,CAL_WEEK_OFF,EDIT_SCOPE,EDIT_INSTANCE_DATE,EDIT_BYDAYS,EXPORT_MODE,EXPORT_SEL,EXPORT_FILTER,GRADE_KID,GRADE_SUB,GX_KID,GX_TERM}),
   set:o=>{if('fileId' in o)fileId=o.fileId;if('lockId' in o)lockId=o.lockId;if('ME' in o)ME=o.ME;if('lastActivity' in o)lastActivity=o.lastActivity;if('readOnly' in o)readOnly=o.readOnly;if('KFILTER' in o)KFILTER=o.KFILTER;if('WEEKSEL' in o)WEEKSEL=o.WEEKSEL;if('CAL_SUB' in o)CAL_SUB=o.CAL_SUB;if('CAL_YEAR' in o)CAL_YEAR=o.CAL_YEAR;if('CAL_MONTH' in o)CAL_MONTH=o.CAL_MONTH;if('CAL_SEL_DATE' in o)CAL_SEL_DATE=o.CAL_SEL_DATE;if('CAL_WEEK_OFF' in o)CAL_WEEK_OFF=o.CAL_WEEK_OFF;if('_scopeChoice' in o)_scopeChoice=o._scopeChoice;if('SHOWDONE' in o)SHOWDONE=o.SHOWDONE;if('EDIT_KID' in o)EDIT_KID=o.EDIT_KID;if('IMPORT_ROWS' in o)IMPORT_ROWS=o.IMPORT_ROWS;if('GRADE_KID' in o)GRADE_KID=o.GRADE_KID;if('GRADE_SUB' in o)GRADE_SUB=o.GRADE_SUB;if('GX_KID' in o)GX_KID=o.GX_KID;if('GX_TERM' in o)GX_TERM=o.GX_TERM},
   liveBackups,LS,LOGS
