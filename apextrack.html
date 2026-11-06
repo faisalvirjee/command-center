@@ -4139,7 +4139,7 @@ function giParseAndPreview(){
   if(!raw){toast('Drop a file or paste JSON first','error');return}
   let data;
   try{data=JSON.parse(raw)}catch(e){toast('Invalid JSON: '+e.message,'error');return}
-  if(!data.grades&&!data.courses){toast('JSON must have "courses" or "grades" array','error');return}
+  if(!data.grades&&!data.courses&&!data.finals&&!data.courseFinals){toast('JSON must have "courses", "grades", or "finals" array','error');return}
   // build preview
   const preview={courses:[],grades:[],finals:[],stats:{coursesNew:0,coursesSkip:0,gradesNew:0,gradesUpdate:0,gradesSkip:0,finalsNew:0,finalsUpdate:0}};
   const existingCourses=liveCourses('all');
@@ -4165,8 +4165,9 @@ function giParseAndPreview(){
     }
   }
   // course finals (portal averages)
-  if(data.courseFinals){
-    for(const cf of data.courseFinals){
+  const cfArr=data.courseFinals||data.finals;
+  if(cfArr){
+    for(const cf of cfArr){
       const id='cfinal-'+cf.kidId+'-'+(cf.courseCode||cf.course).replace(/\W/g,'');
       const existing=DATA&&DATA.grades&&DATA.grades[id];
       if(existing&&!existing.deleted){
