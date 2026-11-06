@@ -1,4 +1,4 @@
-<!-- CPM — Construction Project Management | v2.15.25 | 2026-09-25 -->
+<!-- CPM — Construction Project Management | v2.15.26 | 2026-11-06 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1991,7 +1991,7 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION = 'v2.15.25';
+const APP_VERSION = 'v2.15.26';
 const APP_NAME = 'CPM';
 const LS_KEY = 'cpm_data';
 const PW_KEY = 'cpm_pass';
@@ -10565,6 +10565,27 @@ const PRINT_SECTIONS=[
   {id:'tab-investors',label:'Investors',desc:'Investor details and terms',checked:false},
   {id:'tab-ledger',label:'Bank Ledger',desc:'Full transaction history',checked:false}
 ];
+
+// v2.15.26 — Fix dead space below Exec Summary / Exec Note / Next Steps textareas in the
+// printed Investor Report. The rows="Math.ceil(len/85)" style heuristics on those three
+// textareas only *guess* how many lines the text will wrap to; they don't know the textarea's
+// real print-time width/font metrics. When the guess overshoots, the printed box is taller
+// than the text it holds, leaving a visible gap at the bottom — exactly the "box is bigger"
+// issue. This measures the REAL content height at the moment print styles are actually in
+// effect (the browser's 'beforeprint' event, which fires after @media print rules apply) and
+// sets it as an explicit pixel height, so the box always matches its content.
+function autosizeReportTextareas(){
+  document.querySelectorAll('.report-section textarea').forEach(ta=>{
+    ta.style.height='0px'; // collapse first so scrollHeight reports only the content's real height
+    ta.style.height=ta.scrollHeight+'px';
+  });
+}
+window.addEventListener('beforeprint',autosizeReportTextareas);
+// Release the forced pixel height after printing so normal on-screen editing (sized by the
+// rows attribute) isn't affected by a leftover inline height from the last print.
+window.addEventListener('afterprint',()=>{
+  document.querySelectorAll('.report-section textarea').forEach(ta=>{ta.style.height='';});
+});
 
 function openPrintModal(){
   const container=document.getElementById('print-options');
