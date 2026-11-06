@@ -2875,7 +2875,10 @@ function gradeCourses(kidFilter){
       cRec=candidates.length>1?((g.term&&candidates.find(c=>c.term===g.term))||candidates[0]):(candidates[0]||null);
     }
     const resolvedTerm=(cRec&&cRec.term)||'';
-    const key=g.kidId+'|'+(g.courseCode||g.course||'Unknown')+'|'+resolvedTerm;
+    // When a registry record exists, key by its stable id so grades with or
+    // without courseCode always land in the same bucket.  Fall back to the
+    // raw courseCode/name only when no registry match is found.
+    const key=g.kidId+'|'+(cRec?cRec.id:(g.courseCode||g.course||'Unknown'))+'|'+resolvedTerm;
     if(!courses[key]){
       courses[key]={key,kidId:g.kidId,course:g.course||'',courseCode:g.courseCode||'',teacher:g.teacher||'',
         term:resolvedTerm,period:g.period||'',scale:g.scale||'numeric-100',officialAvg:null,missingAssignments:0,assignments:[],
@@ -4278,7 +4281,14 @@ async function giCommit(){
         setCourseAvg(f.rec.kidId,f.rec.courseCode,f.rec.course,f.rec.teacher,f.rec.term,f.rec.period,f.rec.rawScore,f.rec.missingAssignments||0);
       }
     }
-    busyDone();closeSheet('sheet-grade-import');
+    // 4. await save — don't declare success until Drive confirms (matches commitImport pattern)
+    const r=await requestSave();
+    busyDone();
+    if(!r.ok){
+      toast('Import saved locally but Drive save failed'+(r.code?' ['+r.code+']':'')+(r.message?': '+r.message:''),'error');
+      btn.disabled=false;return;
+    }
+    closeSheet('sheet-grade-import');
     toast('Imported '+total+' change'+(total===1?'':'s'),'success');
     renderView();
   }catch(e){busyDone();toast(errMsg(e),'error');btn.disabled=false}
