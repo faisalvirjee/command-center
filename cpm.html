@@ -1,4 +1,4 @@
-<!-- CPM — Construction Project Management | v2.15.27 | 2026-11-06 -->
+<!-- CPM — Construction Project Management | v2.15.28 | 2026-11-07 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -607,9 +607,16 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
      own near-blank following page. Trim each one a little in print only — screen editing
      is untouched. */
   .rpt-exec-divider{margin-top:12px!important;padding-top:10px!important}
-  .rpt-timeline-row{padding:3px 0!important}
+  .rpt-timeline-row{padding:2px 0!important}
+  .rpt-timeline-sep{margin-top:4px!important;padding-top:4px!important}
   .rpt-timeline-monthheader{margin-top:8px!important}
   .rpt-timeline-legend{margin-top:6px!important}
+  .rpt-exec-salutation{margin-bottom:8px!important}
+  .rpt-timeline-title{margin-bottom:4px!important}
+  /* report-exec carries more content than the other report pages — give it a
+     touch less body padding than the general 14px/18px so the margin we clawed
+     back above isn't eaten right back up here. */
+  #report-exec .report-section-body{padding:10px 18px!important}
 }
 
 /* ── RESPONSIVE ── */
@@ -2002,7 +2009,7 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION = 'v2.15.27';
+const APP_VERSION = 'v2.15.28';
 const APP_NAME = 'CPM';
 const LS_KEY = 'cpm_data';
 const PW_KEY = 'cpm_pass';
@@ -7440,7 +7447,7 @@ function renderReports(){
       <div class="no-print" style="display:flex;justify-content:flex-end;margin-bottom:8px">
         <button onclick="applyExecSummarySuggestion()" class="btn-secondary" style="font-size:11px;padding:5px 12px" title="Generate a suggested summary from the project's current state. Appends to existing text with a blank-line separator.">✨ Generate Suggestion</button>
       </div>
-      <div style="font-size:13px;color:var(--text3);margin-bottom:14px;font-style:italic">Dear Partners,</div>
+      <div class="rpt-exec-salutation" style="font-size:13px;color:var(--text3);margin-bottom:14px;font-style:italic">Dear Partners,</div>
       <!-- v2.15.16 — rows calc walks each line separately (chars/85 per line) instead
            of dividing total char count by 85. The old formula ignored explicit newlines
            in the exec summary body — e.g. an ASCII table with short lines was scored as
@@ -7533,6 +7540,7 @@ function renderReports(){
           const isNonBuild = ph.id==='contingency' || ph.id==='mgmt';
           const isFirstNonBuild = ph.id==='contingency';
           const sepStyle = isFirstNonBuild ? 'border-top:1px dashed var(--border);margin-top:6px;padding-top:8px;' : '';
+          const sepClass = isFirstNonBuild ? ' rpt-timeline-sep' : '';
           const opacityStyle = isNonBuild ? 'opacity:0.65;' : '';
           // Bars
           let plannedBar='', actualBar='';
@@ -7577,7 +7585,7 @@ function renderReports(){
           } else {
             status=`<span style="color:#888">—</span>`;
           }
-          return `<div class="rpt-timeline-row" style="display:grid;grid-template-columns:150px 1fr 120px;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;${sepStyle}${opacityStyle}">
+          return `<div class="rpt-timeline-row${sepClass}" style="display:grid;grid-template-columns:150px 1fr 120px;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;${sepStyle}${opacityStyle}">
             <div style="display:flex;align-items:center;gap:6px;min-width:0">
               <span style="width:8px;height:8px;border-radius:50%;background:${ph.color};flex-shrink:0"></span>
               <span class="rpt-timeline-name" style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ph.name}</span>
@@ -7608,7 +7616,7 @@ function renderReports(){
           <span style="color:var(--amber)">▼ Today</span>
         </div>`;
         return `<div class="rpt-exec-divider" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">Phase Schedule — At a Glance</div>
+          <div class="rpt-timeline-title" style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">Phase Schedule — At a Glance</div>
           ${monthHeader}
           ${rows}
           ${legend}
