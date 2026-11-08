@@ -1,4 +1,4 @@
-<!-- CPM — Construction Project Management | v2.15.28 | 2026-11-07 -->
+<!-- CPM — Construction Project Management | v2.15.29 | 2026-11-07 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -617,6 +617,15 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
      touch less body padding than the general 14px/18px so the margin we clawed
      back above isn't eaten right back up here. */
   #report-exec .report-section-body{padding:10px 18px!important}
+  /* Contingency/Management Fees rows use opacity:0.65 on screen to look de-emphasized.
+     CSS opacity<1 forces the browser to paint that row as an isolated transparency
+     layer; in Chrome's print-to-PDF pipeline that layer's text can get flushed into
+     the PDF content stream out of normal reading order (it still paints in the right
+     visual spot, but selecting/copying the text, or some PDF tooling, sees it jump to
+     a strange position). Keep these rows at full opacity in print — the dashed
+     separator above Contingency still marks them as a distinct group — so the text
+     layer stays in document order. */
+  .rpt-timeline-nonbuild{opacity:1!important}
 }
 
 /* ── RESPONSIVE ── */
@@ -2009,7 +2018,7 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION = 'v2.15.28';
+const APP_VERSION = 'v2.15.29';
 const APP_NAME = 'CPM';
 const LS_KEY = 'cpm_data';
 const PW_KEY = 'cpm_pass';
@@ -7542,6 +7551,7 @@ function renderReports(){
           const sepStyle = isFirstNonBuild ? 'border-top:1px dashed var(--border);margin-top:6px;padding-top:8px;' : '';
           const sepClass = isFirstNonBuild ? ' rpt-timeline-sep' : '';
           const opacityStyle = isNonBuild ? 'opacity:0.65;' : '';
+          const nonBuildClass = isNonBuild ? ' rpt-timeline-nonbuild' : '';
           // Bars
           let plannedBar='', actualBar='';
           if(ps && pe){
@@ -7585,7 +7595,7 @@ function renderReports(){
           } else {
             status=`<span style="color:#888">—</span>`;
           }
-          return `<div class="rpt-timeline-row${sepClass}" style="display:grid;grid-template-columns:150px 1fr 120px;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;${sepStyle}${opacityStyle}">
+          return `<div class="rpt-timeline-row${sepClass}${nonBuildClass}" style="display:grid;grid-template-columns:150px 1fr 120px;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;${sepStyle}${opacityStyle}">
             <div style="display:flex;align-items:center;gap:6px;min-width:0">
               <span style="width:8px;height:8px;border-radius:50%;background:${ph.color};flex-shrink:0"></span>
               <span class="rpt-timeline-name" style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ph.name}</span>
