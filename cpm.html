@@ -1,4 +1,4 @@
-<!-- CPM — Construction Project Management | v2.15.29 | 2026-11-07 -->
+<!-- CPM — Construction Project Management | v2.15.30 | 2026-11-07 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -543,10 +543,14 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
     font-size:8pt!important;color:#555!important;
     display:flex!important;justify-content:space-between!important}
 
-  /* Tighten table padding in print so paired sections fit on one page with footer */
+  /* Tighten table padding in print so paired sections fit on one page with footer.
+     v2.15.30 — verified by reproducing this exact page (real 3312 Landings South
+     figures) in a headless print render: at 5px the footer was still landing alone
+     on a near-blank following page; 4px was the actual tipping point, so 3px keeps
+     a small safety margin rather than sitting right on the edge again. */
   #report-schedule-table td,#report-schedule-table th,
   #report-phase-budget-table td,#report-phase-budget-table th{
-    padding:5px 10px!important}
+    padding:3px 10px!important}
   #report-schedule-table td > div,#report-phase-budget-table td > div{
     margin-top:1px!important}
   /* Date columns shouldn't wrap — keeps rows compact */
@@ -2018,7 +2022,7 @@ tr:hover td .edit-btn{opacity:1;border-color:var(--border2);color:var(--amber)}
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION = 'v2.15.29';
+const APP_VERSION = 'v2.15.30';
 const APP_NAME = 'CPM';
 const LS_KEY = 'cpm_data';
 const PW_KEY = 'cpm_pass';
