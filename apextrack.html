@@ -454,6 +454,12 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 .wi-path-row.green{color:#34d399}.wi-path-row.red{color:#f87171}
 .wi-path-ceil{font-size:11px;color:var(--text3);margin-top:4px}
 .wi-adv-toggle{background:none;border:none;color:var(--text3);font-size:12px;padding:6px 0;text-decoration:underline;cursor:pointer}
+.sw{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw .track{position:absolute;inset:0;background:var(--card2);border:1px solid var(--border2);border-radius:10px;transition:background .2s,border-color .2s;cursor:pointer}
+.sw .track::after{content:'';position:absolute;top:2px;left:3px;width:14px;height:14px;background:var(--text3);border-radius:50%;transition:transform .2s,background .2s}
+.sw input:checked+.track{background:var(--green);border-color:var(--green)}
+.sw input:checked+.track::after{transform:translateX(16px);background:#fff}
 .wi-adv{padding-top:6px;border-top:1px solid var(--border);margin-top:6px}
 /* ───────── Charts tab ───────── */
 .chart-wrap{padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin:10px 0;overflow:visible}
@@ -783,7 +789,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
     <div class="fld"><label>Date</label><input id="gr-f-date" type="date"></div>
     <div class="fld"><label>Score</label><div id="gr-f-score-wrap"><input id="gr-f-score-num"><select id="gr-f-score-esnu" style="display:none"><option value="">— pick —</option><option value="E">E — Exceeding</option><option value="S">S — Satisfactory</option><option value="N">N — Needs Improvement</option><option value="U">U — Unsatisfactory</option></select></div></div>
   </div>
-  <div class="fld" style="margin-top:-2px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)"><input type="checkbox" id="gr-f-pending" style="width:auto;accent-color:var(--amber)"> Pending — no grade yet</label></div>
+  <div class="fld" style="margin-top:-2px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)"><span class="sw"><input type="checkbox" id="gr-f-pending"><span class="track"></span></span> Pending — no grade yet</label></div>
   <div class="sheet-actions">
     <button class="btn danger" id="gr-delete-btn" type="button" style="display:none;flex:0 0 auto;width:auto;padding:6px 14px">Delete</button>
     <button class="btn" id="gr-sheet-cancel" type="button">Cancel</button>
