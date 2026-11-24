@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<!-- The Forge v2.29.0 | Command Center Suite | v2.29.0 = Manual entry — "+ New entry" on the Transactions tab (Faisal-requested: a way to hand-add anything, not just CSV rows). A broker-aware modal (#meModal, trn-mod styling) with a type picker that writes ONE record straight into the live appData arrays using the SAME builders the CSV importer uses (impConsumeLotsFIFO + impApplyFIFOConsumption + impBuildSellRecord, impGenId, impRound2/4/Shares, impMdyToYmd), so manual rows get identical FIFO lot consumption, rounding, future-import dedup (date+symbol+amount), reconciliation treatment, and appear in the log / edit modal / delete path like any imported row. Every record is stamped source/action 'Manual'. TYPES — Schwab (8): Stock buy, Stock sell (FIFO + live oversell warning in the preview), Option Sell-to-Open, Option Close (BTC/Expired/Assigned — picks an open leg, books realizedPL = stoAmt+closeAmt, sets status closed), Stock dividend (qual/non-qual toggle → stockDividends), ETF dividend (→ dividends, non-qual), Interest (→ interest), Cash transfer/adjustment (signed → cash.adjustments source:'manual', YYYY-MM-DD so the recon step-7 walk counts it). Fidelity (5): Position buy, Position sell (FIFO vs positions[]), Dividend (qual/non-qual), Interest, Set cash balance (overwrites fidelity.cash.balance + date — Fidelity is snapshot-based, no reconciliation walk). Broker-record dates stored MM/DD/YYYY (meYmdToMdy converts the date input) to match imported rows and the Schwab recon parser; cash.adjustments stays YYYY-MM-DD. Live preview line (reuses the FIFO engine read-only for the sell G/L + oversell flag) + per-type effect note; inline validation (required fields, shares>0, non-zero amounts, contract 4-part parse, sell requires existing lots). DELIBERATELY does NOT route through impCommitSchwab — that writes importHistory and bumps lastCsvImportDate, and bumping the cutoff would make future CSV imports skip rows older than the manual entry's date. No reconciliation side effects; after a Schwab cash-affecting add the toast nudges "run Cash Reconciliation to refresh cash" (the dashboard cash tile reads lastReconciledCash, so it updates on the next reconcile; YTD div/realized tiles update immediately via renderAll). New CSS: .trn-newentry-btn + .me-* form classes; reuses .trn-mod / .finp / .trn-edit-div-toggle. Headless deep-test vs live JSON: all 13 type/broker paths commit the expected record shapes, FIFO sell reconciles G/L, oversell flagged, option close books realizedPL, re-import dedups manual rows. node --check passes (3 blocks). APP_VERSION 2.28.2 → 2.29.0 + lock-screen literal. -->
+<!-- The Forge v2.28.2 | Command Center Suite | v2.28.2 = Schwab importer: two dropped cash events now ingested. Faisal's 11/23 CSV carried a "Special Qual Div" for JMKE ($35.00) and a "MoneyLink Transfer" of $3,500 (ACH deposit he was required to make after the market slipped) — neither reached the ledger, leaving reconciliation ~$3,535 short. ROOT CAUSES: (1) 'Special Qual Div' was in NO action set, so it fell through impParseSchwabCSV's keep/skip partition into skippedUnknown and was dropped. (2) 'MoneyLink Transfer' sat in IMP_SCHWAB_TDA_LEGACY, a hard-skip set ("never imported via the in-app path") — intended for the user to patch via a manual Cash Reconciliation adjustment, which Faisal wanted automated. FIXES: (a) 'Special Qual Div' added to IMP_SCHWAB_IMPORT and folded into the Qualified/Non-Qualified categorization branch as QUAL (JMKE isn't a YieldMax ETF, so it routes to stockDividends — flippable via the Transactions edit modal); flows to Stk Divs YTD, the qual column of Dividend Breakdown, and the reconciliation cash-in walk. (b) 'MoneyLink Transfer' moved from TDA-legacy into IMP_SCHWAB_IMPORT and routed through a new cats.transfers bucket → committed to schwab.cash.adjustments[] (same schema + sequential adj_NNNNNN id as reconSave, tagged source:'csv-import', date normalized MM/DD/YYYY→YYYY-MM-DD via new impMdyToYmd so _reconParseLocal picks it up in runReconciliation step 7). Amount sign preserved (+ deposit / − withdrawal). Deduped against existing adjustments by normalized date + amount so re-imports don't double-count (belt-and-suspenders with the lastCsvImportDate cutoff). Pre-commit POST-IMPORT drift preview updated too: _reconWalkExtraRows now walks cats.transfers (raw CSV date via _reconParseSchwab) so the importer's reconciliation card and the auto-reconcile decision both see the $3,500 before commit. New "Cash Transfers (MoneyLink)" preview section (impRenderSection 'transfer' label + impRenderRow 'transfer' kind, Deposit/Withdrawal + signed amount). Net effect on the live file: the JMKE $35 qual div + the $3,500 deposit now land on import, closing the ~$3,535 drift so the clean-import auto-reconcile sets lastReconciledCash to the live Schwab balance. node --check passes (3 blocks). APP_VERSION 2.28.1 → 2.28.2 + lock-screen literal. -->
 <!-- The Forge v2.27.0 | Command Center Suite | v2.27.0 = Closed-position SELLS + LOTS grouped by calendar year (current year expanded, prior years collapsed with subtotals always visible). Both tables in a closed-position card now render year groups newest-first via stksYearGroup(section,sym,items,rowFn,subtotalFn): each year is a clickable header row (▸/▾ chevron + "YYYY · N sells/lots" + a right-aligned per-year subtotal — realized for sells, cost for lots) followed by that year’s rows. The current calendar year is expanded by default; prior years collapsed. Edge case: a position with no current-year activity auto-expands the most recent year that has data. Per-year toggle state in _stksYearOpen (seeded once per sym+section via _stksYearSeen); stksYearToggle(key) flips the rows’ display + chevron in-place (no full re-render), keyed sym|SECTION|YYYY so toggles are independent across years and cards. Within a year, rows sort newest-first. The old epoch grouping (PRE-2026 seed / 2026 IMP headers) and the “Show all N lots” master toggle are replaced by year groups — the PRE-2026 / 2026 IMP SOURCE CHIP stays on every lot row, so provenance is still visible, just no longer the grouping axis. Non-economic journal/transfer sells (price 0 + proceeds 0, e.g. the 12/13/2024 315-sh $0 TSLA row) are dimmed (.stks-sell-journal, opacity .5) with a “Journal / transfer — no gain or loss” tooltip so they don’t read as real sales. OPEN positions unchanged (flat sells behind the existing Show-history toggle; existing hide-depleted lots). Deep-tested vs live TSLA: SELLS 2026 +$175.05 (=header tile) / 2025 +$1,248.16 / 2024 −$497.13 / 2023 −$447.66 / 2022 +$273.95; LOTS 2026 $6,970 / 2025 $39,532.23 / 2024 $1,606.95 / 2022 $111,197.45; 2026 open, priors collapsed. (stksToggleClosedLots from v2.26.0 now unused — harmless dead code.) node --check passes (3 blocks). APP_VERSION 2.26.0 → 2.27.0 + lock-screen literal. -->
 <!-- The Forge v2.26.0 | Command Center Suite | v2.26.0 = Stocks readability — closed-position collapse + planner covered-flag. STOCKS TAB (stksBuildCard): a fully-closed position (isClosed = rem < 0.00005; e.g. TSLA/SPCX sitting in stocks[] with all lots depleted) now renders a 2026-focused SUMMARY instead of a wall of depleted lots. (1) KPI tiles reframed for closed: Realized <year> (hero) · Proceeds · Cost Basis · Status(closed, last sold) — scoped to the current year’s sells so it reconciles (TSLA: proceeds $11,735.05 − basis $11,560.00 = realized +$175.05, matching Schwab); falls back to lifetime if no sells this year. (2) SELLS surfaced first, open by default (sellsOpen ||= isClosed) — the realized event is the story. (3) LOTS collapsed by default behind a “▸ Show all N lots” toggle (stksToggleClosedLots), and grouped PRE-2026 seed / 2026 IMP with a per-group cost subtotal header (.stks-lot-grp) so the expanded view is scannable. Open positions unchanged (existing hide-depleted path). Fixes the TSLA clutter (30 depleted rows, realized buried behind “Show history”) surfaced in the readability review. Per-sale gain/loss is FIFO (engine’s method); no 1099-B caveat shown per Faisal (Option 3 cost-basis-method engine parked, see changelog). PLANNER RECONCILIATION: the Harvest Planner (Taxes tab) now carries covered/coveredLegs onto stock candidates and shows a purple “⊙ covered · <leg> — close the call first” chip on NFLX/NAIL, so it no longer silently implies a covered name is cleanly harvestable (matches the Exit card). node --check passes (3 blocks). APP_VERSION 2.25.0 → 2.26.0. Also synced the stale hardcoded lock-screen literal (#lockScreenVersion, was v2.16.6 — the no-JS fallback; the DOMContentLoaded setter already overwrites it to v+APP_VERSION on load) to v2.26.0, per the "3 places" bump checklist. -->
 <!-- The Forge v2.25.0 | Command Center Suite | v2.25.0 = Covered-call entanglement guard on the Stocks exit engine. Prevents a dangerous HARVEST recommendation: selling shares you have written a call against strands a NAKED short call (unlimited upside risk) and the open call can wash the loss. exitStockOptionEntanglement(sym) matches open short options in schwab.optionTrades to the stock symbol: an open short CALL = covered (shares locked); an open short PUT = a softer wash-sale note (a CSP on a name you also hold long can wash a harvested loss under IRS rules). exitStockCompute now returns covered/coveredLegs/shortPut/shortPutLegs/harvestWarn and prepends the appropriate reason for HARVEST positions. RENDER: a purple ⊙ covered · <leg> chip (names the specific call, per Faisal), the HARVEST badge swaps to amber HARVEST ⚠ (exitTagBadges harvestWarn option; also applied when the async EXIT pass rebuilds tags), and the harvest tax-line reads amber with "shares locked by <leg> — close/roll the call first" (wash still red, clean harvest still teal). Calls-only for the covered tag; puts get the wash note only (and only on a loss). Deep-tested vs live: NFLX → HARVEST⚠ · covered(NFLX 90C); NAIL → HARVEST⚠ · covered(NAIL 40C) · short-put(NAIL 30P) · wash (triple); JMKE clean (call expired); TSLA winner shows put detected but no covered tag / no note (a gain). node --check passes (3 blocks). APP_VERSION 2.24.0 → 2.25.0. NOTE: the Harvest Planner (Taxes tab) does not yet reflect covered/put entanglement — candidate losses still net normally there; possible follow-up. Readability pass still pending its own scoping (needs current Stocks-tab view). -->
@@ -2261,6 +2263,21 @@
       border-color:var(--pri);color:#fff}
     .trn-mod-btn.save:hover{background:linear-gradient(135deg,var(--pri),var(--acc));
       border-color:var(--acc)}
+    /* Manual entry (v2.29.0) — New Entry button + modal form */
+    .trn-newentry-btn{margin-left:auto;background:var(--card2);border:1px solid var(--border2);
+      color:var(--text);border-radius:7px;padding:7px 13px;font-size:12px;cursor:pointer;
+      display:inline-flex;align-items:center;gap:6px;font-weight:600}
+    .trn-newentry-btn:hover{border-color:var(--acc);color:var(--acc)}
+    .me-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .me-field.col2{grid-column:1 / -1}
+    .me-field label{display:block;font-size:11px;color:var(--text3);margin-bottom:4px;letter-spacing:.3px}
+    .me-field .finp{width:100%}
+    .me-preview{margin-top:16px;padding:10px 12px;background:var(--bg2);border-radius:8px;border-left:2px solid var(--acc)}
+    .me-preview .lbl{font-size:10px;letter-spacing:.08em;color:var(--text3);margin-bottom:4px}
+    .me-preview .pv{font-family:var(--mono);font-size:12.5px;color:var(--text);line-height:1.5;word-break:break-word}
+    .me-preview .pv.warn{color:var(--amber,#f0b429)}
+    .me-preview .eff{font-size:11px;color:var(--text3);margin-top:5px;line-height:1.45}
+    .me-err{color:var(--red);font-size:11.5px;min-height:14px;margin-top:10px}
     /* Edit form — source strip */
     .trn-edit-src{background:var(--bg2);border:1px solid var(--border);border-radius:7px;
       padding:10px 13px;margin-bottom:16px}
@@ -3107,7 +3124,7 @@
     <div class="lc-icon-brand"></div>
     <div class="lc-title">The Forge</div>
     <div class="lc-sub">Capital Forged. Premium Collected.</div>
-    <div class="lc-ver" id="lockScreenVersion"><!-- APP_VERSION -->v2.28.1</div>
+    <div class="lc-ver" id="lockScreenVersion"><!-- APP_VERSION -->v2.29.0</div>
     <div id="loginMode">
       <div class="pw-wrap">
         <input type="password" id="pwInp" class="pw-inp" placeholder="Password"
@@ -3860,6 +3877,7 @@
         <div class="trn-broker-bar">
           <button class="trn-pill active" data-broker="schwab" onclick="trnSetBroker('schwab')">● Schwab</button>
           <button class="trn-pill" data-broker="fidelity" onclick="trnSetBroker('fidelity')">○ Fidelity</button>
+          <button class="trn-newentry-btn" onclick="meOpen()" title="Manually add a transaction">＋ New entry</button>
         </div>
 
         <div class="trn-kpi" id="trnKpi"></div>
@@ -3914,6 +3932,42 @@
           <div class="trn-mod-foot">
             <button class="trn-mod-btn" onclick="trnCloseEditModal()">Cancel</button>
             <button class="trn-mod-btn save" onclick="trnSaveEditModal()">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual New Entry modal (v2.29.0) -->
+      <div class="trn-mod-bd" id="meModal" onclick="if(event.target===this)meClose()">
+        <div class="trn-mod" style="max-width:460px">
+          <div class="trn-mod-hdr">
+            <div class="t">＋ NEW ENTRY</div>
+            <button class="x" onclick="meClose()" aria-label="Close">×</button>
+          </div>
+          <div class="trn-mod-bd-content">
+            <div class="me-grid" style="margin-bottom:14px">
+              <div class="me-field">
+                <label>Account</label>
+                <select class="finp" id="meBroker" style="text-align:left" onchange="meBrokerChange()">
+                  <option value="schwab">Schwab</option>
+                  <option value="fidelity">Fidelity</option>
+                </select>
+              </div>
+              <div class="me-field">
+                <label>Type</label>
+                <select class="finp" id="meType" style="text-align:left" onchange="meTypeChange()"></select>
+              </div>
+            </div>
+            <div class="me-grid" id="meFields"></div>
+            <div class="me-preview">
+              <div class="lbl">PREVIEW</div>
+              <div class="pv" id="mePreview">—</div>
+              <div class="eff" id="meEffect"></div>
+            </div>
+            <div class="me-err" id="meErr"></div>
+          </div>
+          <div class="trn-mod-foot">
+            <button class="trn-mod-btn" onclick="meClose()">Cancel</button>
+            <button class="trn-mod-btn save" onclick="meCommit()">✓ Add entry</button>
           </div>
         </div>
       </div>
@@ -5478,7 +5532,7 @@
 /* ════════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════════ */
-const APP_VERSION = "2.28.1";
+const APP_VERSION = "2.29.0";
 const CLIENT_ID   = "305146523481-1gucm4vggu2pmucqjgae0vhb1deavnqb.apps.googleusercontent.com";
 const SCOPES      = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_FILE  = "forge_data.json";
@@ -13734,6 +13788,361 @@ function trnCloseEditModal(){
 }
 
 /* ═════════════════════════════════════════════════════════════
+   MANUAL ENTRY · v2.29.0
+   "+ New entry" on the Transactions tab. A broker-aware modal that
+   writes a single record straight into the live appData arrays using
+   the SAME builders the CSV importer uses (impConsumeLotsFIFO, impGenId,
+   impRound*, impMdyToYmd) — so manual rows get identical FIFO, rounding,
+   dedup (date+symbol+amount on future import), reconciliation treatment,
+   and show up in the log / edit modal / delete path like any imported row.
+   Every record is stamped source/action 'Manual'. Deliberately does NOT
+   call impCommitSchwab (which would write importHistory + bump
+   lastCsvImportDate — the latter would make future CSV imports skip rows
+   older than the manual date). No reconciliation side effects; the commit
+   toast nudges the user to re-reconcile for Schwab cash-affecting rows.
+═════════════════════════════════════════════════════════════ */
+function meYmdToday(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function meYmdToMdy(ymd){ const m=String(ymd||'').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/); return m ? (m[2].padStart(2,'0')+'/'+m[3].padStart(2,'0')+'/'+m[1]) : ymd; }
+function meNum(x){ const n=parseFloat(x); return isFinite(n)?n:NaN; }
+function meFmt(n){ return (isFinite(n)?n:0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+const ME_TYPES = {
+  stkdiv:{label:'Stock dividend',fields:[
+    {k:'symbol',label:'Symbol',type:'sym',ph:'JMKE'},
+    {k:'date',label:'Date',type:'date'},
+    {k:'amount',label:'Amount ($)',type:'num',ph:'35.00'},
+    {k:'divType',label:'Tax class',type:'divpill'}]},
+  etfdiv:{label:'ETF dividend',fields:[
+    {k:'symbol',label:'Symbol',type:'sym',ph:'CONY'},
+    {k:'date',label:'Date',type:'date'},
+    {k:'amount',label:'Amount ($)',type:'num',ph:'2.97'}]},
+  int:{label:'Interest',fields:[
+    {k:'date',label:'Date',type:'date'},
+    {k:'amount',label:'Amount ($)',type:'num',ph:'0.30'},
+    {k:'desc',label:'Description',type:'text',ph:'SCHWAB1 INT',col2:true}]},
+  xfer:{label:'Cash transfer / adjustment',fields:[
+    {k:'date',label:'Date',type:'date'},
+    {k:'amount',label:'Amount ($, + in / − out)',type:'snum',ph:'3500.00'},
+    {k:'desc',label:'Description',type:'text',ph:'Tfr Wells Fargo',col2:true}]},
+  sto:{label:'Option — Sell to Open',fields:[
+    {k:'contract',label:'Contract (underlying expiry strike type)',type:'text',ph:'SPY 12/04/2026 730.00 P',col2:true},
+    {k:'contracts',label:'Contracts',type:'int',ph:'1'},
+    {k:'date',label:'Date',type:'date'},
+    {k:'price',label:'Price',type:'num',ph:'30.31'},
+    {k:'fees',label:'Fees',type:'num',ph:'0.72'},
+    {k:'amount',label:'Amount ($, premium in)',type:'snum',ph:'3030.28'}]},
+  optclose:{label:'Option — Close',fields:[
+    {k:'leg',label:'Open leg to close',type:'openleg',col2:true},
+    {k:'closeType',label:'Close type',type:'sel',opts:['BTC','Expired','Assigned']},
+    {k:'date',label:'Date',type:'date'},
+    {k:'price',label:'Price',type:'num',ph:'0.13'},
+    {k:'fees',label:'Fees',type:'num',ph:'0.66'},
+    {k:'amount',label:'Amount ($, − out for BTC)',type:'snum',ph:'-13.66'}]},
+  buy:{label:'Stock buy',fields:[
+    {k:'symbol',label:'Symbol',type:'sym',ph:'NAIL'},
+    {k:'date',label:'Date',type:'date'},
+    {k:'shares',label:'Shares',type:'num',ph:'10'},
+    {k:'cps',label:'Cost / share',type:'num',ph:'40.00'}]},
+  sell:{label:'Stock sell',fields:[
+    {k:'symbol',label:'Symbol',type:'sym',ph:'TSLA'},
+    {k:'date',label:'Date',type:'date'},
+    {k:'shares',label:'Shares',type:'num',ph:'5'},
+    {k:'price',label:'Price',type:'num',ph:'420.00'},
+    {k:'fees',label:'Fees',type:'num',ph:'0.66'}]},
+  fdiv:{label:'Dividend',fields:[
+    {k:'symbol',label:'Symbol',type:'sym',ph:'SCHD'},
+    {k:'date',label:'Date',type:'date'},
+    {k:'amount',label:'Amount ($)',type:'num'},
+    {k:'divType',label:'Tax class',type:'divpill'}]},
+  fint:{label:'Interest',fields:[
+    {k:'date',label:'Date',type:'date'},
+    {k:'amount',label:'Amount ($)',type:'num'},
+    {k:'desc',label:'Description',type:'text',ph:'Interest earned',col2:true}]},
+  fcash:{label:'Set cash balance',fields:[
+    {k:'date',label:'As-of date',type:'date'},
+    {k:'amount',label:'Cash balance ($)',type:'num'}]},
+  fbuy:{label:'Position buy',fields:[
+    {k:'symbol',label:'Symbol',type:'sym'},
+    {k:'date',label:'Date',type:'date'},
+    {k:'shares',label:'Shares',type:'num'},
+    {k:'cps',label:'Cost / share',type:'num'}]},
+  fsell:{label:'Position sell',fields:[
+    {k:'symbol',label:'Symbol',type:'sym'},
+    {k:'date',label:'Date',type:'date'},
+    {k:'shares',label:'Shares',type:'num'},
+    {k:'price',label:'Price',type:'num'},
+    {k:'fees',label:'Fees',type:'num'}]}
+};
+const ME_ORDER = {
+  schwab:['buy','sell','sto','optclose','stkdiv','etfdiv','int','xfer'],
+  fidelity:['fbuy','fsell','fdiv','fint','fcash']
+};
+
+function meOpen(){
+  const b = (typeof trnState==='object' && trnState && trnState.broker) ? trnState.broker : 'schwab';
+  const bs = el('meBroker'); if(bs) bs.value = b;
+  meBrokerChange();
+  const err = el('meErr'); if(err) err.textContent='';
+  const m = el('meModal'); if(m) m.classList.add('show');
+}
+function meClose(){ const m = el('meModal'); if(m) m.classList.remove('show'); }
+function meBrokerChange(){
+  const b = el('meBroker').value;
+  const order = ME_ORDER[b] || [];
+  el('meType').innerHTML = order.map(k=>'<option value="'+k+'">'+ME_TYPES[k].label+'</option>').join('');
+  meTypeChange();
+}
+function meTypeChange(){ const err=el('meErr'); if(err) err.textContent=''; meRenderFields(); mePreview(); }
+
+function meRenderFields(){
+  const t = ME_TYPES[el('meType').value]; const host = el('meFields');
+  if(!t || !host){ if(host) host.innerHTML=''; return; }
+  let html='';
+  for(const f of t.fields){
+    html += '<div class="me-field'+(f.col2?' col2':'')+'"><label>'+f.label+'</label>';
+    if(f.type==='divpill'){
+      html += '<div class="trn-edit-div-toggle">'
+        + '<button type="button" id="me_div_qual" class="trn-edit-div-btn" onclick="meSetDiv(\'qual\')">QUAL</button>'
+        + '<button type="button" id="me_div_nq" class="trn-edit-div-btn active-nq" onclick="meSetDiv(\'non-qual\')">NON-QUAL</button>'
+        + '</div>';
+    } else if(f.type==='sel'){
+      html += '<select class="finp" id="me_f_'+f.k+'" style="text-align:left" onchange="mePreview()">'
+        + (f.opts||[]).map(o=>'<option>'+o+'</option>').join('') + '</select>';
+    } else if(f.type==='openleg'){
+      const open = ((appData.schwab && appData.schwab.optionTrades)||[]).filter(x=>x.status==='open');
+      if(!open.length){
+        html += '<select class="finp" id="me_f_'+f.k+'" disabled><option value="">No open option legs</option></select>';
+      } else {
+        html += '<select class="finp" id="me_f_'+f.k+'" style="text-align:left" onchange="mePreview()">'
+          + open.map(x=>'<option value="'+impEscape(x.id)+'">'+impEscape(x.fullSymbol||x.underlying||x.id)+'</option>').join('')
+          + '</select>';
+      }
+    } else {
+      const inType = (f.type==='num'||f.type==='int'||f.type==='snum')?'number':(f.type==='date'?'date':'text');
+      const step = (inType==='number') ? ' step="'+(f.type==='int'?'1':'any')+'"' : '';
+      const up = f.type==='sym' ? ' style="text-transform:uppercase"' : '';
+      const val = f.type==='date' ? (' value="'+meYmdToday()+'"') : '';
+      const ph = f.ph ? (' placeholder="'+f.ph+'"') : '';
+      html += '<input class="finp" id="me_f_'+f.k+'" type="'+inType+'"'+step+up+val+ph+' oninput="mePreview()">';
+    }
+    html += '</div>';
+  }
+  host.innerHTML = html;
+}
+function meSetDiv(val){
+  const q=el('me_div_qual'), n=el('me_div_nq'); if(!q||!n) return;
+  if(val==='qual'){ q.className='trn-edit-div-btn active-qual'; n.className='trn-edit-div-btn'; }
+  else { q.className='trn-edit-div-btn'; n.className='trn-edit-div-btn active-nq'; }
+  mePreview();
+}
+function meCollect(){
+  const t = ME_TYPES[el('meType').value]; const v={};
+  if(!t) return v;
+  for(const f of t.fields){
+    if(f.type==='divpill'){ const q=el('me_div_qual'); v[f.k] = (q && q.classList.contains('active-qual')) ? 'qual' : 'non-qual'; }
+    else { const e=el('me_f_'+f.k); v[f.k] = e ? e.value : ''; }
+  }
+  return v;
+}
+
+/* Validate → error string or null. Optional fields: desc, fees. */
+function meValidate(type, v){
+  const needSym = ['stkdiv','etfdiv','buy','sell','fdiv','fbuy','fsell'];
+  if(needSym.includes(type) && !(v.symbol && v.symbol.trim())) return 'Symbol is required.';
+  if(v.date===''||v.date==null) return 'Date is required.';
+  const n = (k)=>meNum(v[k]);
+  if(['stkdiv','etfdiv','fdiv'].includes(type)){ if(!(n('amount')>0)) return 'Dividend amount must be greater than 0.'; }
+  if(['int','fint'].includes(type)){ if(!(n('amount')>0)) return 'Interest amount must be greater than 0.'; }
+  if(type==='fcash'){ if(!isFinite(n('amount'))||n('amount')<0) return 'Cash balance must be 0 or more.'; }
+  if(type==='xfer'){ if(!isFinite(n('amount'))||n('amount')===0) return 'Amount must be a non-zero number (negative for a withdrawal).'; }
+  if(['buy','fbuy'].includes(type)){ if(!(n('shares')>0)) return 'Shares must be greater than 0.'; if(!(n('cps')>0)) return 'Cost per share must be greater than 0.'; }
+  if(['sell','fsell'].includes(type)){
+    if(!(n('shares')>0)) return 'Shares must be greater than 0.';
+    if(!(n('price')>=0)) return 'Price must be 0 or more.';
+    const arr = (type==='sell') ? (appData.schwab.stocks||[]) : (appData.fidelity.positions||[]);
+    const sym = (v.symbol||'').trim().toUpperCase();
+    if(!arr.find(x=>x.symbol===sym)) return 'No lots on file for '+sym+'. Add a '+(type==='sell'?'Stock buy':'Position buy')+' first.';
+  }
+  if(type==='sto'){
+    const parts = String(v.contract||'').trim().split(/\s+/);
+    if(parts.length<4) return 'Contract needs 4 parts: underlying expiry strike type (e.g. SPY 12/04/2026 730.00 P).';
+    if(!(n('contracts')>0)) return 'Contracts must be greater than 0.';
+    if(!isFinite(n('amount'))||n('amount')===0) return 'Premium amount must be a non-zero number.';
+  }
+  if(type==='optclose'){
+    if(!v.leg) return 'Select an open option leg to close.';
+    if(!isFinite(n('amount'))) return 'Amount is required (use 0 for an expired/assigned leg).';
+  }
+  return null;
+}
+
+function mePreview(){
+  const type = el('meType') ? el('meType').value : '';
+  const t = ME_TYPES[type]; const pvEl=el('mePreview'), effEl=el('meEffect');
+  if(!t||!pvEl) return;
+  const v = meCollect();
+  let line='—', eff='', warn=false;
+  const amt = meNum(v.amount);
+  const nudge = ' Run Cash Reconciliation to refresh your cash balance.';
+  switch(type){
+    case 'stkdiv': line=(v.symbol||'—')+'  ·  '+(v.divType||'non-qual')+'  ·  +$'+meFmt(amt); eff='Writes a stock dividend; feeds Stk Divs YTD, the Dividend Breakdown, and the reconciliation cash-in.'+nudge; break;
+    case 'etfdiv': line=(v.symbol||'—')+'  ·  non-qual  ·  +$'+meFmt(amt); eff='Writes an ETF dividend (always non-qual); feeds ETF Dividends and the reconciliation cash-in.'+nudge; break;
+    case 'int': line='Interest  ·  +$'+meFmt(amt); eff='Writes a credit-interest row; feeds the reconciliation cash-in.'+nudge; break;
+    case 'xfer': line=((amt>=0)?'Deposit':'Withdrawal')+'  ·  '+((amt>=0)?'+':'−')+'$'+meFmt(Math.abs(amt)); eff='Writes a cash.adjustments row (source: manual); shifts computed cash in reconciliation.'+nudge; break;
+    case 'sto': line=((v.contract||'—').trim())+'  ·  STO ×'+(v.contracts||'?')+'  ·  '+((amt>=0)?'+':'−')+'$'+meFmt(Math.abs(amt)); eff='Opens an option leg (status: open); premium flows into reconciliation.'+nudge; break;
+    case 'optclose': { const legEl=el('me_f_leg'); const legTxt=legEl&&legEl.selectedOptions&&legEl.selectedOptions[0]?legEl.selectedOptions[0].textContent:'—'; line=legTxt+'  ·  '+(v.closeType||'BTC')+'  ·  '+((amt>=0)?'+':'−')+'$'+meFmt(Math.abs(amt)); eff='Closes the chosen open leg and books realized P/L.'+nudge; break; }
+    case 'buy': line=(v.symbol||'—')+'  ·  buy '+(v.shares||'0')+' sh @ $'+meFmt(meNum(v.cps)); eff='Adds a lot; cash out flows into reconciliation.'+nudge; break;
+    case 'sell': {
+      const sym=(v.symbol||'').trim().toUpperCase(); const sh=meNum(v.shares), px=meNum(v.price), fe=meNum(v.fees)||0;
+      let tail='';
+      const stk=(appData.schwab.stocks||[]).find(x=>x.symbol===sym);
+      if(stk && sh>0 && isFinite(px)){
+        const plan=impConsumeLotsFIFO(stk, sh, meYmdToMdy(v.date), px, fe);
+        const cls=plan.totals.classification; const clsLbl=cls==='short'?'ST':cls==='long'?'LT':cls==='mixed'?'MIXED':'—';
+        if(plan.oversell){ warn=true; tail='  ·  ⚠ OVERSELL — only '+plan.sharesConsumed+' sh available, short '+plan.sharesShortfall; }
+        else tail='  ·  '+clsLbl+' · G/L '+(plan.totals.realizedGL>=0?'+':'')+'$'+meFmt(plan.totals.realizedGL);
+      }
+      line=(v.symbol||'—')+'  ·  sell '+(v.shares||'0')+' sh @ $'+meFmt(px)+tail;
+      eff='FIFO-consumes lots (same engine as import); proceeds flow into reconciliation.'+nudge; break;
+    }
+    case 'fdiv': line=(v.symbol||'—')+'  ·  '+(v.divType||'non-qual')+'  ·  +$'+meFmt(amt); eff='Writes a Fidelity dividend; feeds the Dividends tab.'; break;
+    case 'fint': line='Interest  ·  +$'+meFmt(amt); eff='Writes a Fidelity interest row.'; break;
+    case 'fcash': line='Set Fidelity cash → $'+meFmt(amt); eff='Overwrites the Fidelity cash balance and its as-of date.'; break;
+    case 'fbuy': line=(v.symbol||'—')+'  ·  buy '+(v.shares||'0')+' sh @ $'+meFmt(meNum(v.cps)); eff='Adds a Fidelity position lot.'; break;
+    case 'fsell': {
+      const sym=(v.symbol||'').trim().toUpperCase(); const sh=meNum(v.shares), px=meNum(v.price), fe=meNum(v.fees)||0;
+      let tail=''; const pos=(appData.fidelity.positions||[]).find(x=>x.symbol===sym);
+      if(pos && sh>0 && isFinite(px)){
+        const plan=impConsumeLotsFIFO(pos, sh, meYmdToMdy(v.date), px, fe);
+        if(plan.oversell){ warn=true; tail='  ·  ⚠ OVERSELL — only '+plan.sharesConsumed+' sh available'; }
+        else tail='  ·  G/L '+(plan.totals.realizedGL>=0?'+':'')+'$'+meFmt(plan.totals.realizedGL);
+      }
+      line=(v.symbol||'—')+'  ·  sell '+(v.shares||'0')+' sh @ $'+meFmt(px)+tail; eff='FIFO-consumes Fidelity lots.'; break;
+    }
+  }
+  pvEl.textContent=line; pvEl.className='pv'+(warn?' warn':'');
+  if(effEl) effEl.textContent=eff;
+}
+
+function meCommit(){
+  const broker = el('meBroker').value;
+  const type = el('meType').value;
+  const v = meCollect();
+  const err = meValidate(type, v);
+  const errEl = el('meErr'); if(errEl) errEl.textContent='';
+  if(err){ if(errEl) errEl.textContent=err; return; }
+  const s = appData.schwab, f = appData.fidelity;
+  const mdy = meYmdToMdy(v.date);        // broker-record date format
+  const ymd = v.date;                    // cash.adjustments date format (YYYY-MM-DD)
+  const sym = (v.symbol||'').trim().toUpperCase();
+  const amount = meNum(v.amount), price = meNum(v.price), fees = meNum(v.fees)||0;
+  let desc='';
+  let cashNudge=false;
+  try {
+    switch(type){
+      case 'stkdiv':
+        if(!s.stockDividends) s.stockDividends=[];
+        s.stockDividends.push({ id:impGenId('sdiv'), date:mdy, symbol:sym, amount:impRound2(amount), divType:v.divType||'non-qual', action:'Manual' });
+        desc=sym+' dividend $'+meFmt(amount); cashNudge=true; break;
+      case 'etfdiv':
+        if(!s.dividends) s.dividends=[];
+        s.dividends.push({ id:impGenId('div'), date:mdy, symbol:sym, amount:impRound2(amount), divType:'non-qual', action:'Manual' });
+        desc=sym+' ETF dividend $'+meFmt(amount); cashNudge=true; break;
+      case 'int':
+        if(!s.interest) s.interest=[];
+        s.interest.push({ id:impGenId('int'), date:mdy, amount:impRound2(amount), description:(v.desc||'').trim()||'Manual interest' });
+        desc='interest $'+meFmt(amount); cashNudge=true; break;
+      case 'xfer':
+        if(!s.cash) s.cash={seed:0,seedDate:null};
+        if(!Array.isArray(s.cash.adjustments)) s.cash.adjustments=[];
+        s.cash.adjustments.push({ id:'adj_'+(s.cash.adjustments.length+1).toString().padStart(6,'0'), date:ymd, amount:impRound2(amount), description:(v.desc||'').trim()||'Manual cash transfer', source:'manual', addedAt:new Date().toISOString() });
+        desc='cash '+(amount>=0?'+':'−')+'$'+meFmt(Math.abs(amount)); cashNudge=true; break;
+      case 'sto': {
+        if(!s.optionTrades) s.optionTrades=[];
+        const full=String(v.contract).trim().replace(/\s+/g,' ');
+        const parts=(full.match(/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/)||[]);
+        s.optionTrades.push({ id:impGenId('t'), underlying:full.split(' ')[0], fullSymbol:full,
+          expiry:parts[2]||'', strike:parseFloat(parts[3])||0, optType:parts[4]||'P',
+          contracts:Math.abs(parseInt(v.contracts,10))||null,
+          stoDate:mdy, stoPrice:impRound4(price)||impRound4(meNum(v.price)), stoFees:impRound2(fees), stoAmt:impRound2(amount),
+          closeDate:null, closePrice:null, closeFees:null, closeAmt:null,
+          closeType:'open', realizedPL:null, assignedShares:null, effectiveCostBasis:null,
+          washSaleFlag:false, washSaleDisallowed:0, washSaleLink:null,
+          rollGroupId:null, rollKind:null, status:'open', source:'manual' });
+        desc=full+' STO'; cashNudge=true; break;
+      }
+      case 'optclose': {
+        const open=(s.optionTrades||[]).find(t=>t.id===v.leg && t.status==='open');
+        if(!open) throw new Error('open leg not found');
+        const isPut=/P$/i.test(open.optType||open.fullSymbol||'');
+        const ct = v.closeType==='Expired' ? 'expired' : (v.closeType==='Assigned' ? (isPut?'assigned-put':'assigned-call') : 'btc');
+        open.closeDate=mdy; open.closePrice=impRound4(price); open.closeFees=impRound2(fees); open.closeAmt=impRound2(amount);
+        open.closeType=ct; open.realizedPL=impRound2((open.stoAmt||0)+(impRound2(amount)||0)); open.status='closed';
+        desc=(open.fullSymbol||'option')+' '+v.closeType; cashNudge=true; break;
+      }
+      case 'buy': {
+        if(!s.stocks) s.stocks=[];
+        let stk=s.stocks.find(x=>x.symbol===sym);
+        if(!stk){ stk={symbol:sym, name:sym, lots:[], sells:[], source:'manual'}; s.stocks.push(stk); }
+        if(!stk.sells) stk.sells=[];
+        const shares=impRoundShares(meNum(v.shares));
+        stk.lots.push({ id:impGenId('lot'), date:mdy, shares:shares, originalShares:shares, costPerShare:impRound4(meNum(v.cps)), source:'manual' });
+        desc=sym+' buy '+shares+' sh'; cashNudge=true; break;
+      }
+      case 'sell': {
+        const stk=(s.stocks||[]).find(x=>x.symbol===sym);
+        if(!stk) throw new Error('no lots on file for '+sym);
+        if(!stk.sells) stk.sells=[];
+        const plan=impConsumeLotsFIFO(stk, meNum(v.shares), mdy, meNum(v.price), fees);
+        impApplyFIFOConsumption(stk, plan);
+        const rec=impBuildSellRecord(plan, mdy, meNum(v.price), fees); rec.source='manual';
+        stk.sells.push(rec);
+        desc=sym+' sell '+meNum(v.shares)+' sh'; cashNudge=true; break;
+      }
+      case 'fdiv':
+        if(!f.dividends) f.dividends=[];
+        f.dividends.push({ id:impGenId('fdiv'), date:mdy, symbol:sym, amount:impRound2(amount), divType:v.divType||'non-qual' });
+        desc=sym+' dividend $'+meFmt(amount); break;
+      case 'fint':
+        if(!f.interest) f.interest=[];
+        f.interest.push({ id:impGenId('fint'), date:mdy, amount:impRound2(amount), description:(v.desc||'').trim()||'Interest earned' });
+        desc='interest $'+meFmt(amount); break;
+      case 'fcash':
+        if(!f.cash) f.cash={};
+        f.cash.balance=impRound2(amount); f.cash.balanceDate=mdy;
+        desc='Fidelity cash → $'+meFmt(amount); break;
+      case 'fbuy': {
+        if(!f.positions) f.positions=[];
+        let pos=f.positions.find(x=>x.symbol===sym);
+        if(!pos){ pos={symbol:sym, name:sym, lots:[], sells:[], currentPrice:null, priceChange:null, priceChangePct:null, lastPriceUpdate:null, source:'manual'}; f.positions.push(pos); }
+        if(!pos.sells) pos.sells=[];
+        const shares=impRoundShares(meNum(v.shares));
+        pos.lots.push({ id:impGenId('lot'), date:mdy, shares:shares, originalShares:shares, costPerShare:impRound4(meNum(v.cps)), source:'manual' });
+        desc=sym+' buy '+shares+' sh'; break;
+      }
+      case 'fsell': {
+        const pos=(f.positions||[]).find(x=>x.symbol===sym);
+        if(!pos) throw new Error('no lots on file for '+sym);
+        if(!pos.sells) pos.sells=[];
+        const plan=impConsumeLotsFIFO(pos, meNum(v.shares), mdy, meNum(v.price), fees);
+        impApplyFIFOConsumption(pos, plan);
+        const rec=impBuildSellRecord(plan, mdy, meNum(v.price), fees); rec.source='manual';
+        pos.sells.push(rec);
+        desc=sym+' sell '+meNum(v.shares)+' sh'; break;
+      }
+      default: throw new Error('unknown entry type');
+    }
+  } catch(e){ if(errEl) errEl.textContent='Could not add entry: '+(e&&e.message?e.message:'unknown error'); return; }
+
+  if(typeof trnInvalidate==='function') trnInvalidate();
+  autoSave();
+  if(typeof renderAll==='function') renderAll();
+  meClose();
+  const reconcileable = broker==='schwab' && cashNudge && s.cash && s.cash.seedDate;
+  toast('Added '+desc + (reconcileable ? ' · run Cash Reconciliation to refresh cash' : ''), 'success');
+}
+
+/* ═════════════════════════════════════════════════════════════
    AUTO-ROLL ALERTS · v2.7.0 (80% profit trigger added v2.9.0)
    Surfaces three triggers on open option positions: 21 DTE, assignment risk,
    and 80% profit. The 80% trigger (v2.9.0) reads live option marks from
@@ -17229,6 +17638,14 @@ function impRound2(x){return Math.round(x*100)/100;}
 function impRound4(x){return Math.round(x*10000)/10000;}
 function impGenId(p){return p+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);}
 
+/* v2.28.2 · Schwab MM/DD/YYYY → YYYY-MM-DD. Used when committing a MoneyLink Transfer to
+   cash.adjustments[], whose date is parsed by _reconParseLocal (YYYY-MM-DD only) in the
+   reconciliation walk. Returns the input unchanged if it isn't a recognized MM/DD/YYYY date. */
+function impMdyToYmd(d){
+  const m = String(d||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  return m ? `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}` : d;
+}
+
 function impConsumeLotsFIFO(position, sharesToSell, sellDate, sellPricePerShare, sellFees) {
   sharesToSell = impRoundShares(sharesToSell);
   sellFees = impRound2(sellFees || 0);
@@ -17318,7 +17735,9 @@ function impDetectBroker(text) {
 const IMP_SCHWAB_IMPORT = new Set([
   'Buy','Sell','Sell to Open','Buy to Close','Assigned','Expired',
   'Cash Dividend','Pr Yr Cash Div','Qualified Dividend','Non-Qualified Div',
-  'Credit Interest','Bank Interest'
+  'Special Qual Div',     // v2.28.2 · special one-off QUALIFIED distribution (e.g. JMKE) — routed to stockDividends as qual
+  'Credit Interest','Bank Interest',
+  'MoneyLink Transfer'    // v2.28.2 · ACH cash deposit/withdrawal — routed to cash.adjustments so the reconciliation walk includes it
 ]);
 // Schwab-modern corp-action skips (manual review may be needed for active positions)
 const IMP_SCHWAB_SKIP_WARN = new Set(['Stock Merger','Reverse Split','Journal','Cash In Lieu','Other']);
@@ -17329,7 +17748,9 @@ const IMP_SCHWAB_SKIP_WARN = new Set(['Stock Merger','Reverse Split','Journal','
 const IMP_SCHWAB_TDA_LEGACY = new Set([
   'Journaled Shares',      // polyglot: cash sweeps, transfers, embedded option events, corp actions
   'Internal Transfer',     // TDA→Schwab account migration receiving leg
-  'MoneyLink Transfer',    // ACH cash deposits/withdrawals
+  // 'MoneyLink Transfer' moved to IMP_SCHWAB_IMPORT in v2.28.2 — a current-Schwab ACH cash
+  // deposit/withdrawal is a real go-forward cash event, now committed to cash.adjustments[]
+  // (pre-2026 TDA-era MoneyLinks are still absorbed by the canonical generator + the import cutoff).
   'Bond Interest',         // TDA's name for Credit Interest
   'ADR Mgmt Fee',          // ADR custody fees
   'Sell to Close'          // long option exit (rare; not currently modeled)
@@ -17561,7 +17982,8 @@ function impCategorizeSchwab(parsed) {
     optsClose:{ new:[], dup:[], label:'Option Trades — Closed' },
     etfDivs:  { new:[], dup:[], label:'ETF Dividends' },
     stkDivs:  { new:[], dup:[], label:'Stock Dividends' },
-    interest: { new:[], dup:[], label:'Credit Interest' }
+    interest: { new:[], dup:[], label:'Credit Interest' },
+    transfers:{ new:[], dup:[], label:'Cash Transfers (MoneyLink)' }
   };
 
   // ── Pass 1: categorize everything EXCEPT sells. Buys establish future lots. ──
@@ -17600,13 +18022,24 @@ function impCategorizeSchwab(parsed) {
         const dup = (s.stockDividends||[]).find(d=>d.date===r.date && d.symbol===r.symbol && Math.abs(d.amount-r.amount)<0.01);
         (dup?cats.stkDivs.dup:cats.stkDivs.new).push({ ...r, _divType: 'non-qual' });
       }
-    } else if (r.action === 'Qualified Dividend' || r.action === 'Non-Qualified Div') {
-      const divType = r.action==='Qualified Dividend' ? 'qual' : 'non-qual';
+    } else if (r.action === 'Qualified Dividend' || r.action === 'Special Qual Div' || r.action === 'Non-Qualified Div') {
+      // v2.28.2 · 'Special Qual Div' = a special one-off QUALIFIED distribution (e.g. JMKE) — classed qual
+      // alongside ordinary 'Qualified Dividend'. User can still flip to non-qual via the Transactions edit modal.
+      const divType = (r.action==='Qualified Dividend' || r.action==='Special Qual Div') ? 'qual' : 'non-qual';
       const dup = (s.stockDividends||[]).find(d=>d.date===r.date && d.symbol===r.symbol && Math.abs(d.amount-r.amount)<0.01);
       (dup?cats.stkDivs.dup:cats.stkDivs.new).push({ ...r, _divType: divType });
     } else if (r.action === 'Credit Interest' || r.action === 'Bank Interest') {
       const dup = (s.interest||[]).find(i=>i.date===r.date && Math.abs(i.amount-r.amount)<0.01);
       (dup?cats.interest.dup:cats.interest.new).push(r);
+    } else if (r.action === 'MoneyLink Transfer') {
+      // v2.28.2 · ACH cash transfer in/out (amount sign = direction: + deposit, − withdrawal).
+      // Committed to schwab.cash.adjustments[] so the reconciliation engine's adjustment walk (step 7)
+      // counts it — previously hard-skipped as TDA-legacy, forcing a manual adjustment. Dedup against
+      // existing adjustments by normalized date (YYYY-MM-DD) + amount so re-imports don't double-count.
+      const ymd = impMdyToYmd(r.date);
+      const adjs = (s.cash && s.cash.adjustments) || [];
+      const dup = adjs.find(a => a.date === ymd && Math.abs((Number(a.amount)||0) - r.amount) < 0.01);
+      (dup?cats.transfers.dup:cats.transfers.new).push(r);
     }
   }
 
@@ -17794,6 +18227,7 @@ function impRenderPreview(broker, cat) {
     wrap.appendChild(impRenderSection(c.etfDivs,'div'));
     wrap.appendChild(impRenderSection(c.stkDivs,'stkDiv'));
     wrap.appendChild(impRenderSection(c.interest,'int'));
+    wrap.appendChild(impRenderSection(c.transfers,'transfer'));
   } else {
     wrap.appendChild(impRenderSection(c.buys,'fidBuy'));
     wrap.appendChild(impRenderSection(c.dividends,'fidDiv'));
@@ -17815,6 +18249,7 @@ function impRenderSection(sec, rowKind) {
   else if (rowKind==='sell') totalLbl = `proceeds: $${impFmt(totalAmt)}`;
   else if (rowKind==='div' || rowKind==='stkDiv' || rowKind==='fidDiv') totalLbl = `income: $${impFmt(totalAmt)}`;
   else if (rowKind==='int') totalLbl = `interest: $${impFmt(totalAmt)}`;
+  else if (rowKind==='transfer') totalLbl = `net transfer: $${impFmt(totalAmt)}`;
   else if (rowKind==='optOpen' || rowKind==='optClose') totalLbl = `net: $${impFmt(totalAmt)}`;
   wrap.innerHTML = `
     <div class="imp-section-head" onclick="this.parentElement.classList.toggle('open')">
@@ -17888,6 +18323,9 @@ function impRenderRow(r, kind, isDup) {
   } else if (kind === 'int') {
     meat = `<span class="sym">Interest</span> <span class="sub">${safeDesc}</span>`;
     amt = `+$${impFmt(r.amount)}`; amtCls = 'pos';
+  } else if (kind === 'transfer') {
+    meat = `<span class="sym">${r.amount>=0?'Deposit':'Withdrawal'}</span> <span class="sub">${safeDesc}</span>`;
+    amt = `${r.amount>=0?'+':'−'}$${impFmt(Math.abs(r.amount))}`; amtCls = r.amount>=0 ? 'pos' : 'neg';
   } else if (kind === 'fidBuy') {
     meat = `<span class="sym">${safeSym}</span> · ${r.qty} sh @ $${impFmt(r.price)} <span class="sub">${safeDesc}</span>`;
     amt = `$${impFmt(Math.abs(r.amount))}`;
@@ -18427,6 +18865,24 @@ function impCommitSchwab(c) {
   for (const r of c.interest.new) {
     s.interest.push({ id: impGenId('int'), date: r.date, amount: impRound2(r.amount), description: r.desc || r.action });
     bumpDate(r.date); imported++;
+  }
+  // v2.28.2 · MoneyLink cash transfers → schwab.cash.adjustments[]. Same schema/sequential-id
+  // pattern as reconSave's manual commit, tagged source:'csv-import' for provenance. Date stored
+  // as YYYY-MM-DD so the reconciliation adjustment walk (_reconParseLocal) picks it up.
+  if (c.transfers && c.transfers.new.length) {
+    if (!s.cash) s.cash = { seed: 0, seedDate: null };
+    if (!Array.isArray(s.cash.adjustments)) s.cash.adjustments = [];
+    for (const r of c.transfers.new) {
+      s.cash.adjustments.push({
+        id: 'adj_' + (s.cash.adjustments.length + 1).toString().padStart(6, '0'),
+        date: impMdyToYmd(r.date),
+        amount: impRound2(r.amount),
+        description: (r.desc && r.desc.trim()) ? r.desc.trim() : (r.action || 'MoneyLink Transfer'),
+        source: 'csv-import',
+        addedAt: new Date().toISOString()
+      });
+      bumpDate(r.date); imported++;
+    }
   }
 
   if (maxDate !== '01/01/1900') s.lastCsvImportDate = maxDate;
@@ -22883,6 +23339,16 @@ function _reconWalkExtraRows(cats, inWindow){
     if(!inWindow(d)) continue;
     const amt = Number(r.amount) || 0;
     if(amt !== 0) flows.push({date:r.date, kind:'pendingImport-interest', symbol:'', amount:amt});
+  }
+
+  // v2.28.2 · Cash transfers (MoneyLink ACH) → signed cash (+ deposit, − withdrawal).
+  // Mirrors the committed path (cash.adjustments → runReconciliation step 7); walked here on the
+  // raw CSV MM/DD/YYYY date so the pre-commit POST-IMPORT drift preview reflects the transfer.
+  for(const r of (cats.transfers && cats.transfers.new) || []){
+    const d = _reconParseSchwab(r.date);
+    if(!inWindow(d)) continue;
+    const amt = Number(r.amount) || 0;
+    if(amt !== 0) flows.push({date:r.date, kind:'pendingImport-transfer', symbol:'', amount:amt});
   }
 
   return flows;
