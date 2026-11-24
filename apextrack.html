@@ -787,9 +787,8 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
   <div class="fld"><label>Assignment name</label><input id="gr-f-asgn"></div>
   <div class="fld-2">
     <div class="fld"><label>Date</label><input id="gr-f-date" type="date"></div>
-    <div class="fld"><label>Score</label><div id="gr-f-score-wrap"><input id="gr-f-score-num"><select id="gr-f-score-esnu" style="display:none"><option value="">— pick —</option><option value="E">E — Exceeding</option><option value="S">S — Satisfactory</option><option value="N">N — Needs Improvement</option><option value="U">U — Unsatisfactory</option></select></div></div>
+    <div class="fld"><label>Score</label><div id="gr-f-score-wrap"><input id="gr-f-score-num"><select id="gr-f-score-esnu" style="display:none"><option value="">— pick —</option><option value="E">E — Exceeding</option><option value="S">S — Satisfactory</option><option value="N">N — Needs Improvement</option><option value="U">U — Unsatisfactory</option></select></div><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11.5px;color:var(--text3);margin-top:6px"><span class="sw"><input type="checkbox" id="gr-f-pending"><span class="track"></span></span> Pending</label></div>
   </div>
-  <div class="fld" style="margin-top:-2px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)"><span class="sw"><input type="checkbox" id="gr-f-pending"><span class="track"></span></span> Pending — no grade yet</label></div>
   <div class="sheet-actions">
     <button class="btn danger" id="gr-delete-btn" type="button" style="display:none;flex:0 0 auto;width:auto;padding:6px 14px">Delete</button>
     <button class="btn" id="gr-sheet-cancel" type="button">Cancel</button>
