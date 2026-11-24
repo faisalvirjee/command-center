@@ -1,4 +1,4 @@
-<!-- ApexTrack — Family School Tracker | v0.7.7 | 2026-11-04 -->
+<!-- ApexTrack — Family School Tracker | v0.7.8 | 2026-11-24 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -783,6 +783,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
     <div class="fld"><label>Date</label><input id="gr-f-date" type="date"></div>
     <div class="fld"><label>Score</label><div id="gr-f-score-wrap"><input id="gr-f-score-num"><select id="gr-f-score-esnu" style="display:none"><option value="">— pick —</option><option value="E">E — Exceeding</option><option value="S">S — Satisfactory</option><option value="N">N — Needs Improvement</option><option value="U">U — Unsatisfactory</option></select></div></div>
   </div>
+  <div class="fld" style="margin-top:-2px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)"><input type="checkbox" id="gr-f-pending" style="width:auto;accent-color:var(--amber)"> Pending — no grade yet</label></div>
   <div class="sheet-actions">
     <button class="btn danger" id="gr-delete-btn" type="button" style="display:none;flex:0 0 auto;width:auto;padding:6px 14px">Delete</button>
     <button class="btn" id="gr-sheet-cancel" type="button">Cancel</button>
@@ -930,7 +931,7 @@ pre#logBox{background:var(--bg2);border:1px solid var(--border);border-radius:8p
 /* ════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════ */
-const APP_VERSION='v0.7.7';
+const APP_VERSION='v0.7.8';
 const APP_NAME='ApexTrack';
 const SCHEMA_VERSION=1;
 const ENV_VERSION=1;
@@ -2528,8 +2529,8 @@ function renderItemModal(){
   const editB=el('button','btn');editB.innerHTML='<i class="ti ti-edit" aria-hidden="true"></i> Edit';
   editB.addEventListener('click',()=>{const entry=_detailEntry;closeDetail();editWithScope(it.id,entry&&entry.instanceDate)});
   dacts.appendChild(editB);
-  if(it.needsSource){const sb=el('button','btn');sb.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Source found';sb.addEventListener('click',async()=>{await upsert('items',{id:it.id,needsSource:false,needsSourceReason:''});toast('Source cleared','success');renderItemModal();renderView()});dacts.appendChild(sb)}
-  if(it.needsReview){const rb=el('button','btn');rb.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Reviewed';rb.addEventListener('click',async()=>{await upsert('items',{id:it.id,needsReview:false,needsReviewReason:''});toast('Marked reviewed','success');renderItemModal();renderView()});dacts.appendChild(rb)}
+  if(it.needsSource){const sb=el('button','btn');sb.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Source found';sb.addEventListener('click',async()=>{sb.disabled=true;busy('Clearing source flag\u2026');try{await upsert('items',{id:it.id,needsSource:false,needsSourceReason:''});busyDone();toast('Source cleared','success');closeDetail();renderView()}catch(e){busyDone();sb.disabled=false;toast(errMsg(e),'error')}});dacts.appendChild(sb)}
+  if(it.needsReview){const rb=el('button','btn');rb.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Reviewed';rb.addEventListener('click',async()=>{rb.disabled=true;busy('Marking reviewed\u2026');try{await upsert('items',{id:it.id,needsReview:false,needsReviewReason:''});busyDone();toast('Marked reviewed','success');closeDetail();renderView()}catch(e){busyDone();rb.disabled=false;toast(errMsg(e),'error')}});dacts.appendChild(rb)}
   c.appendChild(dacts);
   // original message
   if(it.messageBody){
@@ -2952,7 +2953,7 @@ function buildGradeReport(kidId,term){
       esnuRating,weightLabel:wStr,
       assignments:c.assignments.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(a=>({
         date:a.date||'',name:a.assignmentName||a.name||'',component:(a.componentName||'').replace('*',''),
-        score:a.rawScore!=null?a.rawScore:a.score
+        score:a.rawScore!=null?a.rawScore:a.score,pending:!!a.pending
       }))
     };
   });
@@ -2967,6 +2968,7 @@ function computeCourseAvg(course){
   const comps={}; // componentName → {scores:[], weight}
   for(const a of course.assignments){
     if(a.zeroPoint||a.pctOfGrade===0)continue; // zero-weight: shows in gradebook but doesn't count
+    if(a.pending&&a.rawScore==null)continue; // pending: administered but not yet graded
     const cn=a.componentName||'AKS Progress*';
     if(!comps[cn])comps[cn]={scores:[],weight:kw[cn]||a.componentWeight||null,name:cn};
     const s=parseFloat(a.rawScore);
@@ -3379,7 +3381,10 @@ function renderGrades(root){
           if(isZP){const zBadge=el('span','zp-badge','0 pt');nameEl.appendChild(zBadge)}
           row.appendChild(nameEl);
           const s=parseFloat(a.rawScore);
-          const sc=el('span','asgn-score '+gradeColor(s),isNaN(s)?String(a.rawScore||''):String(Math.round(s)));row.appendChild(sc);
+          let scoreDisp;if(a.pending&&a.rawScore==null){scoreDisp='\u2014';} else{scoreDisp=isNaN(s)?String(a.rawScore||''):String(Math.round(s));}
+          const sc=el('span','asgn-score '+(a.pending?'':gradeColor(s)),scoreDisp);
+          if(a.pending){sc.style.color='var(--act-txt)';sc.style.fontStyle='italic';sc.setAttribute('title','Pending — no grade yet')}
+          row.appendChild(sc);
           const eb=el('button','asgn-edit');eb.innerHTML='<i class="ti ti-pencil"></i>';eb.addEventListener('click',e=>{e.stopPropagation();openGradeEdit(a)});row.appendChild(eb);
           cg.appendChild(row);
         }
@@ -3741,6 +3746,9 @@ function openGradeEdit(existing){
     $('gr-sheet-title').textContent='Edit grade';
     $('gr-delete-btn').style.display='';
     syncScoreField();
+    const isPend=!!existing.pending;
+    if($('gr-f-pending'))$('gr-f-pending').checked=isPend;
+    $('gr-f-score-num').disabled=isPend;$('gr-f-score-esnu').disabled=isPend;
     setScoreValue(existing.rawScore!=null?String(existing.rawScore):'');
   }else{
     // add mode: show course selector
@@ -3754,6 +3762,8 @@ function openGradeEdit(existing){
     $('gr-sheet-title').textContent='Add grade';
     $('gr-delete-btn').style.display='none';
     $('gr-f-scale').value='numeric-100';
+    if($('gr-f-pending'))$('gr-f-pending').checked=false;
+    $('gr-f-score-num').disabled=false;$('gr-f-score-esnu').disabled=false;
     syncScoreField();
     setScoreValue('');
   }
@@ -3777,15 +3787,17 @@ async function saveGrade(){
   const btn=$('gr-sheet-save');if(btn)btn.disabled=true;
   const course=$('gr-f-course').value.trim();
   const score=getScoreValue().trim();
+  const isPending=!!($('gr-f-pending')&&$('gr-f-pending').checked);
   if(!GRADE_EDIT_ID&&!$('gr-f-course-sel').value){toast('Select a course first','error');if(btn)btn.disabled=false;return}
-  if(!score){toast('Score is required','error');if(btn)btn.disabled=false;return}
+  if(!isPending&&score===''){toast('Score is required','error');if(btn)btn.disabled=false;return}
   const scale=$('gr-f-scale').value;
   const comp=$('gr-f-comp-vis').value;
+  const rawScore=isPending?null:(scale==='ESNU'?score:parseFloat(score));
   const obj={
     kidId:$('gr-f-kid-val').value,
     course:course||'',courseCode:$('gr-f-code').value||'',
     assignmentName:$('gr-f-asgn').value.trim(),
-    rawScore:scale==='ESNU'?score:parseFloat(score),
+    rawScore,pending:isPending,
     date:$('gr-f-date').value||null,
     componentName:comp,
     componentWeight:kidWeights($('gr-f-kid-val').value)[comp]||null,
@@ -4032,11 +4044,12 @@ function gradeReportHTML(report,showCharts){
     }
     for(const cn of compOrder){
       const items=groups[cn];if(!items||!items.length)continue;
-      const avg=Math.round(items.reduce((s,a)=>s+(parseFloat(a.score)||0),0)/items.length);
-      h+='<div class="gx-comp-label">'+esc(compLabels[cn]||cn)+' <span class="gx-comp-avg">avg '+avg+'</span></div>';
+      const scored=items.filter(a=>!a.pending||a.score!=null);
+      const avg=scored.length?Math.round(scored.reduce((s,a)=>s+(parseFloat(a.score)||0),0)/scored.length):null;
+      h+='<div class="gx-comp-label">'+esc(compLabels[cn]||cn)+(avg!=null?' <span class="gx-comp-avg">avg '+avg+'</span>':'')+'</div>';
       h+='<table class="gx-detail"><tr><td>Date</td><td>Assignment</td><td>Score</td></tr>';
       for(const a of items){
-        const scoreDisp=a.score!=null?Math.round(parseFloat(a.score))||a.score:'\u2014';
+        const scoreDisp=a.pending&&a.score==null?'<em style="color:#999">Pending</em>':(a.score!=null?Math.round(parseFloat(a.score))||a.score:'\u2014');
         h+='<tr><td>'+shortDate(a.date)+'</td><td>'+esc(a.name)+'</td><td>'+scoreDisp+'</td></tr>';
       }
       h+='</table>';
@@ -4046,7 +4059,7 @@ function gradeReportHTML(report,showCharts){
       if(!compOrder.includes(cn)){
         h+='<table class="gx-detail"><tr><td>Date</td><td>Assignment</td><td>Score</td></tr>';
         for(const a of groups[cn]){
-          const scoreDisp=a.score!=null?Math.round(parseFloat(a.score))||a.score:'\u2014';
+          const scoreDisp=a.pending&&a.score==null?'<em style="color:#999">Pending</em>':(a.score!=null?Math.round(parseFloat(a.score))||a.score:'\u2014');
           h+='<tr><td>'+shortDate(a.date)+'</td><td>'+esc(a.name)+'</td><td>'+scoreDisp+'</td></tr>';
         }
         h+='</table>';
@@ -4234,7 +4247,8 @@ function giRenderPreview(p){
       }else{
         const t=el('div','imp-t');t.appendChild(el('span','',item.rec.assignmentName||'(untitled)'));
         t.appendChild(el('span','tag '+(cls==='new'?'new':'upd'),item.status));bd.appendChild(t);
-        const meta=[item.rec.date,item.rec.componentName,'Score: '+item.rec.rawScore].filter(Boolean);
+        const scoreLabel=item.rec.pending&&item.rec.rawScore==null?'Pending':'Score: '+item.rec.rawScore;
+        const meta=[item.rec.date,item.rec.componentName,scoreLabel].filter(Boolean);
         bd.appendChild(el('div','imp-m',meta.join(' · ')));
       }
       row.appendChild(bd);body.appendChild(row);
@@ -4808,6 +4822,7 @@ function wire(){
   on('gr-sheet-close',()=>closeSheet('sheet-grade'));
   on('gr-sheet-cancel',()=>closeSheet('sheet-grade'));
   on('gr-sheet-save',saveGrade);
+  const grPend=$('gr-f-pending');if(grPend)grPend.addEventListener('change',()=>{const on=grPend.checked;$('gr-f-score-num').disabled=on;$('gr-f-score-esnu').disabled=on;if(on){$('gr-f-score-num').value='';$('gr-f-score-esnu').value=''}});
   on('gr-delete-btn',deleteGrade);
   on('gr-new-course-link',()=>{closeSheet('sheet-grade');openCourseEdit(null,'grade')});
   $('gr-f-course-sel').addEventListener('change',onCourseSelect);
